@@ -54,8 +54,12 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
     ngay: t.ngay, company: t.company, type: t.type, ma_sku: t.maSku, dien_giai: t.dienGiai,
     khach: t.khach, contact: t.contact, expense: t.expense,
     ar_cash: t.arCash, ar_bankwire: t.arBankwire, ar_zelle: t.arZelle, ar_check: t.arCheck,
-    rc_jm_no: t.rcJmNo || null, source_1: t.source1 || null, sale_1: t.sale1 || null,
-    sale_online: t.saleOnline || null, bell_code: t.bellCode || null, trang_thai: t.trangThai,
+    rc_jm_no: t.rcJmNo || null, so_no: t.soNo || null, appt_id: t.apptId || null,
+    source_1: t.source1 || null, source_2: t.source2 || null, sale_1: t.sale1 || null,
+    sale_online: t.saleOnline || null, transaction_value: t.transactionValue || null,
+    pct_support: t.pctSupport ?? null, old_receipt_no: t.oldReceiptNo || null,
+    deposit_date: t.depositDate || null, bell_code: t.bellCode || null,
+    note: t.note || null, trang_thai: t.trangThai,
   }).select("id").single();
   if (error) throw error;
   const id = data!.id as string;

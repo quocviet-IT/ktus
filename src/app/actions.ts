@@ -12,26 +12,46 @@ export interface RcInput {
   contact?: string;
   maSku?: string;
   dienGiai?: string;
+  expense?: number;
+  arCash?: number;
+  arBankwire?: number;
+  arZelle?: number;
+  arCheck?: number;
   pay: "cash" | "bank_wire" | "zelle" | "check" | "card";
   // dòng hàng (nhập riêng — gộp khi lưu)
-  lines: { moTa: string; soLuong: number; donGia: number; giaNo?: string }[];
+  lines: { moTa: string; soLuong: number; donGia: number; giaNo?: string; sku?: string }[];
   // bước 2 (JM) — có thể bỏ trống
   rcJmNo?: string;
+  soNo?: string;
+  apptId?: string;
   source1?: string;
+  source2?: string;
   sale1?: string;
+  saleOnline?: string;
+  transactionValue?: string;
+  pctSupport?: number;
+  oldReceiptNo?: string;
+  depositDate?: string;
   bellCode?: string;
+  note?: string;
 }
 
 // BR-07: gộp dòng & tự tính tổng → đổ vào A/R theo hình thức; BR-01 sẽ tự phân loại khi hiển thị
 export async function createRc(input: RcInput) {
   const lineItems: LineItem[] = input.lines
     .filter((l) => l.moTa || l.donGia)
-    .map((l, i) => ({ id: "li" + i, moTa: l.moTa, giaNo: l.giaNo, soLuong: Number(l.soLuong) || 0, donGia: Number(l.donGia) || 0 }));
+    .map((l, i) => ({ id: "li" + i, moTa: l.moTa, sku: l.sku, giaNo: l.giaNo, soLuong: Number(l.soLuong) || 0, donGia: Number(l.donGia) || 0 }));
   const tong = lineItems.reduce((s, l) => s + l.soLuong * l.donGia, 0);
 
-  const ar = { arCash: 0, arBankwire: 0, arZelle: 0, arCheck: 0 };
+  const ar = {
+    arCash: Number(input.arCash) || 0,
+    arBankwire: Number(input.arBankwire) || 0,
+    arZelle: Number(input.arZelle) || 0,
+    arCheck: Number(input.arCheck) || 0,
+  };
   const isPO = input.type === "po" || input.type === "return" || input.type === "exchange";
-  if (!isPO) {
+  const hasManualReceivable = ar.arCash || ar.arBankwire || ar.arZelle || ar.arCheck;
+  if (!isPO && !hasManualReceivable) {
     if (input.pay === "cash") ar.arCash = tong;
     else if (input.pay === "bank_wire") ar.arBankwire = tong;
     else if (input.pay === "zelle") ar.arZelle = tong;
@@ -43,11 +63,16 @@ export async function createRc(input: RcInput) {
     ngay: input.ngay, company: input.company, type: input.type,
     maSku: input.maSku, dienGiai: input.dienGiai || lineItems[0]?.moTa || "",
     khach: input.khach, contact: input.contact,
-    expense: isPO ? tong : 0, ...ar,
-    rcJmNo: input.rcJmNo || "", source1: input.source1 || "", sale1: input.sale1,
-    bellCode: input.bellCode, trangThai: input.type === "deposit" ? "dat_coc" : "hoan_tat",
+    expense: Number(input.expense) || (isPO ? tong : 0), ...ar,
+    rcJmNo: input.rcJmNo || "", soNo: input.soNo || "", apptId: input.apptId || "",
+    source1: input.source1 || "", source2: input.source2 || "", sale1: input.sale1,
+    saleOnline: input.saleOnline || "", transactionValue: input.transactionValue || "",
+    pctSupport: input.pctSupport ? Number(input.pctSupport) : undefined,
+    oldReceiptNo: input.oldReceiptNo || "", depositDate: input.depositDate || undefined,
+    bellCode: input.bellCode, note: input.note || "",
+    trangThai: input.type === "deposit" ? "dat_coc" : "hoan_tat",
     lineItems,
-    payments: isPO ? [] : [{ id: "p0", ngay: input.ngay, soTien: tong, hinhThuc: input.pay, isDau: true }],
+    payments: isPO ? [] : [{ id: "p0", ngay: input.ngay, soTien: ar.arCash + ar.arBankwire + ar.arZelle + ar.arCheck, hinhThuc: input.pay, isDau: true }],
   });
   revalidatePath("/"); revalidatePath("/rc"); revalidatePath("/missing-source");
   redirect(`/rc/${rec.id}`);
