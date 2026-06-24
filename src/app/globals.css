@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+body { @apply bg-ground text-text font-sans; }
+
+/* hairline cho danh sách */
+.divide-line > * + * { border-top: 1px solid #D8E0D4; }
+
+/* badge */
+.badge { @apply inline-block font-mono text-[10.5px] px-2 py-0.5 rounded-full whitespace-nowrap; }
+
+/* dòng danh sách RC (ui-ux §4) */
+.rcrow { @apply flex items-center gap-4 px-2 py-2.5 border-b border-line; }
+.rcrow:hover { @apply bg-accentSoft; }
+
+/* nhãn cột tự tính ƒ */
+.fx-field { @apply bg-band text-muted; }

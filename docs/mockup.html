@@ -1,0 +1,780 @@
+<title>KTUS · Mockup theo Quy trình các CV KTUS</title>
+<style>
+  :root{
+    --app-bg:#EEF2EC; --sidebar:#16201B; --sidebar-2:#1F2D26; --card:#FFFFFF;
+    --text:#1B2620; --muted:#637067; --line:#D8E0D4;
+    --accent:#A87B2E; --accent-soft:#F3E9D3; --green:#2E5D45; --band:#EFF4EB;
+    --red:#BC4632; --red-soft:#F8E5E1; --ok:#2E7D55; --ok-soft:#E2F0E7; --blue-soft:#E7EDF6;
+    --serif:"Constantia","Cambria","Georgia",serif;
+    --sans:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    --mono:"Consolas","SFMono-Regular",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{background:var(--app-bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  .app{display:grid;grid-template-columns:262px 1fr;min-height:100vh;}
+
+  .side{background:var(--sidebar);color:#C9D3CB;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+  .brand{padding:18px 20px 14px;border-bottom:1px solid #2c3a32;}
+  .brand .mark{font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.12em;color:var(--accent);}
+  .brand .name{font-family:var(--serif);font-size:18px;color:#fff;margin-top:2px;}
+  .brand .sub{font-size:11px;color:#7f8c84;margin-top:1px;}
+  nav{padding:8px 10px 16px;flex:1;overflow:auto;}
+  .navlabel{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;color:#7d8a81;padding:13px 12px 5px;text-transform:uppercase;}
+  .navitem{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;color:#C9D3CB;font-family:var(--sans);font-size:13px;padding:8px 12px;border-radius:7px;cursor:pointer;position:relative;}
+  .navitem:hover,.navitem.active{background:var(--sidebar-2);color:#fff;}
+  .navitem.active::before{content:"";position:absolute;left:-10px;top:7px;bottom:7px;width:3px;background:var(--accent);border-radius:0 3px 3px 0;}
+  .navitem .ic{width:22px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--accent);flex:0 0 auto;}
+  .navitem .badge{margin-left:auto;background:var(--red);color:#fff;font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:10px;}
+  .side-foot{padding:12px 18px;border-top:1px solid #2c3a32;font-size:11px;color:#7f8c84;}
+
+  .main{display:flex;flex-direction:column;min-width:0;}
+  .top{display:flex;align-items:center;gap:14px;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap;}
+  .top h1{font-family:var(--serif);font-size:19px;margin:0;}
+  .top .crumb{font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+  .top .grow{flex:1;}
+  .field{display:flex;align-items:center;gap:7px;}
+  .field label{font-size:11px;color:var(--muted);font-family:var(--mono);}
+  select,input{font-family:var(--sans);font-size:13px;}
+  select,input[type=text],input[type=number],input[type=date]{border:1px solid var(--line);border-radius:7px;padding:6px 9px;background:#fff;color:var(--text);}
+  select:focus,input:focus{outline:2px solid var(--accent);border-color:var(--accent);}
+  .spot{font-family:var(--mono);font-size:12px;background:var(--accent-soft);color:#7a5a1d;padding:5px 10px;border-radius:7px;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;}
+
+  .legendbar{display:flex;gap:18px;align-items:center;padding:7px 24px;background:#F7FAF5;border-bottom:1px solid var(--line);font-size:12px;flex-wrap:wrap;}
+  .legendbar .man-m{color:var(--green);font-weight:700;} .legendbar .fx-m{color:var(--accent);font-weight:700;font-style:italic;}
+  .legendbar .lg-note{color:var(--muted);}
+
+  .content{padding:22px 24px 60px;}
+  .view{display:none;} .view.active{display:block;animation:fade .22s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px 15px;position:relative;overflow:hidden;}
+  .kpi .lab{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;}
+  .kpi .val{font-family:var(--serif);font-size:25px;margin-top:4px;line-height:1;}
+  .kpi .delta{font-size:11px;margin-top:6px;font-family:var(--mono);}
+  .kpi .delta.up{color:var(--ok);} .kpi .delta.down{color:var(--red);}
+  .kpi.alert{border-color:var(--red);} .kpi.alert .val{color:var(--red);}
+  .kpi .strip{position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent);}
+  .kpi.alert .strip{background:var(--red);}
+
+  .row{display:grid;gap:13px;} .row.c2{grid-template-columns:1.5fr 1fr;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:15px 17px;margin-bottom:13px;}
+  .panel h2{font-family:var(--serif);font-size:15.5px;margin:0;}
+  .panel .ph{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .panel .ph .spacer{flex:1;}
+  canvas{width:100%;height:190px;display:block;}
+  .src-file{font-family:var(--mono);font-size:10px;color:var(--green);background:var(--band);border:1px solid var(--line);border-radius:4px;padding:1px 7px;}
+
+  .scroll{overflow-x:auto;}
+  .tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:560px;}
+  .tbl.wide{min-width:980px;}
+  .tbl th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);padding:7px 9px;border-bottom:2px solid var(--line);white-space:nowrap;vertical-align:bottom;}
+  .tbl th.man{border-bottom-color:var(--green);background:rgba(46,93,69,.06);}
+  .tbl th.fx{border-bottom-color:var(--accent);background:rgba(168,123,46,.07);}
+  .tbl th.man::after{content:"✎";font-size:9px;color:var(--green);margin-left:3px;vertical-align:top;}
+  .tbl th.fx::after{content:"ƒ";font-style:italic;font-size:10px;color:var(--accent);margin-left:3px;vertical-align:top;}
+  .tbl td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  .tbl tbody tr:nth-child(even){background:var(--band);}
+  .tbl tbody tr:hover{background:var(--accent-soft);}
+  .tbl tfoot td{font-weight:700;background:var(--accent-soft);border-top:2px solid var(--accent);}
+  .num{font-family:var(--mono);text-align:right;white-space:nowrap;}
+  .rc{font-family:var(--mono);color:var(--green);font-weight:600;white-space:nowrap;}
+  .tag{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:11px;white-space:nowrap;display:inline-block;}
+  .tag.co{background:#eceee9;color:#445;} .tag.ok{background:var(--ok-soft);color:var(--ok);}
+  .tag.bad{background:var(--red-soft);color:var(--red);} .tag.warn{background:#FBEFD6;color:#8a6512;}
+  .tag.wait{background:var(--blue-soft);color:#3a5b8a;} .tag.src{background:var(--accent-soft);color:#7a5a1d;}
+  .bell{color:var(--accent);font-weight:600;white-space:nowrap;}
+  .neg{color:var(--red);} .pos{color:var(--ok);}
+
+  .btn{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:500;font-size:13px;font-family:var(--sans);}
+  .btn:hover{border-color:var(--accent);color:var(--accent);}
+  .btn.primary{background:var(--green);border-color:var(--green);color:#fff;}
+  .btn.primary:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn.sm{padding:3px 9px;font-size:12px;} .btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px;}
+
+  .form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px 14px;}
+  .fg{display:flex;flex-direction:column;gap:4px;} .fg.col2{grid-column:span 2;}
+  .fg label{font-size:11px;color:var(--muted);font-family:var(--mono);}
+  .fg .req{color:var(--red);}
+  .form-actions{display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap;}
+  .hint{font-size:12px;color:var(--muted);}
+  .toolbar{display:flex;gap:9px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+  .toolbar .spacer{flex:1;}
+  .empty{color:var(--muted);font-size:13px;padding:18px;text-align:center;}
+  /* danh sách dòng gọn (thay bảng) */
+  .rclist{display:flex;flex-direction:column;border-top:1px solid var(--line);}
+  .rcrow{display:flex;gap:14px;align-items:center;padding:11px 6px;border-bottom:1px solid var(--line);}
+  .rcrow:hover{background:var(--accent-soft);}
+  .rcrow .rc-id{font-family:var(--mono);font-weight:600;color:var(--green);min-width:104px;font-size:12.5px;}
+  .rcrow .rc-main{flex:1;min-width:0;}
+  .rcrow .rc-main .t{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rcrow .rc-main .s{font-size:11.5px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .rcrow .rc-amt{text-align:right;white-space:nowrap;font-family:var(--mono);}
+  .rcrow .rc-amt .a{font-weight:700;font-size:13.5px;}
+  .rcrow .rc-amt .s{font-size:11px;color:var(--muted);}
+  .rcrow .rc-st{min-width:96px;text-align:right;}
+  @media (max-width:720px){.rcrow .rc-id{min-width:0;}.rcrow .rc-amt,.rcrow .rc-st{min-width:0;}}
+  .legend{display:flex;gap:14px;font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:8px;flex-wrap:wrap;}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;}
+  .mini{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:13px;}
+  .minicard{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 9px 9px 0;padding:11px 13px;}
+  .minicard .l{font-size:10.5px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;}
+  .minicard .v{font-family:var(--serif);font-size:20px;margin-top:3px;}
+  .note{background:var(--accent-soft);border-radius:8px;padding:9px 13px;font-size:12.5px;color:#6c5320;margin-bottom:13px;}
+  .flowmap{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11.5px;font-family:var(--mono);color:var(--muted);margin-bottom:13px;}
+  .flowmap b{color:var(--green);} .flowmap .arr{color:var(--accent);}
+  .flow{display:flex;flex-direction:column;gap:8px;}
+  .fsec{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin:10px 0 2px;border-bottom:1px solid var(--line);padding-bottom:4px;}
+  .flow-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .fnode{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:11px 13px;cursor:pointer;min-width:170px;flex:1;transition:box-shadow .15s,border-color .15s;}
+  .fnode:hover{border-color:var(--accent);box-shadow:0 6px 18px -10px rgba(0,0,0,.35);}
+  .fnode.io{border-left-color:var(--muted);cursor:default;}
+  .fnode.manual{border-left-color:var(--green);background:rgba(46,93,69,.05);}
+  .fnode .fn-no{font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:700;}
+  .fnode .fn-t{font-weight:600;margin-top:2px;font-size:13.5px;}
+  .fnode .fn-d{font-size:11.5px;color:var(--muted);margin-top:3px;}
+  .farrow{text-align:center;color:var(--accent);font-size:18px;line-height:1;}
+  .catgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+  .catgrid .panel{margin-bottom:0;}
+  .chip{display:inline-block;font-family:var(--mono);font-size:11.5px;background:var(--band);border:1px solid var(--line);border-radius:13px;padding:3px 10px;margin:3px 4px 0 0;}
+  @media (max-width:760px){.catgrid{grid-template-columns:1fr;}}
+  .daytab{font-family:var(--mono);font-size:11.5px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 10px;cursor:pointer;color:var(--text);}
+  .daytab:hover{border-color:var(--accent);} .daytab.active{background:var(--green);color:#fff;border-color:var(--green);}
+  .cmp th.before{color:var(--red);} .cmp th.after{color:var(--ok);}
+  .cmp td.before{background:var(--red-soft);} .cmp td.after{background:var(--ok-soft);}
+  .cmp .asp{font-weight:600;}
+
+  .toast{position:fixed;right:22px;bottom:22px;background:var(--green);color:#fff;padding:11px 17px;border-radius:9px;font-size:13px;box-shadow:0 10px 30px -10px rgba(0,0,0,.4);transform:translateY(80px);opacity:0;transition:.3s;z-index:30;}
+  .toast.show{transform:none;opacity:1;}
+
+  @media (max-width:1000px){
+    .app{grid-template-columns:1fr;} .side{position:static;height:auto;}
+    .kpis{grid-template-columns:repeat(2,1fr);} .row.c2{grid-template-columns:1fr;}
+    .form-grid{grid-template-columns:1fr 1fr;} .mini{grid-template-columns:1fr 1fr;}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">HPUS · KT210</div>
+      <div class="name">Sổ vàng KTUS</div>
+      <div class="sub">Theo Quy trình các CV KTUS · 2026</div>
+    </div>
+    <nav id="nav">
+      <button class="navitem active" data-view="dash"><span class="ic">◧</span> Tổng quan</button>
+      <button class="navitem" data-view="flow"><span class="ic">⇲</span> Sơ đồ luồng</button>
+      <button class="navitem" data-view="cmp"><span class="ic">⇄</span> Trước / Sau</button>
+      <div class="navlabel">I. Theo dõi RC mỗi ngày</div>
+      <button class="navitem" data-view="entry"><span class="ic">✎</span> Nhập RC (USBC101)</button>
+      <button class="navitem" data-view="usbc"><span class="ic">①</span> USBC101 · Account Balance</button>
+      <button class="navitem" data-view="pc49sales"><span class="ic">③</span> PC49 Sales Daily</button>
+      <button class="navitem" data-view="transsales"><span class="ic">④</span> Trans Sales Daily</button>
+      <button class="navitem" data-view="pc49rc"><span class="ic">⑤</span> PC49 RC JM</button>
+      <button class="navitem" data-view="transrc"><span class="ic">⑥</span> TRANS RC JM</button>
+      <button class="navitem" data-view="online"><span class="ic">⑦</span> BC Sales Online</button>
+      <button class="navitem" data-view="bell"><span class="ic">⑧</span> BC Rung chuông</button>
+      <button class="navitem" data-view="missing"><span class="ic">⑨</span> RC thiếu nguồn <span class="badge" id="missBadge">0</span></button>
+      <div class="navlabel">II. Các loại vàng mỗi ngày</div>
+      <button class="navitem" data-view="dashboard"><span class="ic">②</span> PC49 Dashboard (KT↔US)</button>
+      <button class="navitem" data-view="bc201"><span class="ic">⑩</span> BC 201 · PC49 Sales Report</button>
+      <div class="navlabel">Danh mục &amp; cấu hình</div>
+      <button class="navitem" data-view="danhmuc"><span class="ic">⚙</span> Danh mục (Validation List)</button>
+    </nav>
+    <div class="side-foot">intern1@ctyhp.vn<br>Mockup bám file QUY TRÌNH · 23/06/2026</div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <div><div class="crumb" id="crumb">Tổng quan</div><h1 id="title">Tổng quan</h1></div>
+      <div class="grow"></div>
+      <span class="spot">SPOT 🟡 $4,585/oz</span>
+      <div class="field"><label for="coSel">Công ty</label>
+        <select id="coSel"><option value="all">Tất cả</option><option>PC49</option><option>Trans</option><option>HPLLC</option><option>3NVY</option><option>Other</option><option>TDW</option></select></div>
+      <div class="field"><label for="dSel">Ngày</label><input type="date" id="dSel" value="2026-06-23"></div>
+      <div class="avatar">KT</div>
+    </header>
+    <div class="legendbar">
+      <span><span class="man-m">✎</span> Người dùng nhập tay</span>
+      <span><span class="fx-m">ƒ</span> Tự tính / lấy từ file khác (công thức)</span>
+      <span class="lg-note">Đúng như cách các file Excel trong Quy trình đang hoạt động.</span>
+    </div>
+
+    <div class="content">
+
+      <!-- ===== DASHBOARD ===== -->
+      <section class="view active" id="view-dash">
+        <div class="flowmap">
+          Scan RC <span class="arr">→</span> <b>① USBC101</b> <span class="arr">→</span> <b>③④ Sales Daily</b> <span class="arr">→</span> <b>⑤⑥ RC JM</b> <span class="arr">→</span> <b>⑦ Online</b> · <b>⑧ Rung chuông</b> · <b>⑨ Thiếu nguồn</b> &nbsp;|&nbsp; <b>② Dashboard</b> · <b>⑩ BC 201</b>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><span class="strip"></span><div class="lab">Doanh thu (Receipt) hôm nay</div><div class="val" id="kRev">$0</div><div class="delta up" id="kRevD">▲ —</div></div>
+          <div class="kpi"><span class="strip"></span><div class="lab">Số RC hôm nay</div><div class="val" id="kCnt">0</div><div class="delta up">Bán / Đặt cọc / Pickup / PO</div></div>
+          <div class="kpi alert"><span class="strip"></span><div class="lab">RC thiếu nguồn</div><div class="val" id="kMiss">0</div><div class="delta down">cần US bổ sung source</div></div>
+          <div class="kpi alert"><span class="strip"></span><div class="lab">Lệch tồn KT↔US</div><div class="val" id="kDiff">0</div><div class="delta down">loại vàng chênh lệch</div></div>
+        </div>
+        <div class="row c2">
+          <div class="panel">
+            <div class="ph"><h2>Doanh thu 14 ngày gần nhất</h2><div class="spacer"></div><span class="src-file">③④ Sales Daily Report</span></div>
+            <canvas id="chart" height="190" aria-label="Biểu đồ doanh thu"></canvas>
+            <div class="legend"><span><span class="dot" style="background:var(--accent)"></span>Receipt theo ngày</span><span><span class="dot" style="background:var(--green)"></span>Lũy kế</span></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><h2>Việc cần xử lý</h2></div>
+            <table class="tbl" style="min-width:0"><tbody>
+              <tr><td><span class="tag bad">Thiếu nguồn</span></td><td>RC chưa có SOURCE</td><td class="num"><b id="aMiss">0</b></td></tr>
+              <tr><td><span class="tag warn">Trùng đơn</span></td><td>Nghi trùng ở rung chuông</td><td class="num"><b id="aDup">0</b></td></tr>
+              <tr><td><span class="tag warn">Lệch tồn</span></td><td>Loại vàng KT ≠ US</td><td class="num"><b id="aDiff">0</b></td></tr>
+              <tr><td><span class="tag wait">Chờ US</span></td><td>Yêu cầu source đang chờ</td><td class="num"><b id="aWait">0</b></td></tr>
+            </tbody></table>
+            <div style="margin-top:12px"><button class="btn primary sm" data-goto="missing">Xử lý RC thiếu nguồn →</button></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h2>RC mới nhất (từ USBC101)</h2><div class="spacer"></div><button class="btn sm" data-goto="usbc">Xem USBC101 →</button></div>
+          <div class="rclist" id="dashRows"></div>
+        </div>
+      </section>
+
+      <!-- ===== FLOW ===== -->
+      <section class="view" id="view-flow">
+        <div class="panel">
+          <div class="ph"><h2>Sơ đồ luồng dữ liệu — Quy trình các CV KTUS</h2><div class="spacer"></div><span class="src-file">QUY TRÌNH CÁC CV KTUS</span></div>
+          <div class="note">Bấm vào ô để mở màn tương ứng. Ô viền <span class="man-m">xanh</span> = nhập tay; ô viền <span style="color:var(--accent)">vàng</span> = tự chạy bằng công thức. ⚠️ Các file là <b>Google Sheets</b> nối nhau bằng <b>IMPORTRANGE</b> — đây là chỗ hay đứt link mà web app sẽ thay thế.</div>
+          <div class="flow">
+            <div class="fsec">I. Theo dõi RC mỗi ngày</div>
+            <div class="flow-row"><div class="fnode io"><div class="fn-no">INPUT</div><div class="fn-t">Scan RC (PDF) từ US</div><div class="fn-d">RC PC49 / RC Trans .pdf</div></div></div>
+            <div class="farrow">↓</div>
+            <div class="flow-row"><div class="fnode manual" data-goto="entry"><div class="fn-no">✎ ①</div><div class="fn-t">USBC101 — nhập tay</div><div class="fn-d">Nhập 1 lần, các bước sau tự chạy</div></div></div>
+            <div class="farrow">↓</div>
+            <div class="flow-row">
+              <div class="fnode" data-goto="pc49sales"><div class="fn-no">ƒ ③</div><div class="fn-t">PC49 Sales Daily</div><div class="fn-d">IMPORTRANGE từ USBC101</div></div>
+              <div class="fnode" data-goto="transsales"><div class="fn-no">ƒ ④</div><div class="fn-t">Trans Sales Daily</div><div class="fn-d">IMPORTRANGE từ USBC101</div></div>
+            </div>
+            <div class="farrow">↓</div>
+            <div class="flow-row">
+              <div class="fnode" data-goto="pc49rc"><div class="fn-no">⑤</div><div class="fn-t">PC49 RC JM</div><div class="fn-d">✎ nhập số RC, nguồn, sales</div></div>
+              <div class="fnode" data-goto="transrc"><div class="fn-no">⑥</div><div class="fn-t">TRANS RC JM</div><div class="fn-d">✎ nhập số RC, nguồn, sales</div></div>
+            </div>
+            <div class="farrow">↓</div>
+            <div class="flow-row">
+              <div class="fnode" data-goto="online"><div class="fn-no">ƒ ⑦</div><div class="fn-t">BC Sales Online</div><div class="fn-d">lọc từ ⑤⑥</div></div>
+              <div class="fnode" data-goto="bell"><div class="fn-no">ƒ ⑧</div><div class="fn-t">BC Rung chuông</div><div class="fn-d">lọc từ ⑥ + check trùng</div></div>
+              <div class="fnode" data-goto="missing"><div class="fn-no">⑨</div><div class="fn-t">RC thiếu nguồn</div><div class="fn-d">↺ US bổ sung → cập nhật JM</div></div>
+            </div>
+            <div class="fsec">II. Các loại vàng mỗi ngày</div>
+            <div class="flow-row">
+              <div class="fnode" data-goto="dashboard"><div class="fn-no">② ƒ</div><div class="fn-t">PC49 Dashboard</div><div class="fn-d">tồn kho, đối chiếu KT↔US</div></div>
+              <div class="fnode" data-goto="bc201"><div class="fn-no">⑩</div><div class="fn-t">BC 201 PC49 Sales Report</div><div class="fn-d">✎ nhập giao dịch vàng PC49</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== CMP (Trước/Sau) ===== -->
+      <section class="view" id="view-cmp">
+        <div class="panel cmp">
+          <div class="ph"><h2>Trước / Sau — Excel·Google Sheets vs Web app</h2><div class="spacer"></div><span class="src-file">tổng hợp từ bộ file</span></div>
+          <div class="note">So sánh cách làm hiện tại với web app + database. Dùng để trình bày giá trị thay đổi trong buổi họp.</div>
+          <div class="scroll"><table class="tbl wide">
+            <thead><tr><th>Khía cạnh</th><th class="before">Hiện tại (Excel / Google Sheets)</th><th class="after">Web app + Database</th></tr></thead>
+            <tbody>
+              <tr><td class="asp">Nhập liệu</td><td class="before">Gõ lại / copy ở nhiều file</td><td class="after">Nhập 1 lần ở USBC101 → tự lan toả mọi báo cáo</td></tr>
+              <tr><td class="asp">Liên kết file</td><td class="before">IMPORTRANGE giữa Google Sheets — hay #REF! / đứt link</td><td class="after">1 database tập trung, không đứt link</td></tr>
+              <tr><td class="asp">Đối chiếu KT↔US</td><td class="before">Dò bằng mắt cuối tháng</td><td class="after">Tự tính Different, cảnh báo lệch tức thì</td></tr>
+              <tr><td class="asp">RC thiếu nguồn</td><td class="before">Lọc copy tay, mail/Zalo qua lại US</td><td class="after">Quy trình bấm nút, theo dõi trạng thái Gửi→Bổ sung→Cập nhật</td></tr>
+              <tr><td class="asp">Đơn trùng / rung chuông</td><td class="before">Tìm bằng mắt, dễ sót</td><td class="after">Tự gắn cờ rung chuông + cảnh báo nghi trùng</td></tr>
+              <tr><td class="asp">Báo cáo theo kỳ</td><td class="before">Tạo file/sheet mới mỗi ngày, mỗi tháng</td><td class="after">Chọn kỳ, báo cáo realtime, không tạo file mới</td></tr>
+              <tr><td class="asp">Phân quyền &amp; lịch sử</td><td class="before">Ai cũng sửa được, dễ ghi đè, không truy vết</td><td class="after">Phân quyền theo vai trò + nhật ký chỉnh sửa (audit log)</td></tr>
+              <tr><td class="asp">Tốc độ &amp; quy mô</td><td class="before">File nặng, mở chậm, giới hạn dòng</td><td class="after">Tải nhanh, không giới hạn dữ liệu nhiều năm</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== ENTRY ===== -->
+      <section class="view" id="view-entry">
+        <div class="panel">
+          <div class="ph"><h2>Nhập một RC mới vào USBC101</h2><div class="spacer"></div><span class="src-file">① USBC101 – ACCOUNT BALANCE</span></div>
+          <div class="note"><span class="man-m">✎</span> Đây là màn <b>nhập tay duy nhất</b> của Quy trình I. Nhập một lần ở đây → các cột <span class="fx-m">ƒ</span> ở ③④ Sales Daily, ⑤⑥ RC JM, ⑦ Online, ⑧ Rung chuông, ⑨ Thiếu nguồn <b>tự chạy</b>.</div>
+          <form id="rcForm">
+            <div class="form-grid">
+              <div class="fg"><label>Date <span class="req">*</span></label><input type="date" name="date" value="2026-06-23" required></div>
+              <div class="fg"><label>Company <span class="req">*</span></label><select name="co" required><option>Trans</option><option>PC49</option><option>HPLLC</option><option>3NVY</option><option>Other</option><option>TDW</option></select></div>
+              <div class="fg"><label>Type <span class="req">*</span></label><select name="type" required><option>Receipt</option><option>Deposit</option><option>Pick up</option><option>Extra deposit</option><option>PO</option><option>Return</option><option>Exchange</option><option>Transfer</option></select></div>
+              <div class="fg"><label>Mã SKU</label><input type="text" name="sku" placeholder="24KRI / 108248"></div>
+
+              <div class="fg col2"><label>Decription</label><input type="text" name="desc" placeholder="Khách mua 1L VRP / Mua vào 3.9gr vàng 18K"></div>
+              <div class="fg"><label>Customer name <span class="req">*</span></label><input type="text" name="cust" placeholder="Tên khách / vendor" required></div>
+              <div class="fg"><label>Contact</label><input type="text" name="contact" placeholder="916-378-9515"></div>
+
+              <div class="fg"><label>Số tiền (Amount) <span class="req">*</span></label><input type="number" name="amt" placeholder="0" min="0" step="0.01" required></div>
+              <div class="fg"><label>Hình thức TT (A/R)</label><select name="pay"><option>Cash</option><option>Bank wire</option><option>Zelle</option><option>Check</option></select></div>
+              <div class="fg col2"><label>CONDITION: Return/PO · Receipt · Deposit</label><input type="text" value="ƒ Tự phân loại theo Type — không cần nhập (cột L,M,N)" disabled></div>
+
+              <div class="fg"><label>Rung Chuông</label><select name="bell"><option value="">—</option><option>RC1</option><option>RC2</option><option>RC3</option><option>SBO1</option></select></div>
+              <div class="fg"><label>JM US Receipt #</label><input type="text" name="jm" placeholder="1000012xxx / 90014xxx"></div>
+              <div class="fg"><label>Source 1</label><select name="src1"><option value="">— Không có source —</option><option>WI</option><option>TEL</option><option>FB</option><option>IG-APPT</option><option>RF-APPT</option><option>RC</option><option>VIP</option></select></div>
+              <div class="fg"><label>Sale US #1</label><select name="sale1"><option>T.Vân</option><option>B.Khanh</option><option>S.Mai</option><option>N.Ý</option><option>T.Quỳnh</option></select></div>
+
+              <div class="fg"><label>Sale Online (Team VN)</label><select name="saleOnl"><option value="">—</option><option>Văn Vương US</option><option>Mạnh Thắng US</option><option>Trà My US</option><option>Kim Thanh US</option></select></div>
+              <div class="fg"><label>Transaction value</label><input type="text" name="tx" placeholder="1 lượng / 1 oz / 37.5 gram"></div>
+              <div class="fg"><label>% Support</label><input type="number" name="support" placeholder="0.8" min="0" max="1" step="0.1"></div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn primary">＋ Lưu &amp; đẩy vào sổ RC</button>
+              <button type="reset" class="btn">Xóa form</button>
+              <span class="hint">Bỏ trống <b>Source 1</b> → RC vào danh sách ⑨ thiếu nguồn.</span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ===== USBC101 ===== -->
+      <section class="view" id="view-usbc">
+        <div class="panel">
+          <div class="toolbar">
+            <input type="text" id="search" placeholder="Tìm khách hàng / SKU…" style="min-width:220px">
+            <div class="spacer"></div><span class="hint" id="rowCount"></span>
+            <button class="btn sm" data-goto="entry">＋ Nhập RC</button>
+          </div>
+          <div class="ph" style="margin-bottom:8px"><h2>Nhật ký theo dõi CASH (sheet công ty)</h2><div class="spacer"></div><span class="src-file">① USBC101 · sheet 1.Trans / 2.Pc49</span></div>
+          <div class="note">Người dùng nhập tay (<span class="man-m">✎</span>) mọi cột A→W <b>trừ L, M, N</b>. Nhóm <b>CONDITION</b> (Return/PO · Receipt · Deposit = cột L,M,N) là <span class="fx-m">ƒ</span> — hệ thống tự phân loại theo Type. Cột tiền A/R (Cash/Bank wire/Zelle/Check) là <span class="man-m">✎</span>. Y→AH là sao kê ngân hàng.<br><span style="font-family:var(--mono);font-size:11px;color:#7a5a1d">ƒ Receipt = IF(Type="Receipt" hoặc "Pick up"; SUM(O:S) tức cộng tiền A/R; 0) — công thức thật trong file.</span></div>
+          <div class="scroll"><table class="tbl wide">
+            <thead><tr>
+              <th class="man">No</th><th class="man">Date</th><th class="man">Type</th><th class="man">Decription</th><th class="man">Mã SKU</th><th class="man">Rung Chuông</th><th class="man">Customer</th><th class="man">Contact</th><th class="man">Company</th>
+              <th class="fx" title='=IF(D="Return",SUM(T:W),IF(D="Exchange",S,0))'>Return/PO</th><th class="fx" title='=IF(D="Receipt",SUM(O:S),IF(D="Pick up",SUM(O:S),...))'>Receipt</th><th class="fx" title='=IF(D="Deposit",SUM(O:S),IF(D="Extra deposit",SUM(O:S),...))'>Deposit</th><th class="man">A/R Cash</th><th class="man">A/R Bank wire</th><th class="man">A/R Zelle</th><th class="man">A/R Check</th>
+            </tr></thead>
+            <tbody id="usbcRows"></tbody>
+          </table></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h2>BALANCE ACCOUNT — số dư tài khoản</h2><div class="spacer"></div><span class="src-file">① USBC101 · sheet BALANCE ACCOUNT</span></div>
+          <div class="scroll"><table class="tbl">
+            <thead><tr><th class="man">Account Name</th><th class="man">Account Type</th><th class="man">Account No.</th><th class="man">Beginning</th><th class="fx">Ending Balance</th></tr></thead>
+            <tbody id="balRows"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== PC49 SALES DAILY ===== -->
+      <section class="view" id="view-pc49sales">
+        <div class="panel">
+          <div class="ph"><h2>BÁO CÁO MUA/BÁN HÀNG — CH1 (PC49)</h2><div class="spacer"></div><span class="src-file">③ PC49 Sales Daily Report</span></div>
+          <div class="note">⚙️ Toàn bộ <span class="fx-m">ƒ</span> — kéo dữ liệu từ USBC101 qua <b>IMPORTRANGE</b> (Google Sheets) theo ngày. Không nhập tay. Rê chuột lên tiêu đề để xem công thức thật. Mỗi ngày là 1 sheet riêng — chọn ngày bên dưới.</div>
+          <div class="toolbar" id="p49tabs"></div>
+          <div class="scroll"><table class="tbl wide">
+            <thead><tr><th class="fx">STT</th><th class="fx" title="IMPORTRANGE từ USBC101">TYPE</th><th class="fx">DISCRIPTION</th><th class="fx">CUSTOMER</th><th class="fx" title="=G+H-F (Receipt + Deposit - PO)">TỔNG CỘNG</th><th class="fx" title='=IF(B="PO",SUM(N:Q),0)'>PURCHASE/PO</th><th class="fx" title='=IF(B="Receipt"/"Pick up"/"Repair",SUM(I:M),0)'>RECEIPT</th><th class="fx" title='=IF(B="Deposit"/"Extra deposit",SUM(I:M),0)'>DEPOSIT</th><th class="fx">CASH</th><th class="fx">BANKWIRE</th><th class="fx">ZELLE</th><th class="fx">CHECK</th><th class="fx">COMPANY</th></tr></thead>
+            <tbody id="pc49salesRows"></tbody>
+            <tfoot><tr><td colspan="4">TỔNG CỘNG</td><td class="num" id="p49Tot"></td><td class="num" id="p49PO"></td><td class="num" id="p49Rec"></td><td class="num" id="p49Dep"></td><td colspan="5"></td></tr></tfoot>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== TRANS SALES DAILY ===== -->
+      <section class="view" id="view-transsales">
+        <div class="panel">
+          <div class="ph"><h2>BÁO CÁO MUA/BÁN HÀNG — CH1 (Trans)</h2><div class="spacer"></div><span class="src-file">④ Trans Sales Daily Report</span></div>
+          <div class="note">⚙️ Toàn bộ <span class="fx-m">ƒ</span> — kéo dữ liệu từ USBC101 qua <b>IMPORTRANGE</b> (Google Sheets) theo ngày. Không nhập tay. Mỗi ngày là 1 sheet riêng — chọn ngày bên dưới.</div>
+          <div class="toolbar" id="trtabs"></div>
+          <div class="scroll"><table class="tbl wide">
+            <thead><tr><th class="fx">STT</th><th class="fx" title="IMPORTRANGE từ USBC101">TYPE</th><th class="fx">DISCRIPTION</th><th class="fx">CUSTOMER</th><th class="fx" title="=Receipt + Deposit - PO">TỔNG CỘNG</th><th class="fx" title='=IF(Type="PO",SUM(...),0)'>PURCHASE/PO</th><th class="fx" title='=IF(Type="Receipt"/"Pick up",SUM(...),0)'>TOTAL RECEIPT</th><th class="fx" title='=IF(Type="Deposit"/"Extra deposit",SUM(...),0)'>DEPOSIT</th><th class="fx">CASH</th><th class="fx">BANKWIRE</th><th class="fx">ZELLE</th><th class="fx">CHECK</th><th class="fx">COMPANY</th></tr></thead>
+            <tbody id="transsalesRows"></tbody>
+            <tfoot><tr><td colspan="4">TỔNG CỘNG</td><td class="num" id="trTot"></td><td class="num" id="trPO"></td><td class="num" id="trRec"></td><td class="num" id="trDep"></td><td colspan="5"></td></tr></tfoot>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== PC49 RC JM ===== -->
+      <section class="view" id="view-pc49rc">
+        <div class="panel">
+          <div class="toolbar"><h2 style="font-family:var(--serif);font-size:15.5px;margin:0">Receipt PC49 — theo dõi số hiệu RC trên JM</h2><div class="spacer"></div><span class="src-file">⑤ PC49 RC JM (FINAL)</span></div>
+          <div class="note">Cột <span class="fx-m">ƒ</span> (Date→Deposit) lấy từ USBC101 sheet PC49. Cột <span class="man-m">✎</span> (Receipt#, Source, Sale) là chỗ nhập số RC / nguồn / sales trên JM.</div>
+          <div class="rclist" id="pc49rcRows"></div>
+        </div>
+      </section>
+
+      <!-- ===== TRANS RC JM ===== -->
+      <section class="view" id="view-transrc">
+        <div class="panel">
+          <div class="ph"><h2>Receipt TFJ — theo dõi số hiệu RC trên JM (Trans)</h2><div class="spacer"></div><span class="src-file">⑥ TRANS RC JM (FINAL)</span></div>
+          <div class="note">Cột <span class="fx-m">ƒ</span> (No→Deposit) lấy từ USBC101 sheet Trans. Cột <span class="man-m">✎</span> (J→Y: Receipt#, Source, Sale, Online) nhập tay. Đơn pickup nhập <b>Old Receipt#</b> đơn cọc; <b>Deposit Date</b> & bóc tách là <span class="fx-m">ƒ</span>.</div>
+          <div class="rclist" id="transrcRows"></div>
+        </div>
+      </section>
+
+      <!-- ===== ONLINE ===== -->
+      <section class="view" id="view-online">
+        <div class="panel">
+          <div class="ph"><h2>Báo cáo theo dõi bán hàng Sales Online</h2><div class="spacer"></div><span class="src-file">⑦ BC THEO DOI BAN HANG SALES ONLINE</span></div>
+          <div class="note">⚙️ Sheet "Jun-KT" là sheet data <span class="fx-m">ƒ</span> lọc từ ⑤⑥ RC JM (sheet Theo dõi sales onl). KT chỉ copy ra sheet "Jun" sắp xếp theo ngày.</div>
+          <div class="scroll"><table class="tbl wide">
+            <thead><tr><th class="fx">No</th><th class="fx">Date</th><th class="fx">Cust. Name</th><th class="fx">Facebook</th><th class="fx">Decription</th><th class="fx">JM Receipt #</th><th class="fx">Sale US</th><th class="fx">Sale Online #1</th><th class="fx">% Support</th><th class="fx">Transaction Value</th></tr></thead>
+            <tbody id="onlineRows"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== BELL ===== -->
+      <section class="view" id="view-bell">
+        <div class="mini" id="bellCards"></div>
+        <div class="panel">
+          <div class="ph"><h2>Báo cáo rung chuông 🔔</h2><div class="spacer"></div><span class="src-file">⑧ US-BÁO CÁO RUNG CHUÔNG</span></div>
+          <div class="note">⚙️ Sheet Data <span class="fx-m">ƒ</span> lấy từ ⑥ TRANS RC JM (điều kiện cột Rung Chuông có dữ liệu). Cột S,T <span class="fx-m">ƒ</span> lọc trùng &amp; cảnh báo.</div>
+          <div class="scroll"><table class="tbl wide">
+            <thead><tr><th class="fx">Date</th><th class="fx">JM Receipt #</th><th class="fx">Company</th><th class="fx">Customer</th><th class="fx">Sale</th><th class="fx">Số tiền</th><th class="fx">Mã RC</th><th class="fx">Kiểm tra trùng</th></tr></thead>
+            <tbody id="bellRows"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== MISSING ===== -->
+      <section class="view" id="view-missing">
+        <div class="panel">
+          <div class="ph"><h2>Thống kê RC thiếu thông tin nguồn KH</h2><div class="spacer"></div><span class="src-file">⑨ Thống kê RC thiếu nguồn KH</span></div>
+          <div class="note">⚙️ Lọc <span class="fx-m">ƒ</span> các RC từ ⑥ RC JM có cột K = "Không có source". Cột <span class="man-m">✎</span> (Giải thích / Chọn nguồn JM) do US bổ sung → KT cập nhật lại JM &amp; tick xác nhận.</div>
+          <div class="scroll"><table class="tbl wide">
+            <thead><tr><th class="fx">Date</th><th class="fx">Decription</th><th class="fx">Cust. Name</th><th class="fx">Receipt</th><th class="fx">Deposit</th><th class="fx">JM Receipt #</th><th class="man">Source 1</th><th class="man">Giải thích lý do</th><th class="fx">Trạng thái</th><th class="man">Hành động</th></tr></thead>
+            <tbody id="missRows"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== PC49 DASHBOARD ===== -->
+      <section class="view" id="view-dashboard">
+        <div class="panel">
+          <div class="ph"><h2>PC49 Dashboard — tồn kho &amp; đối chiếu KT ↔ US</h2><div class="spacer"></div><span class="src-file">② PC49 DASHBOARD</span></div>
+          <div class="note">⚙️ Công thức <span class="fx-m">ƒ</span> theo dõi tồn kho qua từng ngày; lấy tồn tiền PC49 từ ① USBC101 (BALANCE ACCOUNT). Cột <span class="man-m">✎</span> Available (US) &amp; Unit Price để đối chiếu chênh lệch.</div>
+          <div class="scroll"><table class="tbl wide">
+            <thead><tr><th class="fx">Description</th><th class="fx">Unit</th><th class="fx">Beginning</th><th class="fx" title='=SUMIFS(PC49 Sale!I:I, L:L,"Sale", F:F, loại vàng)'>Sale</th><th class="fx" title='=SUMIFS(... "Deposit" ...)'>Deposit</th><th class="fx" title='=SUMIFS(... "PO" ...)'>PO</th><th class="fx" title="=Beginning + SUMIFS(...) [tồn theo sổ KT]">Book Inv. (KT)</th><th class="man">Available (US)</th><th class="man">Unit Price</th><th class="fx" title="=Book Inv (KT) − Available (US) [I−J]">Different</th><th class="fx">Trạng thái</th></tr></thead>
+            <tbody id="dashboardRows"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== BC 201 ===== -->
+      <section class="view" id="view-bc201">
+        <div class="panel">
+          <div class="ph"><h2>BC 201 — Nhập liệu giao dịch vàng PC49</h2><div class="spacer"></div><span class="src-file">⑩ [BC 201] PC49 Sales Report</span></div>
+          <div class="note">Theo hướng dẫn trong file: <span class="man-m">✎</span> chọn Description, Type, nhập Qty/Unit Price; <span class="fx-m">ƒ</span> Product Code, Unit, Amount tự động.</div>
+          <div class="scroll"><table class="tbl wide">
+            <thead><tr><th class="man">Date</th><th class="man">Customer/Vendor</th><th class="man">Description</th><th class="fx" title="=VLOOKUP(Description, '0.Data', 2)">Product Code</th><th class="man">% Gold</th><th class="fx" title="=VLOOKUP(Description, '0.Data', 3)">Unit</th><th class="man">Qty</th><th class="man">Unit Price</th><th class="fx" title="=−Qty × Unit Price">Amount</th><th class="man">Type</th><th class="man">Remarks</th><th class="man">Checkbox</th></tr></thead>
+            <tbody id="bc201Rows"></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ===== DANH MỤC ===== -->
+      <section class="view" id="view-danhmuc">
+        <div class="panel">
+          <div class="ph"><h2>Danh mục dùng chung — Validation List</h2><div class="spacer"></div><span class="src-file">① USBC101 · sheet Validation List</span></div>
+          <div class="note">Đây là nơi quản lý các danh sách chọn (dropdown) dùng chung cho toàn hệ thống — nền tảng của database. Tất cả là <span class="man-m">✎</span> do người dùng tự thêm/sửa.</div>
+        </div>
+        <div class="catgrid">
+          <div class="panel">
+            <div class="ph"><h2>Loại giao dịch (Type)</h2><div class="spacer"></div><button class="btn sm">＋ Thêm</button></div>
+            <div><span class="chip">Receipt</span><span class="chip">Deposit</span><span class="chip">Pick up</span><span class="chip">Extra deposit</span><span class="chip">PO</span><span class="chip">Return</span><span class="chip">Exchange</span><span class="chip">Repair</span><span class="chip">Transfer</span></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><h2>Nguồn khách (Source)</h2><div class="spacer"></div><button class="btn sm">＋ Thêm</button></div>
+            <div><span class="chip">WI</span><span class="chip">TEL</span><span class="chip">FB</span><span class="chip">IG-APPT</span><span class="chip">RF-APPT</span><span class="chip">RC</span><span class="chip">VIP</span><span class="chip">OC NHAP</span><span class="chip neg">Không có source</span></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><h2>Sales US (tại quầy)</h2><div class="spacer"></div><button class="btn sm">＋ Thêm</button></div>
+            <div><span class="chip">T.Vân</span><span class="chip">B.Khanh</span><span class="chip">S.Mai</span><span class="chip">N.Ý</span><span class="chip">T.Quỳnh</span><span class="chip">H.Kim</span><span class="chip">P.Minh</span><span class="chip">L.Thanh</span></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><h2>Sale Online (Team VN)</h2><div class="spacer"></div><button class="btn sm">＋ Thêm</button></div>
+            <div><span class="chip">Văn Vương US</span><span class="chip">Mạnh Thắng US</span><span class="chip">Trà My US</span><span class="chip">Kim Thanh US</span><span class="chip">VN214</span><span class="chip">VN359</span></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><h2>Mã rung chuông</h2><div class="spacer"></div><button class="btn sm">＋ Thêm</button></div>
+            <div><span class="chip">RC1</span><span class="chip">RC2</span><span class="chip">RC3</span><span class="chip">SBO1</span></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><h2>Tài khoản (BALANCE ACCOUNT)</h2><div class="spacer"></div><button class="btn sm">＋ Thêm</button></div>
+            <div><span class="chip">TRANS CASH</span><span class="chip">TRANS BANK</span><span class="chip">PC49 CASH</span><span class="chip">PC49 BANK</span><span class="chip">HPLLC CASH</span><span class="chip">3NVY BANK</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h2>Loại vàng &amp; quy đổi</h2><div class="spacer"></div><span class="src-file">0. Data (BC 201)</span><button class="btn sm">＋ Thêm</button></div>
+          <div class="scroll"><table class="tbl">
+            <thead><tr><th class="man">Loại vàng</th><th class="man">Kí hiệu</th><th class="man">ĐVT</th><th class="man">Quy đổi sang Grain</th></tr></thead>
+            <tbody>
+              <tr><td>Grain</td><td>Grain</td><td>Gram</td><td>—</td></tr>
+              <tr><td>9999</td><td>9999</td><td>Lượng</td><td>1 lượng = 37.5 gr</td></tr>
+              <tr><td>Rong Phung</td><td>RP</td><td>Lượng</td><td>1 lượng RP = 37.5 gr Grain</td></tr>
+              <tr><td>Maple Leaf</td><td>ML</td><td>Oz</td><td>1 oz ML = 31.105 gr Grain</td></tr>
+              <tr><td>Credit Suisse</td><td>CS</td><td>Oz</td><td>1 oz CS = 31.105 gr Grain</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast">Đã lưu RC ✓</div>
+
+<script>
+(function(){
+  "use strict";
+  var money=function(n){return "$"+Math.round(n).toLocaleString("en-US");};
+  function fmt(n){return (n||0).toLocaleString("en-US");}
+  function el(id){return document.getElementById(id);}
+
+  var data=[
+    {date:"2026-06-23",co:"Trans",type:"Extra deposit",sku:"",desc:"Khách đặt cọc thêm tiền",cust:"Vicky & Khoi",contact:"916-378-9515",expense:0,receipt:0,deposit:550,jm:"90014173",src1:"WI",src2:"",sale1:"T.Vân",saleOnl:"Văn Vương US",tx:"",support:0.8,pay:"Zelle",bell:""},
+    {date:"2026-06-23",co:"Trans",type:"Deposit",sku:"24KRI",desc:"Khách đặt cọc 01 (24KRI) nhẫn trơn 24K",cust:"Chi Hanh",contact:"669-321-9393",expense:0,receipt:0,deposit:546,jm:"90014223",src1:"",src2:"",sale1:"B.Khanh",saleOnl:"",tx:"",support:0,pay:"Cash",bell:""},
+    {date:"2026-06-23",co:"Trans",type:"Pick up",sku:"18KPD",desc:"Khách pickup 01 (18KPD) mặt dây chuyền 18K CZ",cust:"Lizanne",contact:"408-802-5834",expense:0,receipt:630,deposit:0,jm:"1000083186",src1:"WI",src2:"",sale1:"S.Mai",saleOnl:"",tx:"",support:0,pay:"Zelle",bell:"",old:"90014100"},
+    {date:"2026-06-22",co:"Trans",type:"Deposit",sku:"18KBL",desc:"Khách đặt cọc 01 (18KBL) lắc tay vàng",cust:"Cindy Ngo / Michelle Q Vinh",contact:"",expense:0,receipt:0,deposit:1000,jm:"9000000306",src1:"FB",src2:"",sale1:"B.Khanh",saleOnl:"Mạnh Thắng US",tx:"2 lượng",support:0.8,pay:"Zelle",bell:""},
+    {date:"2026-06-22",co:"Trans",type:"Pick up",sku:"24KRI",desc:"Khách pickup 01 (24KRI) nhẫn trơn",cust:"Thi Chon Hien Nguyen",contact:"",expense:0,receipt:2805,deposit:0,jm:"1000083540",src1:"RC",src2:"",sale1:"T.Vân",saleOnl:"",tx:"",support:0,pay:"Zelle",bell:"",old:"90014150"},
+    {date:"2026-06-22",co:"PC49",type:"Receipt",sku:"VRP",desc:"Khách mua 1L VRP",cust:"Chị Thủy Cù",contact:"",expense:0,receipt:5310,deposit:0,jm:"1000012438",src1:"WI",src2:"",sale1:"S.Mai",saleOnl:"",tx:"1 lượng",support:1,pay:"Cash",bell:"RC2"},
+    {date:"2026-06-21",co:"PC49",type:"Receipt",sku:"VRP",desc:"Khách mua 3L VRP",cust:"Nhung Cai",contact:"",expense:0,receipt:16935,deposit:0,jm:"1000012394",src1:"TEL",src2:"",sale1:"N.Ý",saleOnl:"Văn Vương US",tx:"3 lượng",support:0.8,pay:"Bank wire",bell:"SBO1"},
+    {date:"2026-06-21",co:"PC49",type:"Receipt",sku:"VRP",desc:"Khách mua 1L VRP",cust:"Thi Nguyen",contact:"",expense:0,receipt:5770,deposit:0,jm:"1000012395",src1:"",src2:"",sale1:"T.Vân",saleOnl:"",tx:"1 lượng",support:0,pay:"Cash",bell:"RC2"},
+    {date:"2026-06-21",co:"PC49",type:"Receipt",sku:"CS",desc:"Khách mua 1oz vàng CS",cust:"Leonardo Dayrit",contact:"",expense:0,receipt:4480,deposit:0,jm:"1000012410",src1:"WI",src2:"",sale1:"T.Quỳnh",saleOnl:"Trà My US",tx:"1 oz",support:1,pay:"Cash",bell:"RC2"},
+    {date:"2026-06-20",co:"PC49",type:"PO",sku:"16k",desc:"Mua vào 6.5gr vàng 16k",cust:"Chị Loan",contact:"",expense:425,receipt:0,deposit:0,jm:"OC NHAP",src1:"WI",src2:"",sale1:"S.Mai",saleOnl:"",tx:"6.5 gram",support:0,pay:"Cash",bell:""},
+    {date:"2026-06-20",co:"Trans",type:"Deposit",sku:"18KRI",desc:"Khách đặt cọc 01 (18KRI) nhẫn kim cương",cust:"Chị Thảo",contact:"",expense:0,receipt:0,deposit:200,jm:"90014240",src1:"",src2:"",sale1:"B.Khanh",saleOnl:"",tx:"",support:0,pay:"Cash",bell:""},
+    {date:"2026-06-19",co:"PC49",type:"Receipt",sku:"VRP",desc:"Khách mua 1L VRP",cust:"Tú Võ",contact:"",expense:0,receipt:5300,deposit:0,jm:"1000012440",src1:"WI",src2:"",sale1:"N.Ý",saleOnl:"Mạnh Thắng US",tx:"1 lượng",support:0.8,pay:"Cash",bell:"SBO1"},
+    {date:"2026-06-18",co:"Trans",type:"Deposit",sku:"24KCH",desc:"Khách đặt cọc 01 (24KCH) dây chuyền 24K",cust:"Anh Tâm",contact:"408-111-2222",expense:0,receipt:0,deposit:1200,jm:"90014260",src1:"FB",src2:"",sale1:"T.Vân",saleOnl:"",tx:"",support:0,pay:"Zelle",bell:""},
+    {date:"2026-06-23",co:"Trans",type:"Pick up",sku:"24KCH",desc:"Khách pickup 01 (24KCH) dây chuyền 24K",cust:"Anh Tâm",contact:"408-111-2222",expense:0,receipt:3600,deposit:0,jm:"1000083600",src1:"FB",src2:"",sale1:"T.Vân",saleOnl:"",tx:"",support:0,pay:"Zelle",bell:"RC2",old:"90014260"}
+  ];
+  data.forEach(function(r,i){r.id=i+1;r.no=i+1;r.mstatus="new";if(r.old===undefined)r.old="";});
+  var nextId=data.length+1;
+
+  function isMissing(r){return (!r.src1||r.src1==="Không có source")&&r.mstatus!=="updated";}
+  function coF(r){var v=el("coSel").value;return v==="all"||r.co===v;}
+  function total(r){ if(r.type==="PO")return -r.expense; if(r.type==="Receipt"||r.type==="Pick up")return r.receipt; return r.deposit; }
+  function recvAmt(r){ return (r.type==="PO")?0:(r.receipt||r.deposit); }
+  function payCell(r,m){ return r.pay===m?recvAmt(r):0; }
+
+  var balance=[
+    {acc:"TRANS CASH",type:"Cash",no:"1111",beg:14698,end:14698},
+    {acc:"TRANS BANK (WF)",type:"Bank",no:"1121",beg:57655,end:57655},
+    {acc:"PC49 CASH",type:"Cash",no:"1111",beg:32140,end:36480},
+    {acc:"PC49 BANK (Chase)",type:"Bank",no:"1121",beg:210330,end:206128},
+    {acc:"HPLLC CASH",type:"Cash",no:"1111",beg:8420,end:8420},
+    {acc:"3NVY BANK",type:"Bank",no:"1121",beg:39230,end:39230}
+  ];
+  var dashboard=[
+    {d:"Grain",u:"Gram",beg:2048.29,sale:0,dep:0,po:0,book:2048.29,avail:2110.49,price:89.92,diff:-62.2},
+    {d:"9999",u:"Lượng",beg:1,sale:0,dep:0,po:0,book:1,avail:23,price:3900,diff:-22},
+    {d:"Rong Phung",u:"Lượng",beg:4,sale:0,dep:0,po:0,book:4,avail:4,price:5290,diff:0},
+    {d:"Credit Suisse",u:"Oz",beg:5,sale:0,dep:0,po:0,book:5,avail:5,price:4520,diff:0},
+    {d:"Maple Leaf",u:"Oz",beg:6,sale:0,dep:0,po:0,book:6,avail:7.4,price:4585,diff:-1.4}
+  ];
+  var bc201=[
+    {date:"2026-06-01",cust:"Chị Thủy Cù",desc:"Rong Phung",code:"RP",gold:"",unit:"Lượng",qty:-1,price:5310,amt:5310,type:"Sale",rem:"",chk:false},
+    {date:"2026-06-01",cust:"Trans",desc:"Grain",code:"Grain",gold:"",unit:"Gram",qty:-37.5,price:139.12,amt:5217,type:"Sale",rem:"",chk:true},
+    {date:"2026-06-01",cust:"Trans",desc:"Scrap gold",code:"Scrap Gold",gold:"18k",unit:"Gram",qty:3.9,price:98.46,amt:-384,type:"PO",rem:"",chk:false},
+    {date:"2026-06-02",cust:"Clifford Dean",desc:"Scrap gold",code:"Scrap Gold",gold:"24k",unit:"Gram",qty:63.3,price:96.45,amt:-6105,type:"PO",rem:"",chk:false},
+    {date:"2026-06-03",cust:"Leonardo Dayrit",desc:"Credit Suisse",code:"CS",gold:"",unit:"Oz",qty:-1,price:4480,amt:4480,type:"Sale",rem:"",chk:true}
+  ];
+
+  // nav
+  var titles={dash:["Tổng quan","Tổng quan"],flow:["Sơ đồ luồng","Sơ đồ luồng quy trình"],cmp:["Trước / Sau","Trước / Sau — Excel vs Web app"],danhmuc:["Danh mục · Validation List","Danh mục (Validation List)"],entry:["I / Nhập RC (USBC101)","Nhập RC (USBC101)"],
+    usbc:["I / USBC101 · Account Balance","USBC101 · Account Balance"],
+    pc49sales:["I / PC49 Sales Daily","PC49 Sales Daily Report"],transsales:["I / Trans Sales Daily","Trans Sales Daily Report"],
+    pc49rc:["I / PC49 RC JM","PC49 RC JM (FINAL)"],transrc:["I / TRANS RC JM","TRANS RC JM (FINAL)"],
+    online:["I / BC Sales Online","BC Sales Online"],bell:["I / BC Rung chuông","BC Rung chuông 🔔"],
+    missing:["I / RC thiếu nguồn","RC thiếu thông tin nguồn"],
+    dashboard:["II / PC49 Dashboard","PC49 Dashboard (KT↔US)"],bc201:["II / BC 201","BC 201 · PC49 Sales Report"]};
+  function go(v){
+    document.querySelectorAll(".navitem").forEach(function(b){b.classList.toggle("active",b.dataset.view===v);});
+    document.querySelectorAll(".view").forEach(function(s){s.classList.remove("active");});
+    el("view-"+v).classList.add("active");
+    el("crumb").textContent=titles[v][0];el("title").textContent=titles[v][1];
+    if(v==="dash")drawChart();
+  }
+  el("nav").addEventListener("click",function(e){var b=e.target.closest(".navitem");if(b)go(b.dataset.view);});
+  document.body.addEventListener("click",function(e){var g=e.target.closest("[data-goto]");if(g)go(g.dataset.goto);});
+  document.body.addEventListener("click",function(e){var b=e.target.closest(".daytab");if(!b)return;salesDate[b.dataset.co]=b.dataset.d;renderAll();});
+  el("coSel").addEventListener("change",renderAll);
+
+  function stTag(r){return isMissing(r)?'<span class="tag bad">Thiếu nguồn</span>':'<span class="tag ok">Đủ source</span>';}
+  function srcCell(r){return r.src1&&r.src1!=="Không có source"?'<span class="tag src">'+r.src1+'</span>':'<span class="neg">—</span>';}
+
+  // dòng danh sách gọn (thay bảng) cho RC/đơn
+  function rcRow(r,opts){
+    opts=opts||{};
+    var amt=(r.type==="PO")?r.expense:(r.receipt||r.deposit||0);
+    var meta=['<span class="tag co">'+r.co+'</span>', r.type, r.cust];
+    if(r.src1&&r.src1!=="Không có source")meta.push('· '+r.src1);
+    if(r.sale1)meta.push('· '+r.sale1);
+    if(opts.bell&&r.bell)meta.push('· <span class="bell">🔔 '+r.bell+'</span>');
+    if(opts.old&&r.old){var dep=findDep(r.old);meta.push('· <span class="rc" style="cursor:pointer;text-decoration:underline" data-pickup="'+r.id+'">🔗 cọc '+r.old+(dep?(" ("+dep.date.slice(5)+")"):"")+'</span>');}
+    return '<div class="rcrow"><div class="rc-id">'+r.jm+'</div>'+
+      '<div class="rc-main"><div class="t">'+r.desc+'</div><div class="s">'+meta.join(' ')+'</div></div>'+
+      '<div class="rc-amt"><div class="a '+(r.type==="PO"?'neg':'')+'">'+(r.type==="PO"?'-':'')+money(amt)+'</div><div class="s">'+(r.pay||'')+'</div></div>'+
+      '<div class="rc-st">'+stTag(r)+'</div></div>';
+  }
+  function renderDash(){
+    var rows=data.filter(coF);
+    var rev=rows.reduce(function(s,r){return s+(r.type==="Receipt"||r.type==="Pick up"?r.receipt:0);},0);
+    el("kRev").textContent=money(rev);el("kRevD").textContent="▲ "+money(rev*0.12)+" so với hôm qua";
+    el("kCnt").textContent=rows.length;
+    var miss=data.filter(isMissing).length;el("kMiss").textContent=miss;el("aMiss").textContent=miss;
+    var diff=dashboard.filter(function(s){return s.diff!==0;}).length;el("kDiff").textContent=diff;el("aDiff").textContent=diff;
+    el("aWait").textContent=data.filter(function(r){return r.mstatus==="sent";}).length;
+    var seen={},dup=0;data.filter(function(r){return r.receipt>=3000;}).forEach(function(r){var k=r.co+"|"+r.cust;if(seen[k])dup++;seen[k]=true;});el("aDup").textContent=dup;
+    el("dashRows").innerHTML=rows.slice(0,7).map(function(r){return rcRow(r);}).join("")||'<div class="empty">Chưa có RC.</div>';
+    drawChart();
+  }
+
+  function renderUSBC(){
+    var q=(el("search").value||"").toLowerCase();
+    var rows=data.filter(coF).filter(function(r){return !q||r.cust.toLowerCase().indexOf(q)>=0||(r.sku||"").toLowerCase().indexOf(q)>=0;});
+    el("rowCount").textContent=rows.length+" dòng";
+    el("usbcRows").innerHTML=rows.map(function(r){
+      return '<tr><td class="num" style="text-align:left">'+r.no+'</td><td>'+r.date.slice(5)+'</td><td>'+r.type+'</td><td>'+r.desc+'</td>'+
+        '<td>'+(r.sku||'')+'</td><td>'+(r.bell?'<span class="bell">'+r.bell+'</span>':'')+'</td><td>'+r.cust+'</td><td>'+(r.contact||'')+'</td><td><span class="tag co">'+r.co+'</span></td>'+
+        '<td class="num">'+(r.expense?fmt(r.expense):'')+'</td><td class="num">'+(r.receipt?fmt(r.receipt):'')+'</td><td class="num">'+(r.deposit?fmt(r.deposit):'')+'</td>'+
+        '<td class="num">'+(payCell(r,"Cash")?fmt(payCell(r,"Cash")):'')+'</td><td class="num">'+(payCell(r,"Bank wire")?fmt(payCell(r,"Bank wire")):'')+'</td>'+
+        '<td class="num">'+(payCell(r,"Zelle")?fmt(payCell(r,"Zelle")):'')+'</td><td class="num">'+(payCell(r,"Check")?fmt(payCell(r,"Check")):'')+'</td></tr>';
+    }).join("");
+    el("balRows").innerHTML=balance.map(function(b){
+      return '<tr><td><b>'+b.acc+'</b></td><td>'+b.type+'</td><td class="num" style="text-align:left">'+b.no+'</td><td class="num">'+money(b.beg)+'</td><td class="num"><b>'+money(b.end)+'</b></td></tr>';
+    }).join("");
+  }
+  el("search").addEventListener("input",renderUSBC);
+
+  var salesDate={PC49:"all",Trans:"all"};
+  function salesRender(co,bodyId,ids,tabsId){
+    var all=data.filter(function(r){return r.co===co;});
+    var dates=all.map(function(r){return r.date;}).filter(function(v,i,a){return a.indexOf(v)===i;}).sort();
+    el(tabsId).innerHTML='<button class="daytab'+(salesDate[co]==="all"?" active":"")+'" data-co="'+co+'" data-d="all">Tất cả ngày</button>'+
+      dates.map(function(d){return '<button class="daytab'+(salesDate[co]===d?" active":"")+'" data-co="'+co+'" data-d="'+d+'">'+d.slice(8)+'/'+d.slice(5,7)+'</button>';}).join("");
+    var rows=all.filter(function(r){return salesDate[co]==="all"||r.date===salesDate[co];});var tot=0,po=0,rec=0,dep=0;
+    el(bodyId).innerHTML=rows.map(function(r,i){
+      var t=total(r);tot+=t;po+=r.expense;rec+=r.receipt;dep+=r.deposit;
+      return '<tr><td>'+(i+1)+'</td><td>'+r.type+'</td><td>'+r.desc+'</td><td>'+r.cust+'</td>'+
+        '<td class="num '+(t<0?'neg':'')+'">'+fmt(t)+'</td><td class="num">'+(r.expense?fmt(r.expense):'')+'</td>'+
+        '<td class="num">'+(r.receipt?fmt(r.receipt):'')+'</td><td class="num">'+(r.deposit?fmt(r.deposit):'')+'</td>'+
+        '<td class="num">'+(payCell(r,"Cash")?fmt(payCell(r,"Cash")):'')+'</td><td class="num">'+(payCell(r,"Bank wire")?fmt(payCell(r,"Bank wire")):'')+'</td>'+
+        '<td class="num">'+(payCell(r,"Zelle")?fmt(payCell(r,"Zelle")):'')+'</td><td class="num">'+(payCell(r,"Check")?fmt(payCell(r,"Check")):'')+'</td>'+
+        '<td><span class="tag co">'+r.co+'</span></td></tr>';
+    }).join("")||'<tr><td colspan="13" class="empty">Chưa có giao dịch.</td></tr>';
+    el(ids[0]).textContent=fmt(tot);el(ids[1]).textContent=fmt(po);el(ids[2]).textContent=fmt(rec);el(ids[3]).textContent=fmt(dep);
+  }
+
+  function renderPC49rc(){
+    var rows=data.filter(function(r){return r.co==="PC49";});
+    el("pc49rcRows").innerHTML=rows.map(function(r){return rcRow(r);}).join("")||'<div class="empty">Chưa có RC PC49.</div>';
+  }
+  function findDep(old){return data.find(function(r){return r.jm===old&&(r.type==="Deposit"||r.type==="Extra deposit");});}
+  function renderTransrc(){
+    var rows=data.filter(function(r){return r.co==="Trans";});
+    el("transrcRows").innerHTML=rows.map(function(r){return rcRow(r,{bell:true,old:true});}).join("")||'<div class="empty">Chưa có RC Trans.</div>';
+  }
+  el("transrcRows").addEventListener("click",function(e){
+    var b=e.target.closest("[data-pickup]");if(!b)return;
+    var pk=data.find(function(x){return x.id==b.dataset.pickup;});if(!pk)return;
+    var dep=findDep(pk.old);var t=el("toast");
+    t.textContent=dep?("🔗 Pickup của "+pk.cust+" nối đơn cọc #"+pk.old+" ("+dep.date.slice(5)+") — đã cọc "+money(dep.deposit)):("Không tìm thấy đơn cọc #"+pk.old);
+    t.classList.add("show");setTimeout(function(){t.classList.remove("show");},3200);
+  });
+
+  function renderOnline(){
+    var rows=data.filter(coF).filter(function(r){return r.saleOnl;});
+    el("onlineRows").innerHTML=rows.length?rows.map(function(r,i){
+      return '<tr><td>'+(i+1)+'</td><td>'+r.date.slice(5)+'</td><td>'+r.cust+'</td><td><span class="tag src">'+(r.src1||'—')+'</span></td>'+
+        '<td>'+r.desc+'</td><td class="rc">'+r.jm+'</td><td>'+r.sale1+'</td><td>'+r.saleOnl+'</td><td class="num">'+(r.support||'')+'</td><td>'+(r.tx||'—')+'</td></tr>';
+    }).join(""):'<tr><td colspan="10" class="empty">Chưa có đơn sales online.</td></tr>';
+  }
+
+  function renderBell(){
+    var rows=data.filter(coF).filter(function(r){return r.receipt>=3000||r.bell;});
+    var codes={RC1:0,RC2:0,RC3:0,SBO1:0};data.forEach(function(r){if(r.bell&&codes[r.bell]!==undefined)codes[r.bell]++;});
+    el("bellCards").innerHTML=Object.keys(codes).map(function(c){return '<div class="minicard"><div class="l">Mã '+c+'</div><div class="v">'+codes[c]+' đơn</div></div>';}).join("");
+    var seen={};
+    el("bellRows").innerHTML=rows.length?rows.map(function(r){
+      var k=r.co+"|"+r.cust,dup=seen[k];seen[k]=true;
+      return '<tr><td>'+r.date.slice(5)+'</td><td class="rc">'+r.jm+'</td><td><span class="tag co">'+r.co+'</span></td><td>'+r.cust+'</td>'+
+        '<td>'+r.sale1+'</td><td class="num">'+money(r.receipt||r.deposit)+'</td>'+
+        '<td>'+(r.bell?'<span class="bell">🔔 '+r.bell+'</span>':'<span class="bell">🔔 đạt mốc</span>')+'</td>'+
+        '<td>'+(dup?'<span class="tag warn">Nghi trùng</span>':'<span class="tag ok">OK</span>')+'</td></tr>';
+    }).join(""):'<tr><td colspan="8" class="empty">Chưa có đơn rung chuông.</td></tr>';
+  }
+
+  var mLab={new:'<span class="tag bad">Thiếu nguồn</span>',sent:'<span class="tag wait">Đã gửi US — chờ bổ sung</span>',
+    filled:'<span class="tag warn">US đã bổ sung — chờ vào JM</span>',updated:'<span class="tag ok">Đã cập nhật JM ✓</span>'};
+  function mAct(r){
+    if(r.mstatus==="new")return '<button class="btn sm" data-m="sent" data-id="'+r.id+'">Gửi US →</button>';
+    if(r.mstatus==="sent")return '<button class="btn sm" data-m="filled" data-id="'+r.id+'">US đã bổ sung →</button>';
+    if(r.mstatus==="filled")return '<button class="btn primary sm" data-m="updated" data-id="'+r.id+'">Cập nhật JM ✓</button>';
+    return '<span class="hint">Hoàn tất</span>';}
+  function renderMissing(){
+    var rows=data.filter(coF).filter(function(r){return isMissing(r)||r.mstatus==="sent"||r.mstatus==="filled";});
+    el("missRows").innerHTML=rows.length?rows.map(function(r){
+      var giai=r.mstatus==="new"?'<span class="neg">— chờ US —</span>':'Sale không đóng mộc trên RC';
+      return '<tr><td>'+r.date.slice(5)+'</td><td>'+r.desc+'</td><td>'+r.cust+'</td><td class="num">'+fmt(r.receipt)+'</td>'+
+        '<td class="num">'+fmt(r.deposit)+'</td><td class="rc">'+r.jm+'</td>'+
+        '<td>'+(r.src1?'<span class="tag src">'+r.src1+'</span>':'<span class="neg">Không có source</span>')+'</td><td>'+giai+'</td>'+
+        '<td>'+mLab[r.mstatus]+'</td><td>'+mAct(r)+'</td></tr>';
+    }).join(""):'<tr><td colspan="10" class="empty">Tất cả RC đã đủ thông tin nguồn 🎉</td></tr>';
+  }
+  el("missRows").addEventListener("click",function(e){var b=e.target.closest("[data-m]");if(!b)return;
+    var r=data.find(function(x){return x.id==b.dataset.id;});if(r){r.mstatus=b.dataset.m;if(r.mstatus==="updated"&&!r.src1)r.src1="WI";renderAll();}});
+
+  function renderDashboard(){
+    el("dashboardRows").innerHTML=dashboard.map(function(s){
+      var cls=s.diff===0?'':'neg',tag=s.diff===0?'<span class="tag ok">Khớp</span>':'<span class="tag bad">Lệch</span>';
+      return '<tr><td><b>'+s.d+'</b></td><td>'+s.u+'</td><td class="num">'+fmt(s.beg)+'</td><td class="num">'+fmt(s.sale)+'</td>'+
+        '<td class="num">'+fmt(s.dep)+'</td><td class="num">'+fmt(s.po)+'</td><td class="num">'+fmt(s.book)+'</td>'+
+        '<td class="num">'+fmt(s.avail)+'</td><td class="num">'+money(s.price)+'</td>'+
+        '<td class="num '+cls+'"><b>'+(s.diff>0?'+':'')+s.diff+'</b></td><td>'+tag+'</td></tr>';
+    }).join("");
+  }
+  function renderBC201(){
+    el("bc201Rows").innerHTML=bc201.map(function(b){
+      return '<tr><td>'+b.date.slice(5)+'</td><td>'+b.cust+'</td><td>'+b.desc+'</td><td class="rc">'+b.code+'</td>'+
+        '<td>'+(b.gold||'')+'</td><td>'+b.unit+'</td><td class="num">'+b.qty+'</td><td class="num">'+b.price.toFixed(2)+'</td>'+
+        '<td class="num '+(b.amt<0?'neg':'')+'">'+fmt(b.amt)+'</td><td>'+b.type+'</td><td>'+(b.rem||'')+'</td>'+
+        '<td>'+(b.chk?'<span class="tag ok">✓</span>':'<span class="tag co">☐</span>')+'</td></tr>';
+    }).join("");
+  }
+
+  function drawChart(){
+    var c=el("chart");if(!c)return;
+    var ratio=window.devicePixelRatio||1,w=c.clientWidth,h=190;
+    c.width=w*ratio;c.height=h*ratio;var ctx=c.getContext("2d");ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);
+    var vals=[5310,5217,3120,5235,4480,6100,2380,5300,16935,5770,4480,3550,5310,6850];
+    var max=Math.max.apply(null,vals),pad=26,bw=(w-pad*2)/vals.length,base=h-pad*0.9;
+    ctx.strokeStyle="#E3EADF";ctx.lineWidth=1;
+    for(var g=0;g<=3;g++){var y=pad+(h-pad*1.4)*g/3;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();}
+    vals.forEach(function(v,i){var bh=(v/max)*(h-pad*2.2),x=pad+i*bw+bw*0.18;ctx.fillStyle="#A87B2E";ctx.fillRect(x,base-bh,bw*0.64,bh);});
+    var cum=0,cmax=vals.reduce(function(s,v){return s+v;},0);
+    ctx.beginPath();ctx.strokeStyle="#2E5D45";ctx.lineWidth=2;
+    vals.forEach(function(v,i){cum+=v;var x=pad+i*bw+bw*0.5,y=base-(cum/cmax)*(h-pad*2.2);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});
+    ctx.stroke();
+  }
+  window.addEventListener("resize",function(){if(el("view-dash").classList.contains("active"))drawChart();});
+
+  el("rcForm").addEventListener("submit",function(e){
+    e.preventDefault();var f=e.target,fd=new FormData(f);
+    var amt=parseFloat(fd.get("amt"))||0,ty=fd.get("type"),expense=0,receipt=0,deposit=0;
+    if(ty==="PO"||ty==="Return")expense=amt;else if(ty==="Receipt"||ty==="Pick up")receipt=amt;else if(ty==="Transfer"||ty==="Exchange"){}else deposit=amt;
+    var rec={id:nextId,no:nextId,date:fd.get("date"),co:fd.get("co"),type:ty,sku:fd.get("sku"),
+      desc:fd.get("desc"),cust:fd.get("cust"),contact:fd.get("contact"),
+      expense:expense,receipt:receipt,deposit:deposit,
+      jm:fd.get("jm")||"(chưa có)",src1:fd.get("src1"),src2:"",sale1:fd.get("sale1"),saleOnl:fd.get("saleOnl"),
+      tx:fd.get("tx"),support:parseFloat(fd.get("support"))||0,pay:fd.get("pay"),bell:fd.get("bell"),old:"",mstatus:"new"};
+    nextId++;data.unshift(rec);
+    f.reset();
+    var t=el("toast");t.textContent="Đã lưu RC "+rec.jm+" → đẩy vào Sales Daily / RC JM ✓";t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2600);
+    renderAll();go("usbc");
+  });
+
+  function renderAll(){
+    el("missBadge").textContent=data.filter(isMissing).length;
+    renderDash();renderUSBC();
+    salesRender("PC49","pc49salesRows",["p49Tot","p49PO","p49Rec","p49Dep"],"p49tabs");
+    salesRender("Trans","transsalesRows",["trTot","trPO","trRec","trDep"],"trtabs");
+    renderPC49rc();renderTransrc();renderOnline();renderBell();renderMissing();renderDashboard();renderBC201();
+  }
+  renderAll();
+})();
+</script>
