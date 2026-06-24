@@ -1,17 +1,26 @@
 import Link from "next/link";
 import PageHeader from "@/components/page-header";
+import Pagination from "@/components/pagination";
 import { listTransactions } from "@/lib/data";
 import { computeCondition, TYPE_LABEL } from "@/lib/rules";
 import { num } from "@/lib/format";
 import type { PayMethod } from "@/lib/types";
 
+const PAGE_SIZE = 50;
+
 // Báo cáo bán hàng ngày — CỘT GIỐNG EXCEL (BRD §12.1)
-export default async function SalesDaily({ searchParams }: { searchParams: { company?: string; date?: string } }) {
+export default async function SalesDaily({ searchParams }: { searchParams: { company?: string; date?: string; page?: string } }) {
   const company = searchParams.company === "Trans" ? "Trans" : "PC49";
   const all = await listTransactions({ company });
   const dates = Array.from(new Set(all.map((t) => t.ngay))).sort().reverse();
   const date = searchParams.date && searchParams.date !== "all" ? searchParams.date : "all";
   const rows = date === "all" ? all : all.filter((t) => t.ngay === date);
+
+  const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const startIdx = (page - 1) * PAGE_SIZE;
+  const pageRows = rows.slice(startIdx, startIdx + PAGE_SIZE);
 
   const recvCol = (t: any, m: PayMethod) => {
     const c = computeCondition(t);
@@ -21,13 +30,15 @@ export default async function SalesDaily({ searchParams }: { searchParams: { com
   };
   const cell = (n: number) => (n ? num(n) : "");
 
+  // Tổng cộng tính trên TOÀN BỘ kỳ lọc (không chỉ trang hiện tại)
   let tTong = 0, tPO = 0, tRec = 0, tDep = 0;
-  const body = rows.map((t, i) => {
+  rows.forEach((t) => { const c = computeCondition(t); tTong += c.tongCong; tPO += c.returnPo; tRec += c.receipt; tDep += c.deposit; });
+
+  const body = pageRows.map((t, i) => {
     const c = computeCondition(t);
-    tTong += c.tongCong; tPO += c.returnPo; tRec += c.receipt; tDep += c.deposit;
     return (
       <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
-        <td className="px-2.5 py-1.5 border border-line">{i + 1}</td>
+        <td className="px-2.5 py-1.5 border border-line">{startIdx + i + 1}</td>
         <td className="px-2.5 py-1.5 border border-line">{TYPE_LABEL[t.type]}</td>
         <td className="px-2.5 py-1.5 border border-line">{t.dienGiai}</td>
         <td className="px-2.5 py-1.5 border border-line">{t.khach}</td>
@@ -92,6 +103,7 @@ export default async function SalesDaily({ searchParams }: { searchParams: { com
               </tr></tfoot>
             </table>
           </div>
+          <Pagination basePath="/reports/sales-daily" sp={searchParams as Record<string, string | undefined>} page={page} totalPages={totalPages} total={total} />
         </div>
       </div>
     </>
