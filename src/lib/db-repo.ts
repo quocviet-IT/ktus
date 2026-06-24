@@ -2,6 +2,7 @@ import { sb } from "./supabase-server";
 import type { Transaction, TxStatus, LineItem, Payment } from "./types";
 
 const N = (v: any) => (v == null ? 0 : Number(v));
+const PAGE_SIZE = 1000;
 
 function rowToTx(r: any): Transaction {
   return {
@@ -28,13 +29,113 @@ function rowToTx(r: any): Transaction {
 const SELECT = "*, line_items(*), payments(*)";
 
 export async function listTransactions(opts?: { company?: string; status?: string; q?: string }): Promise<Transaction[]> {
-  let query = sb().from("transactions").select(SELECT).order("ngay", { ascending: false });
-  if (opts?.company && opts.company !== "all") query = query.eq("company", opts.company);
-  if (opts?.status && opts.status !== "all") query = query.eq("trang_thai", opts.status);
-  if (opts?.q) query = query.or(`rc_jm_no.ilike.%${opts.q}%,khach.ilike.%${opts.q}%,dien_giai.ilike.%${opts.q}%`);
-  const { data, error } = await query;
+  const rows: any[] = [];
+  let from = 0;
+
+  while (true) {
+    let query: any = sb().from("transactions").select(SELECT).order("ngay", { ascending: false }).range(from, from + PAGE_SIZE - 1);
+    if (opts?.company && opts.company !== "all") query = query.eq("company", opts.company);
+    if (opts?.status && opts.status !== "all") query = query.eq("trang_thai", opts.status);
+    if (opts?.q) query = query.or(`rc_jm_no.ilike.%${opts.q}%,khach.ilike.%${opts.q}%,dien_giai.ilike.%${opts.q}%`);
+    const { data, error } = await query;
+    if (error) throw error;
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  return rows.map(rowToTx);
+}
+
+export interface ExcelWorkbook {
+  id: string;
+  fileName: string;
+  relativePath?: string;
+  fileSizeBytes: number;
+  modifiedAt?: string;
+  sheets: ExcelSheet[];
+}
+
+export interface ExcelSheet {
+  id: string;
+  workbookId: string;
+  sheetName: string;
+  sheetIndex: number;
+  maxRow: number;
+  maxColumn: number;
+  nonEmptyRows: number;
+}
+
+export interface ExcelRow {
+  id: string;
+  workbookId: string;
+  sheetId: string;
+  rowIndex: number;
+  cells: unknown[];
+  rowText?: string;
+}
+
+export async function listExcelWorkbooks(): Promise<ExcelWorkbook[]> {
+  const s = sb();
+  const [{ data: workbooks, error: workbookError }, { data: sheets, error: sheetError }] = await Promise.all([
+    s.from("excel_workbooks").select("*").order("file_name", { ascending: true }),
+    s.from("excel_sheets").select("*").order("sheet_index", { ascending: true }),
+  ]);
+  if (workbookError) throw workbookError;
+  if (sheetError) throw sheetError;
+
+  const sheetsByWorkbook = new Map<string, ExcelSheet[]>();
+  for (const sheet of sheets ?? []) {
+    const mapped: ExcelSheet = {
+      id: sheet.id,
+      workbookId: sheet.workbook_id,
+      sheetName: sheet.sheet_name,
+      sheetIndex: N(sheet.sheet_index),
+      maxRow: N(sheet.max_row),
+      maxColumn: N(sheet.max_column),
+      nonEmptyRows: N(sheet.non_empty_rows),
+    };
+    sheetsByWorkbook.set(mapped.workbookId, [...(sheetsByWorkbook.get(mapped.workbookId) ?? []), mapped]);
+  }
+
+  return (workbooks ?? []).map((workbook: any) => ({
+    id: workbook.id,
+    fileName: workbook.file_name,
+    relativePath: workbook.relative_path ?? undefined,
+    fileSizeBytes: N(workbook.file_size_bytes),
+    modifiedAt: workbook.modified_at ?? undefined,
+    sheets: sheetsByWorkbook.get(workbook.id) ?? [],
+  }));
+}
+
+export async function listExcelRows(opts?: { workbookId?: string; sheetId?: string; q?: string; page?: number; pageSize?: number }): Promise<{ rows: ExcelRow[]; count: number }> {
+  const pageSize = opts?.pageSize ?? 100;
+  const page = Math.max(1, opts?.page ?? 1);
+  const from = (page - 1) * pageSize;
+  let query = sb()
+    .from("excel_rows")
+    .select("id, workbook_id, sheet_id, row_index, cells, row_text", { count: "exact" })
+    .order("row_index", { ascending: true })
+    .range(from, from + pageSize - 1);
+
+  if (opts?.sheetId) query = query.eq("sheet_id", opts.sheetId);
+  else if (opts?.workbookId) query = query.eq("workbook_id", opts.workbookId);
+  if (opts?.q) query = query.ilike("row_text", `%${opts.q}%`);
+
+  const { data, error, count } = await query;
   if (error) throw error;
-  return (data ?? []).map(rowToTx);
+  return {
+    count: count ?? 0,
+    rows: (data ?? []).map((row: any) => ({
+      id: row.id,
+      workbookId: row.workbook_id,
+      sheetId: row.sheet_id,
+      rowIndex: N(row.row_index),
+      cells: Array.isArray(row.cells) ? row.cells : [],
+      rowText: row.row_text ?? undefined,
+    })),
+  };
 }
 
 export async function getTransaction(id: string): Promise<Transaction | undefined> {

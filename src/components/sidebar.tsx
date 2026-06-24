@@ -10,6 +10,7 @@ const NAV: { group?: string; href: string; label: string; icon: string }[] = [
   { href: "/reports/sales-online", label: "Sales online", icon: "🌐" },
   { href: "/reports/bell", label: "Rung chuông", icon: "🔔" },
   { href: "/missing-source", label: "RC thiếu nguồn", icon: "⚑" },
+  { href: "/excel", label: "Dữ liệu Excel", icon: "≡" },
   { group: "Kho & danh mục", href: "/inventory", label: "Tồn kho (KT↔US)", icon: "⚖" },
   { href: "/catalog", label: "Danh mục", icon: "⚙" },
 ];
