@@ -9,5 +9,6 @@ next-env.d.ts
 /supabase/.temp
 debug.log
 scripts/import-output*.json
+scripts/raw-excel-output*.jsonl
 
 .vercel
