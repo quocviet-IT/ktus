@@ -1,12 +1,17 @@
 import PageHeader from "@/components/page-header";
+import PeriodFields from "@/components/period-fields";
 import { listTransactions } from "@/lib/data";
 import { BELL_CODES } from "@/lib/store";
 import { isBell, computeCondition, BELL_THRESHOLD } from "@/lib/rules";
 import { money, ddmm } from "@/lib/format";
+import { periodRange, periodLabel } from "@/lib/period";
+
+type SP = { period?: string; day?: string; week?: string; month?: string; year?: string };
 
 // Rung chuông (BRD §12.3)
-export default async function Bell() {
-  const all = await listTransactions();
+export default async function Bell({ searchParams }: { searchParams: SP }) {
+  const range = periodRange(searchParams);
+  const all = await listTransactions({ from: range.from, to: range.to });
   const counts: Record<string, number> = {};
   BELL_CODES.forEach((c) => (counts[c] = 0));
   all.forEach((t) => { if (t.bellCode && counts[t.bellCode] !== undefined) counts[t.bellCode]++; });
@@ -31,6 +36,11 @@ export default async function Bell() {
         </div>
 
         <div className="bg-card border border-line rounded-xl p-4">
+          <form action="/reports/bell" className="flex items-center gap-2 mb-3 flex-wrap">
+            <PeriodFields period={searchParams.period} day={searchParams.day} week={searchParams.week} month={searchParams.month} year={searchParams.year} />
+            <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[13px] hover:border-accent">Lọc</button>
+            <span className="text-[12px] text-muted">{periodLabel(searchParams)} · {rows.length} đơn</span>
+          </form>
           <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
             ⚙️ Tự gắn cờ đơn đạt mốc (≥ {money(BELL_THRESHOLD)} — <i>ngưỡng tạm, cần chốt</i>) &amp; cảnh báo nghi trùng (cùng khách/công ty).
           </div>

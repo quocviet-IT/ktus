@@ -28,7 +28,7 @@ function rowToTx(r: any): Transaction {
 
 const SELECT = "*, line_items(*), payments(*)";
 
-export async function listTransactions(opts?: { company?: string; status?: string; q?: string }): Promise<Transaction[]> {
+export async function listTransactions(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
   const rows: any[] = [];
   let from = 0;
 
@@ -36,6 +36,8 @@ export async function listTransactions(opts?: { company?: string; status?: strin
     let query: any = sb().from("transactions").select(SELECT).order("ngay", { ascending: false }).range(from, from + PAGE_SIZE - 1);
     if (opts?.company && opts.company !== "all") query = query.eq("company", opts.company);
     if (opts?.status && opts.status !== "all") query = query.eq("trang_thai", opts.status);
+    if (opts?.from) query = query.gte("ngay", opts.from);
+    if (opts?.to) query = query.lte("ngay", opts.to);
     if (opts?.q) query = query.or(`rc_jm_no.ilike.%${opts.q}%,khach.ilike.%${opts.q}%,dien_giai.ilike.%${opts.q}%`);
     const { data, error } = await query;
     if (error) throw error;
@@ -179,10 +181,21 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
 
 export async function updateTransaction(id: string, patch: Partial<Transaction>) {
   const map: Record<string, any> = {};
-  if (patch.source1 !== undefined) map.source_1 = patch.source1;
-  if (patch.note !== undefined) map.note = patch.note;
-  if (patch.trangThai !== undefined) map.trang_thai = patch.trangThai;
-  if (patch.bellCode !== undefined) map.bell_code = patch.bellCode;
+  const set = (k: string, v: any) => { if (v !== undefined) map[k] = v === "" ? null : v; };
+  set("rc_jm_no", patch.rcJmNo);
+  set("so_no", patch.soNo);
+  set("appt_id", patch.apptId);
+  set("source_1", patch.source1);
+  set("source_2", patch.source2);
+  set("sale_1", patch.sale1);
+  set("sale_online", patch.saleOnline);
+  set("transaction_value", patch.transactionValue);
+  set("pct_support", patch.pctSupport);
+  set("old_receipt_no", patch.oldReceiptNo);
+  set("deposit_date", patch.depositDate);
+  set("bell_code", patch.bellCode);
+  set("trang_thai", patch.trangThai);
+  set("note", patch.note);
   if (Object.keys(map).length) await sb().from("transactions").update(map).eq("id", id);
 }
 

@@ -83,6 +83,21 @@ export async function setStatus(id: string, s: TxStatus) {
   revalidatePath("/rc"); revalidatePath(`/rc/${id}`); revalidatePath("/");
 }
 
+// Sửa RC — cập nhật cột JM/Source/Sale (bước 2, UC-04)
+export async function updateRcJm(id: string, fd: FormData) {
+  const s = (k: string) => String(fd.get(k) ?? "");
+  const pct = parseFloat(s("pctSupport"));
+  await updateTransaction(id, {
+    rcJmNo: s("rcJmNo"), soNo: s("soNo"), apptId: s("apptId"),
+    source1: s("source1"), source2: s("source2"),
+    sale1: s("sale1"), saleOnline: s("saleOnline"),
+    transactionValue: s("transactionValue"), pctSupport: isNaN(pct) ? undefined : pct,
+    oldReceiptNo: s("oldReceiptNo"), depositDate: s("depositDate"),
+    bellCode: s("bellCode"), trangThai: (s("trangThai") || undefined) as any, note: s("note"),
+  });
+  revalidatePath(`/rc/${id}`); revalidatePath("/rc"); revalidatePath("/missing-source"); revalidatePath("/");
+}
+
 // Vòng xử lý RC thiếu nguồn (FR-MISS-02)
 export async function sendToUS(id: string) {
   await updateTransaction(id, { note: "Đã gửi US — chờ bổ sung nguồn" });

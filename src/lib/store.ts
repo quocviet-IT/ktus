@@ -106,10 +106,12 @@ if (!g.__KTUS_TX) g.__KTUS_TX = seed();
 const TX: Transaction[] = g.__KTUS_TX;
 
 // ===== API store =====
-export function listTransactions(opts?: { company?: string; status?: string; q?: string }): Transaction[] {
+export function listTransactions(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Transaction[] {
   let rows = [...TX].sort((a, b) => (a.ngay < b.ngay ? 1 : -1));
   if (opts?.company && opts.company !== "all") rows = rows.filter((r) => r.company === opts.company);
   if (opts?.status && opts.status !== "all") rows = rows.filter((r) => r.trangThai === opts.status);
+  if (opts?.from) rows = rows.filter((r) => r.ngay >= opts.from!);
+  if (opts?.to) rows = rows.filter((r) => r.ngay <= opts.to!);
   if (opts?.q) {
     const q = opts.q.toLowerCase();
     rows = rows.filter((r) => (r.rcJmNo || "").toLowerCase().includes(q) || r.khach.toLowerCase().includes(q) || r.dienGiai.toLowerCase().includes(q));

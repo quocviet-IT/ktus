@@ -6,7 +6,7 @@ import type { ExcelWorkbook, ExcelRow } from "./db-repo";
 
 const USE_DB = process.env.USE_DB === "true";
 
-export async function listTransactions(opts?: { company?: string; status?: string; q?: string }): Promise<Transaction[]> {
+export async function listTransactions(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
   return USE_DB ? repo.listTransactions(opts) : store.listTransactions(opts);
 }
 export async function getTransaction(id: string): Promise<Transaction | undefined> {

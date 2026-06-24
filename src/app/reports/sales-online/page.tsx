@@ -1,11 +1,23 @@
 import PageHeader from "@/components/page-header";
+import PeriodFields from "@/components/period-fields";
+import Pagination from "@/components/pagination";
 import { listTransactions } from "@/lib/data";
 import { jmKind } from "@/lib/rules";
 import { ddmm } from "@/lib/format";
+import { periodRange, periodLabel } from "@/lib/period";
+
+const PAGE_SIZE = 50;
+type SP = { period?: string; day?: string; week?: string; month?: string; year?: string; page?: string };
 
 // Sales Online — CỘT GIỐNG EXCEL (BRD §12.2)
-export default async function SalesOnline() {
-  const rows = (await listTransactions()).filter((t) => t.saleOnline);
+export default async function SalesOnline({ searchParams }: { searchParams: SP }) {
+  const range = periodRange(searchParams);
+  const all = (await listTransactions({ from: range.from, to: range.to })).filter((t) => t.saleOnline);
+  const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
+  const total = all.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const startIdx = (page - 1) * PAGE_SIZE;
+  const rows = all.slice(startIdx, startIdx + PAGE_SIZE);
   const th = "px-2.5 py-2 border border-line bg-band font-mono text-[10px] uppercase text-brand text-left whitespace-nowrap align-bottom";
   const td = "px-2.5 py-1.5 border border-line";
 
@@ -14,13 +26,14 @@ export default async function SalesOnline() {
       <PageHeader crumb="Báo cáo / Sales online" title="Báo cáo theo dõi bán hàng Sales Online" />
       <div className="p-6">
         <div className="bg-card border border-line rounded-xl p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] flex-1">
-              ⚙️ Tự lọc các RC có Sale Online (lấy từ Sổ RC JM). Cột giống file Excel BC Sales Online.
-            </div>
+          <form action="/reports/sales-online" className="flex items-center gap-2 mb-3 flex-wrap">
+            <PeriodFields period={searchParams.period} day={searchParams.day} week={searchParams.week} month={searchParams.month} year={searchParams.year} />
+            <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[13px] hover:border-accent">Lọc</button>
+            <span className="text-[12px] text-muted">{periodLabel(searchParams)} · {total} dòng</span>
+            <div className="flex-1" />
             <a href="/reports/sales-online/export"
               className="px-3 py-1.5 rounded-lg text-[12px] border border-brand text-brand hover:bg-brand hover:text-white whitespace-nowrap">Xuất Excel</a>
-          </div>
+          </form>
           <div className="overflow-x-auto">
             <table className="border-collapse text-[12.5px] min-w-[940px]">
               <thead><tr>
@@ -33,7 +46,7 @@ export default async function SalesOnline() {
                   const isDep = jmKind(t.rcJmNo) === "deposit";
                   return (
                     <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
-                      <td className={td}>{i + 1}</td>
+                      <td className={td}>{startIdx + i + 1}</td>
                       <td className={td}>{ddmm(t.ngay)}</td>
                       <td className={td}>{t.khach}</td>
                       <td className={td}><span className="badge bg-accentSoft text-[#7a5a1d]">{t.source1 || "—"}</span></td>
@@ -50,6 +63,7 @@ export default async function SalesOnline() {
               </tbody>
             </table>
           </div>
+          <Pagination basePath="/reports/sales-online" sp={searchParams as Record<string, string | undefined>} page={page} totalPages={totalPages} total={total} />
         </div>
       </div>
     </>

@@ -3,9 +3,10 @@ import Link from "next/link";
 import PageHeader from "@/components/page-header";
 import StatusBadge from "@/components/status-badge";
 import { getTransaction, findByJm } from "@/lib/data";
-import { computeCondition, paidTotal, TYPE_LABEL, jmKind } from "@/lib/rules";
+import { computeCondition, paidTotal, TYPE_LABEL, jmKind, STATUS_LABEL } from "@/lib/rules";
 import { money, ddmmyyyy, ddmm } from "@/lib/format";
-import { setStatus } from "@/app/actions";
+import { setStatus, updateRcJm } from "@/app/actions";
+import { SOURCES, SALES, SALES_ONLINE, BELL_CODES } from "@/lib/store";
 
 export default async function RcDetail({ params }: { params: { id: string } }) {
   const t = await getTransaction(params.id);
@@ -104,6 +105,36 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
             </div>
           </div>
         )}
+
+        {/* Sửa RC — cập nhật JM (bước 2) */}
+        <form action={updateRcJm.bind(null, t.id)} className="bg-card border border-line rounded-xl p-5 mt-1">
+          <h2 className="font-serif text-base mb-3">Sửa / Cập nhật JM (bước 2)</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {(() => { const lbl = "font-mono text-[11px] text-muted"; const inp = "border border-line rounded-md px-2.5 py-1.5 text-[13px] w-full bg-white"; return (<>
+              <label><div className={lbl}>Số RC JM</div><input name="rcJmNo" defaultValue={t.rcJmNo || ""} placeholder="9000…/1000…" className={inp} /></label>
+              <label><div className={lbl}>SO#</div><input name="soNo" defaultValue={t.soNo || ""} className={inp} /></label>
+              <label><div className={lbl}>Root Appt ID</div><input name="apptId" defaultValue={t.apptId || ""} className={inp} /></label>
+              <label><div className={lbl}>Trạng thái</div>
+                <select name="trangThai" defaultValue={t.trangThai} className={inp}>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+              <label><div className={lbl}>Source 1</div>
+                <select name="source1" defaultValue={t.source1 || ""} className={inp}><option value="">— Không có source —</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select></label>
+              <label><div className={lbl}>Source 2</div>
+                <select name="source2" defaultValue={t.source2 || ""} className={inp}><option value="">—</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select></label>
+              <label><div className={lbl}>Sale US</div>
+                <select name="sale1" defaultValue={t.sale1 || ""} className={inp}><option value="">—</option>{SALES.map((s) => <option key={s}>{s}</option>)}</select></label>
+              <label><div className={lbl}>Sale Online</div>
+                <select name="saleOnline" defaultValue={t.saleOnline || ""} className={inp}><option value="">—</option>{SALES_ONLINE.map((s) => <option key={s}>{s}</option>)}</select></label>
+              <label><div className={lbl}>% Support</div><input name="pctSupport" type="number" step="0.01" defaultValue={t.pctSupport ?? ""} className={inp} /></label>
+              <label><div className={lbl}>Transaction value</div><input name="transactionValue" defaultValue={t.transactionValue || ""} className={inp} /></label>
+              <label><div className={lbl}>Mã rung chuông</div>
+                <select name="bellCode" defaultValue={t.bellCode || ""} className={inp}><option value="">—</option>{BELL_CODES.map((b) => <option key={b}>{b}</option>)}</select></label>
+              <label><div className={lbl}>Old Receipt # (pickup)</div><input name="oldReceiptNo" defaultValue={t.oldReceiptNo || ""} className={inp} /></label>
+              <label><div className={lbl}>Deposit Date</div><input name="depositDate" type="date" defaultValue={t.depositDate || ""} className={inp} /></label>
+              <label className="col-span-2 md:col-span-4"><div className={lbl}>Ghi chú</div><input name="note" defaultValue={t.note || ""} className={inp} /></label>
+            </>); })()}
+          </div>
+          <button type="submit" className="mt-3 rounded-md bg-brand px-4 py-2 text-[13px] font-semibold text-white hover:bg-accent">Lưu cập nhật</button>
+        </form>
       </div>
     </>
   );
