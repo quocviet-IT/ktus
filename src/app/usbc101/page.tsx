@@ -10,7 +10,7 @@ import {
 } from "@/lib/usbc101";
 
 const PAGE_SIZE = 50;
-type SP = { sheet?: string; period?: string; day?: string; week?: string; month?: string; year?: string; page?: string };
+type SP = { sheet?: string; acc?: string; period?: string; day?: string; week?: string; month?: string; year?: string; page?: string };
 
 export default async function Usbc101({ searchParams }: { searchParams: SP }) {
   const sheet = searchParams.sheet || "balance";
@@ -87,7 +87,9 @@ function BalanceView({ rows }: { rows: any[] }) {
 
 async function LedgerView({ company, sp }: { company: string; sp: SP }) {
   const range = periodRange(sp);
-  const all = await listTransactions({ company, from: range.from, to: range.to });
+  const acc = sp.acc === "cash" || sp.acc === "bank" ? sp.acc : "all";
+  const fetched = await listTransactions({ company, from: range.from, to: range.to });
+  const all = acc === "all" ? fetched : fetched.filter((t) => (t.companyAccount || "").toLowerCase().endsWith(acc));
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
   const total = all.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -99,8 +101,15 @@ async function LedgerView({ company, sp }: { company: string; sp: SP }) {
 
   return (
     <div className="bg-card border border-line rounded-xl p-4">
+      <div className="flex gap-1.5 mb-2 flex-wrap">
+        {([["all", "Tất cả"], ["cash", "Theo dõi Cash"], ["bank", "Theo dõi Bank"]] as const).map(([v, l]) => (
+          <Link key={v} href={`/usbc101?sheet=${company}&acc=${v}`}
+            className={`px-3 py-1.5 rounded-md text-[12px] border ${acc === v ? "bg-brand text-white border-brand" : "border-line hover:border-accent"}`}>{l}</Link>
+        ))}
+      </div>
       <form action="/usbc101" className="flex items-center gap-2 mb-3 flex-wrap">
         <input type="hidden" name="sheet" value={company} />
+        <input type="hidden" name="acc" value={acc} />
         <PeriodFields period={sp.period} day={sp.day} week={sp.week} month={sp.month} year={sp.year} />
         <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[13px] hover:border-accent">Lọc</button>
         <span className="text-[12px] text-muted">Sổ {company} · {periodLabel(sp)} · {total} dòng</span>
