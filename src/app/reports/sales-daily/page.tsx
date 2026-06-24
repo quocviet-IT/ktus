@@ -52,19 +52,25 @@ export default async function SalesDaily({ searchParams }: { searchParams: { com
       <PageHeader crumb="Báo cáo / Bán hàng theo ngày" title={`Bán hàng ngày — ${company}`} />
       <div className="p-6">
         <div className="bg-card border border-line rounded-xl p-4">
-          <div className="flex gap-2 items-center mb-3 flex-wrap">
-            <Link href={`/reports/sales-daily?company=PC49`} className={`px-3 py-1.5 rounded-lg text-[12px] border ${company === "PC49" ? "bg-brand text-white border-brand" : "border-line"}`}>PC49</Link>
-            <Link href={`/reports/sales-daily?company=Trans`} className={`px-3 py-1.5 rounded-lg text-[12px] border ${company === "Trans" ? "bg-brand text-white border-brand" : "border-line"}`}>Trans</Link>
-            <span className="mx-2 text-line">|</span>
-            <Link href={`/reports/sales-daily?company=${company}`} className={`px-3 py-1.5 rounded-lg text-[12px] border font-mono ${date === "all" ? "bg-brand text-white border-brand" : "border-line"}`}>Tất cả ngày</Link>
-            {dates.map((d) => (
-              <Link key={d} href={`/reports/sales-daily?company=${company}&date=${d}`}
-                className={`px-3 py-1.5 rounded-lg text-[12px] border font-mono ${date === d ? "bg-brand text-white border-brand" : "border-line"}`}>{d.slice(8)}/{d.slice(5, 7)}</Link>
-            ))}
+          <form action="/reports/sales-daily" className="flex gap-2 items-center mb-3 flex-wrap">
+            <Link href="/reports/sales-daily?company=PC49" className={`px-3 py-1.5 rounded-lg text-[12px] border ${company === "PC49" ? "bg-brand text-white border-brand" : "border-line"}`}>PC49</Link>
+            <Link href="/reports/sales-daily?company=Trans" className={`px-3 py-1.5 rounded-lg text-[12px] border ${company === "Trans" ? "bg-brand text-white border-brand" : "border-line"}`}>Trans</Link>
+            <span className="mx-1 text-line">|</span>
+            <input type="hidden" name="company" value={company} />
+            <label className="text-[12px] text-muted">Chọn ngày:</label>
+            <input type="date" name="date" aria-label="Chọn ngày"
+              defaultValue={date === "all" ? "" : date}
+              min={dates.length ? dates[dates.length - 1] : undefined}
+              max={dates.length ? dates[0] : undefined}
+              className="rounded-md border border-line px-2.5 py-1.5 text-[13px]" />
+            <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[12px] hover:border-accent">Xem</button>
+            <Link href={`/reports/sales-daily?company=${company}`}
+              className={`px-3 py-1.5 rounded-lg text-[12px] border font-mono ${date === "all" ? "bg-brand text-white border-brand" : "border-line"}`}>Tất cả ngày</Link>
+            <span className="text-[12px] text-muted">{date === "all" ? `${dates.length} ngày có giao dịch` : `Ngày ${date.split("-").reverse().join("/")}`}</span>
             <div className="flex-1" />
             <Link href={`/reports/sales-daily/export?company=${company}&date=${date}`}
               className="px-3 py-1.5 rounded-lg text-[12px] border border-brand text-brand hover:bg-brand hover:text-white">Xuất Excel</Link>
-          </div>
+          </form>
           <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
             ⚙️ Cột giống file Excel; số liệu tự tổng hợp từ RC (TỔNG CỘNG = Receipt + Deposit − PO).
           </div>
