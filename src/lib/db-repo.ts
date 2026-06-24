@@ -205,3 +205,31 @@ export async function updateTransaction(id: string, patch: Partial<Transaction>)
 export async function setStatus(id: string, s: TxStatus) {
   await sb().from("transactions").update({ trang_thai: s }).eq("id", id);
 }
+
+// ===== Sao kê ngân hàng =====
+import type { BankLine } from "./types";
+function rowToBank(r: any): BankLine {
+  return {
+    id: r.id, company: r.company, bankAccount: r.bank_account ?? undefined, ngay: r.ngay,
+    description: r.description ?? "", category: r.category ?? undefined, amount: N(r.amount),
+    matched: !!r.matched, note: r.note ?? undefined,
+  };
+}
+export async function listBankLines(opts?: { company?: string; from?: string; to?: string }): Promise<BankLine[]> {
+  let q: any = sb().from("bank_statements").select("*").order("ngay", { ascending: false });
+  if (opts?.company && opts.company !== "all") q = q.eq("company", opts.company);
+  if (opts?.from) q = q.gte("ngay", opts.from);
+  if (opts?.to) q = q.lte("ngay", opts.to);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []).map(rowToBank);
+}
+export async function addBankLine(b: Omit<BankLine, "id">): Promise<void> {
+  await sb().from("bank_statements").insert({
+    company: b.company, bank_account: b.bankAccount || null, ngay: b.ngay,
+    description: b.description, category: b.category || null, amount: b.amount, matched: b.matched, note: b.note || null,
+  });
+}
+export async function setBankMatched(id: string, matched: boolean): Promise<void> {
+  await sb().from("bank_statements").update({ matched }).eq("id", id);
+}

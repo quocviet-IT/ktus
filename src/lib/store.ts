@@ -139,3 +139,35 @@ export function updateTransaction(id: string, patch: Partial<Transaction>) {
   return TX[i];
 }
 export function setStatus(id: string, s: TxStatus) { return updateTransaction(id, { trangThai: s }); }
+
+// ===== Sao kê ngân hàng (in-memory) =====
+import type { BankLine } from "./types";
+function seedBank(): BankLine[] {
+  return [
+    { id: "b1", company: "Trans", bankAccount: "004 - TFJ WF CK 7012", ngay: "2026-01-02", description: "BANKCARD DEPOSIT -0485222122", category: "BANKCARD DEPOSIT", amount: 1210, matched: false },
+    { id: "b2", company: "Trans", bankAccount: "004 - TFJ WF CK 7012", ngay: "2026-01-02", description: "BUSINESS TO BUSINESS ACH SYNCHRONY BANK MTOT DEP", category: "ACH", amount: 3500, matched: false },
+    { id: "b3", company: "Trans", bankAccount: "004 - TFJ WF CK 7012", ngay: "2026-01-02", description: "CHECK", category: "CHECK", amount: -40, matched: false },
+    { id: "b4", company: "PC49", bankAccount: "PC49 Chase", ngay: "2026-06-21", description: "BANKWIRE IN — Nhung Cai 3L VRP", category: "BANK WIRE", amount: 16935, matched: false },
+    { id: "b5", company: "PC49", bankAccount: "PC49 Chase", ngay: "2026-06-20", description: "BANKCARD DEPOSIT -0485222122", category: "BANKCARD DEPOSIT", amount: 2140, matched: false },
+  ];
+}
+if (!g.__KTUS_BANK) g.__KTUS_BANK = seedBank();
+const BANK: BankLine[] = g.__KTUS_BANK;
+let _bid = 100;
+
+export function listBankLines(opts?: { company?: string; from?: string; to?: string }): BankLine[] {
+  let rows = [...BANK].sort((a, b) => (a.ngay < b.ngay ? 1 : -1));
+  if (opts?.company && opts.company !== "all") rows = rows.filter((r) => r.company === opts.company);
+  if (opts?.from) rows = rows.filter((r) => r.ngay >= opts.from!);
+  if (opts?.to) rows = rows.filter((r) => r.ngay <= opts.to!);
+  return rows;
+}
+export function addBankLine(b: Omit<BankLine, "id">): BankLine {
+  const rec = { ...b, id: "b" + ++_bid };
+  BANK.unshift(rec);
+  return rec;
+}
+export function setBankMatched(id: string, matched: boolean) {
+  const i = BANK.findIndex((x) => x.id === id);
+  if (i >= 0) BANK[i] = { ...BANK[i], matched };
+}

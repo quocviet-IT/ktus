@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction } from "@/lib/data";
+import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, addBankLine, setBankMatched } from "@/lib/data";
 import type { TxStatus, TxType, CompanyCode, LineItem } from "@/lib/types";
 
 export interface RcInput {
@@ -112,6 +112,25 @@ export async function updateRcJm(id: string, fd: FormData) {
     bellCode: s("bellCode"), trangThai: (s("trangThai") || undefined) as any, note: s("note"),
   });
   revalidatePath(`/rc/${id}`); revalidatePath("/rc"); revalidatePath("/missing-source"); revalidatePath("/");
+}
+
+// ===== Sao kê ngân hàng =====
+export async function createBankLine(company: string, fd: FormData) {
+  const s = (k: string) => String(fd.get(k) ?? "");
+  await addBankLine({
+    company: company as CompanyCode,
+    bankAccount: s("bankAccount") || undefined,
+    ngay: s("ngay"),
+    description: s("description"),
+    category: s("category") || undefined,
+    amount: Number(fd.get("amount")) || 0,
+    matched: false,
+  });
+  revalidatePath("/usbc101");
+}
+export async function toggleBankMatched(id: string, matched: boolean) {
+  await setBankMatched(id, matched);
+  revalidatePath("/usbc101");
 }
 
 // Vòng xử lý RC thiếu nguồn (FR-MISS-02)

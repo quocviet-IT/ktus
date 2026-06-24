@@ -76,6 +76,19 @@ export interface Transaction {
   payments: Payment[];
 }
 
+// Dòng sao kê ngân hàng (THEO DÕI BANK)
+export interface BankLine {
+  id: string;
+  company: CompanyCode;
+  bankAccount?: string;
+  ngay: string;          // YYYY-MM-DD
+  description: string;
+  category?: string;
+  amount: number;        // + nạp vào / − rút ra
+  matched: boolean;
+  note?: string;
+}
+
 // Cột tự tính (BR-01/02)
 export interface Computed {
   receipt: number;

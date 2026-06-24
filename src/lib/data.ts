@@ -1,7 +1,7 @@
 // Facade dữ liệu: chuyển giữa store (demo) và Supabase (thật) theo USE_DB.
 import * as store from "./store";
 import * as repo from "./db-repo";
-import type { Transaction, TxStatus } from "./types";
+import type { Transaction, TxStatus, BankLine } from "./types";
 import type { ExcelWorkbook, ExcelRow } from "./db-repo";
 
 const USE_DB = process.env.USE_DB === "true";
@@ -25,6 +25,17 @@ export async function updateTransaction(id: string, patch: Partial<Transaction>)
 export async function setStatus(id: string, s: TxStatus): Promise<void> {
   if (USE_DB) await repo.setStatus(id, s);
   else store.setStatus(id, s);
+}
+
+// Sao kê ngân hàng
+export async function listBankLines(opts?: { company?: string; from?: string; to?: string }): Promise<BankLine[]> {
+  return USE_DB ? repo.listBankLines(opts) : store.listBankLines(opts);
+}
+export async function addBankLine(b: Omit<BankLine, "id">): Promise<void> {
+  if (USE_DB) await repo.addBankLine(b); else store.addBankLine(b);
+}
+export async function setBankMatched(id: string, matched: boolean): Promise<void> {
+  if (USE_DB) await repo.setBankMatched(id, matched); else store.setBankMatched(id, matched);
 }
 
 export async function listExcelWorkbooks(): Promise<ExcelWorkbook[]> {
