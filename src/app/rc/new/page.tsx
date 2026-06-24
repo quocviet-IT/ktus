@@ -59,6 +59,11 @@ export default function NhapRC() {
       arBankwire: Number(f.get("arBankwire")) || 0,
       arZelle: Number(f.get("arZelle")) || 0,
       arCheck: Number(f.get("arCheck")) || 0,
+      companyAccount: String(f.get("companyAccount") || ""),
+      apCash: Number(f.get("apCash")) || 0,
+      apBankwire: Number(f.get("apBankwire")) || 0,
+      apZelle: Number(f.get("apZelle")) || 0,
+      apCheck: Number(f.get("apCheck")) || 0,
       pay: f.get("pay") as RcInput["pay"],
       lines,
       soNo: String(f.get("soNo") || ""),
@@ -178,6 +183,15 @@ export default function NhapRC() {
             <div className="grid grid-cols-2 gap-3">
               <label><div className={lbl}>Company</div><select name="company" required className={inp}>{COMPANIES.map((c) => <option key={c}>{c}</option>)}</select></label>
               <label><div className={lbl}>Hinh thuc TT dot dau</div><select name="pay" className={inp}>{PAYS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}</select></label>
+              <label className="col-span-2"><div className={lbl}>Company account (cash/bank)</div>
+                <select name="companyAccount" className={inp}>
+                  <option value="">- chọn tài khoản -</option>
+                  {COMPANIES.flatMap((c) => [`${c} cash`, `${c} bank`]).map((a) => <option key={a} value={a}>{a}</option>)}
+                </select></label>
+              <label><div className={lbl}>A/P Cash (chi)</div><input name="apCash" type="number" step="0.01" className={inp + " text-right font-mono"} /></label>
+              <label><div className={lbl}>A/P Bank wire</div><input name="apBankwire" type="number" step="0.01" className={inp + " text-right font-mono"} /></label>
+              <label><div className={lbl}>A/P Zelle</div><input name="apZelle" type="number" step="0.01" className={inp + " text-right font-mono"} /></label>
+              <label><div className={lbl}>A/P Check</div><input name="apCheck" type="number" step="0.01" className={inp + " text-right font-mono"} /></label>
               <label><div className={lbl}>Old Receipt Number</div><input name="oldReceiptNo" placeholder="9000..." className={inp} /></label>
               <label><div className={lbl}>Deposit Date</div><input name="depositDate" type="date" className={inp} /></label>
               <label><div className={lbl}>Ma rung chuong</div><select name="bellCode" className={inp}><option value="">-</option>{BELL_CODES.map((b) => <option key={b}>{b}</option>)}</select></label>

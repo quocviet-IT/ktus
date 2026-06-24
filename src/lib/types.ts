@@ -39,12 +39,21 @@ export interface Transaction {
   khach: string;
   contact?: string;
 
-  // nhập tay A/R
+  // tài khoản công ty (cash/bank) cho cân đối Balance Account
+  companyAccount?: string;   // "PC49 cash" | "PC49 bank" | "Trans cash" ...
+
+  // nhập tay A/R (thu tiền vào)
   expense: number;
   arCash: number;
   arBankwire: number;
   arZelle: number;
   arCheck: number;
+
+  // A/P (chi tiền ra) — PO/mua vào/trả hàng
+  apCash?: number;
+  apBankwire?: number;
+  apZelle?: number;
+  apCheck?: number;
 
   // JM (bước 2)
   rcJmNo?: string;

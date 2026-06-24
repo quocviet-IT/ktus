@@ -12,11 +12,16 @@ export interface RcInput {
   contact?: string;
   maSku?: string;
   dienGiai?: string;
+  companyAccount?: string;
   expense?: number;
   arCash?: number;
   arBankwire?: number;
   arZelle?: number;
   arCheck?: number;
+  apCash?: number;
+  apBankwire?: number;
+  apZelle?: number;
+  apCheck?: number;
   pay: "cash" | "bank_wire" | "zelle" | "check" | "card";
   // dòng hàng (nhập riêng — gộp khi lưu)
   lines: { moTa: string; soLuong: number; donGia: number; giaNo?: string; sku?: string }[];
@@ -59,11 +64,22 @@ export async function createRc(input: RcInput) {
     else ar.arCash = tong; // card → tạm xếp như cash receivable
   }
 
+  // A/P (chi tiền ra) cho PO/mua vào/trả hàng
+  const ap = {
+    apCash: Number(input.apCash) || 0,
+    apBankwire: Number(input.apBankwire) || 0,
+    apZelle: Number(input.apZelle) || 0,
+    apCheck: Number(input.apCheck) || 0,
+  };
+  const hasManualAP = ap.apCash || ap.apBankwire || ap.apZelle || ap.apCheck;
+  if (isPO && !hasManualAP) ap.apCash = Number(input.expense) || tong; // mặc định chi bằng cash
+  const companyAccount = input.companyAccount || `${input.company} cash`;
+
   const rec = await addTransaction({
     ngay: input.ngay, company: input.company, type: input.type,
     maSku: input.maSku, dienGiai: input.dienGiai || lineItems[0]?.moTa || "",
-    khach: input.khach, contact: input.contact,
-    expense: Number(input.expense) || (isPO ? tong : 0), ...ar,
+    khach: input.khach, contact: input.contact, companyAccount,
+    expense: Number(input.expense) || (isPO ? tong : 0), ...ar, ...ap,
     rcJmNo: input.rcJmNo || "", soNo: input.soNo || "", apptId: input.apptId || "",
     source1: input.source1 || "", source2: input.source2 || "", sale1: input.sale1,
     saleOnline: input.saleOnline || "", transactionValue: input.transactionValue || "",

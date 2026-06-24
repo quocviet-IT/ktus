@@ -4,8 +4,9 @@ import { usePathname } from "next/navigation";
 
 const NAV: { group?: string; href: string; label: string; icon: string }[] = [
   { href: "/", label: "Bảng điều khiển", icon: "◧" },
+  { group: "USBC101", href: "/usbc101", label: "Sổ công ty & Balance", icon: "①" },
   { group: "Hằng ngày", href: "/rc/new", label: "Nhập RC", icon: "✎" },
-  { href: "/rc", label: "Sổ giao dịch RC", icon: "▤" },
+  { href: "/rc", label: "Sổ giao dịch RC (JM)", icon: "▤" },
   { group: "Báo cáo", href: "/reports/sales-daily", label: "Bán hàng theo ngày", icon: "▦" },
   { href: "/reports/sales-online", label: "Sales online", icon: "🌐" },
   { href: "/reports/bell", label: "Rung chuông", icon: "🔔" },

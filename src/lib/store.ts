@@ -101,8 +101,15 @@ function seed(): Transaction[] {
 }
 
 // state tồn tại qua HMR ở dev
+// gán Company account mặc định (cash/bank) cho dữ liệu mẫu
+function withAccount(t: Transaction): Transaction {
+  if (t.companyAccount) return t;
+  const bank = (t.arBankwire || 0) > 0 || (t.arCheck || 0) > 0;
+  return { ...t, companyAccount: `${t.company} ${bank ? "bank" : "cash"}` };
+}
+
 const g = globalThis as any;
-if (!g.__KTUS_TX) g.__KTUS_TX = seed();
+if (!g.__KTUS_TX) g.__KTUS_TX = seed().map(withAccount);
 const TX: Transaction[] = g.__KTUS_TX;
 
 // ===== API store =====

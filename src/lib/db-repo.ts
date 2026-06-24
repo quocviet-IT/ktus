@@ -8,7 +8,9 @@ function rowToTx(r: any): Transaction {
   return {
     id: r.id, ngay: r.ngay, company: r.company, type: r.type,
     maSku: r.ma_sku ?? undefined, dienGiai: r.dien_giai ?? "", khach: r.khach, contact: r.contact ?? undefined,
+    companyAccount: r.company_account ?? undefined,
     expense: N(r.expense), arCash: N(r.ar_cash), arBankwire: N(r.ar_bankwire), arZelle: N(r.ar_zelle), arCheck: N(r.ar_check),
+    apCash: N(r.ap_cash), apBankwire: N(r.ap_bankwire), apZelle: N(r.ap_zelle), apCheck: N(r.ap_check),
     rcJmNo: r.rc_jm_no ?? undefined, soNo: r.so_no ?? undefined, apptId: r.appt_id ?? undefined,
     source1: r.source_1 ?? "", source2: r.source_2 ?? undefined,
     sale1: r.sale_1 ?? undefined, saleOnline: r.sale_online ?? undefined,
@@ -155,8 +157,9 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
   const s = sb();
   const { data, error } = await s.from("transactions").insert({
     ngay: t.ngay, company: t.company, type: t.type, ma_sku: t.maSku, dien_giai: t.dienGiai,
-    khach: t.khach, contact: t.contact, expense: t.expense,
+    khach: t.khach, contact: t.contact, expense: t.expense, company_account: t.companyAccount || null,
     ar_cash: t.arCash, ar_bankwire: t.arBankwire, ar_zelle: t.arZelle, ar_check: t.arCheck,
+    ap_cash: t.apCash || 0, ap_bankwire: t.apBankwire || 0, ap_zelle: t.apZelle || 0, ap_check: t.apCheck || 0,
     rc_jm_no: t.rcJmNo || null, so_no: t.soNo || null, appt_id: t.apptId || null,
     source_1: t.source1 || null, source_2: t.source2 || null, sale_1: t.sale1 || null,
     sale_online: t.saleOnline || null, transaction_value: t.transactionValue || null,
