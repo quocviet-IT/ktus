@@ -1,46 +1,38 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, cloneElement, isValidElement } from "react";
 import PageHeader from "@/components/page-header";
 import { createRc, type RcInput } from "@/app/actions";
 import { COMPANIES, SOURCES, SALES, SALES_ONLINE, BELL_CODES } from "@/lib/store";
-import { computeCondition, TYPE_LABEL } from "@/lib/rules";
+import { TYPE_LABEL } from "@/lib/rules";
 import { money } from "@/lib/format";
-import { USBC101_COLUMNS } from "@/lib/excel-ledger";
 
 type Line = { moTa: string; soLuong: number; donGia: number; giaNo?: string; sku?: string };
-
 const PAYS = [
-  { v: "cash", l: "Cash" },
-  { v: "bank_wire", l: "Bank wire" },
-  { v: "zelle", l: "Zelle" },
-  { v: "check", l: "Check" },
-  { v: "card", l: "Card" },
+  { v: "cash", l: "Cash" }, { v: "bank_wire", l: "Bank wire" },
+  { v: "zelle", l: "Zelle" }, { v: "check", l: "Check" }, { v: "card", l: "Card" },
 ];
+const RECEIPT_T = ["receipt", "pick_up", "repair"];
+const DEPOSIT_T = ["deposit", "extra_deposit"];
+const RETURN_T = ["po", "return", "exchange"];
 
 export default function NhapRC() {
-  const [lines, setLines] = useState<Line[]>([{ moTa: "", soLuong: 1, donGia: 0 }]);
-  const [busy, setBusy] = useState(false);
+  const [company, setCompany] = useState<string>("PC49");
   const [type, setType] = useState<RcInput["type"]>("receipt");
-  const [amounts, setAmounts] = useState({ expense: 0, arCash: 0, arBankwire: 0, arZelle: 0, arCheck: 0 });
+  const [lines, setLines] = useState<Line[]>([{ moTa: "", soLuong: 1, donGia: 0 }]);
+  const [ar, setAr] = useState({ arCash: 0, arBankwire: 0, arZelle: 0, arCheck: 0 });
+  const [ap, setAp] = useState({ apCash: 0, apBankwire: 0, apZelle: 0, apCheck: 0 });
+  const [busy, setBusy] = useState(false);
 
-  const lineTotal = useMemo(
-    () => lines.reduce((s, l) => s + (Number(l.soLuong) || 0) * (Number(l.donGia) || 0), 0),
-    [lines],
-  );
-  const condition = computeCondition({
-    type,
-    expense: amounts.expense,
-    arCash: amounts.arCash,
-    arBankwire: amounts.arBankwire,
-    arZelle: amounts.arZelle,
-    arCheck: amounts.arCheck,
-  });
+  const lineTotal = useMemo(() => lines.reduce((s, l) => s + (Number(l.soLuong) || 0) * (Number(l.donGia) || 0), 0), [lines]);
+  const arTotal = ar.arCash + ar.arBankwire + ar.arZelle + ar.arCheck;
+  const apTotal = ap.apCash + ap.apBankwire + ap.apZelle + ap.apCheck;
+  const receipt = RECEIPT_T.includes(type) ? arTotal : 0;
+  const deposit = DEPOSIT_T.includes(type) ? arTotal : 0;
+  const returnPo = RETURN_T.includes(type) ? (apTotal || lineTotal) : 0;
+  const tongCong = receipt + deposit - returnPo;
 
-  const setLine = (i: number, p: Partial<Line>) =>
-    setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...p } : l)));
-  const setAmount = (key: keyof typeof amounts, value: string) =>
-    setAmounts((prev) => ({ ...prev, [key]: Number(value) || 0 }));
+  const setLine = (i: number, p: Partial<Line>) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...p } : l)));
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,21 +46,14 @@ export default function NhapRC() {
       contact: String(f.get("contact") || ""),
       maSku: String(f.get("maSku") || ""),
       dienGiai: String(f.get("dienGiai") || ""),
-      expense: Number(f.get("expense")) || 0,
-      arCash: Number(f.get("arCash")) || 0,
-      arBankwire: Number(f.get("arBankwire")) || 0,
-      arZelle: Number(f.get("arZelle")) || 0,
-      arCheck: Number(f.get("arCheck")) || 0,
       companyAccount: String(f.get("companyAccount") || ""),
-      apCash: Number(f.get("apCash")) || 0,
-      apBankwire: Number(f.get("apBankwire")) || 0,
-      apZelle: Number(f.get("apZelle")) || 0,
-      apCheck: Number(f.get("apCheck")) || 0,
+      arCash: ar.arCash, arBankwire: ar.arBankwire, arZelle: ar.arZelle, arCheck: ar.arCheck,
+      apCash: ap.apCash, apBankwire: ap.apBankwire, apZelle: ap.apZelle, apCheck: ap.apCheck,
       pay: f.get("pay") as RcInput["pay"],
       lines,
+      rcJmNo: String(f.get("rcJmNo") || ""),
       soNo: String(f.get("soNo") || ""),
       apptId: String(f.get("apptId") || ""),
-      rcJmNo: String(f.get("rcJmNo") || ""),
       oldReceiptNo: String(f.get("oldReceiptNo") || ""),
       depositDate: String(f.get("depositDate") || ""),
       source1: String(f.get("source1") || ""),
@@ -80,131 +65,126 @@ export default function NhapRC() {
       bellCode: String(f.get("bellCode") || ""),
       note: String(f.get("note") || ""),
     };
-    try {
-      await createRc(input);
-    } finally {
-      setBusy(false);
-    }
+    try { await createRc(input); } finally { setBusy(false); }
   }
 
-  const lbl = "font-mono text-[11px] text-muted";
-  const inp = "border border-line rounded-md px-2.5 py-1.5 text-[13px] w-full bg-white";
-  const th = "border border-line bg-band px-2 py-1.5 text-left font-mono text-[10px] text-brand uppercase whitespace-nowrap";
-  const td = "border border-line px-2 py-1.5";
+  const lbl = "font-mono text-[11px] text-muted mb-0.5";
+  const inp = "w-full rounded-md border border-line px-2.5 py-1.5 text-[13px] bg-white";
+  const fx = "rounded-md border border-line bg-band px-2.5 py-1.5 text-right font-mono text-[13px]";
+  const fld = (label: string, node: React.ReactNode) => (
+    <label className="block"><div className={lbl}>{label}</div>
+      {isValidElement(node) ? cloneElement(node as React.ReactElement<any>, { "aria-label": label }) : node}
+    </label>
+  );
+  const Section = ({ n, title, children }: { n: string; title: string; children: React.ReactNode }) => (
+    <section className="rounded-xl border border-line bg-card p-4 mb-3.5">
+      <h2 className="font-serif text-[15px] mb-3"><span className="text-accent font-mono text-[13px] mr-1.5">{n}</span>{title}</h2>
+      {children}
+    </section>
+  );
+  const amt = (val: number, set: (v: number) => void) => (
+    <input type="number" step="0.01" value={val || ""} onChange={(e) => set(Number(e.target.value) || 0)} className={inp + " text-right font-mono"} />
+  );
 
   return (
     <>
-      <PageHeader crumb="Hang ngay / Nhap RC" title="Nhap lieu USBC101" />
-      <form onSubmit={onSubmit} className="p-6">
-        <div className="mb-4 rounded-md border border-line bg-card p-3 text-[12px] text-muted">
-          <b className="text-ink">USBC101 - ACCOUNT BALANCE:</b> nhap tay cac cot giao dich, tien A/R va thong tin JM tren cung mot don.
-          Cac cot CONDITION Return/PO, Receipt, Deposit va Tong cong la cot tu tinh.
+      <PageHeader crumb="Hàng ngày / Nhập RC" title="Nhập RC (USBC101)" />
+      <form onSubmit={onSubmit} className="p-6 max-w-[920px]">
+        <div className="mb-4 rounded-md bg-accentSoft px-3.5 py-2.5 text-[12.5px] text-[#6c5320]">
+          Nhập 1 lần ở đây → tự đẩy vào sổ công ty, Sales Daily, RC JM. Các ô <span className="italic text-accent">ƒ</span> (Return/PO · Receipt · Deposit · Tổng cộng) hệ thống tự tính.
         </div>
 
-        <div className="mb-4 overflow-x-auto rounded-md border border-line bg-card">
-          <table className="min-w-[1380px] border-collapse text-[12px]">
-            <thead>
-              <tr>{USBC101_COLUMNS.map((c) => <th key={c} className={th}>{c}</th>)}</tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className={td}>Auto</td>
-                <td className={td}><input name="ngay" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={inp} /></td>
-                <td className={td}>
-                  <select name="type" required value={type} onChange={(e) => setType(e.target.value as RcInput["type"])} className={inp}>
-                    {Object.entries(TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                </td>
-                <td className={td}><input name="maSku" placeholder="24KRI, VRP..." className={inp} /></td>
-                <td className={td}><input name="dienGiai" placeholder="Khach mua / dat coc..." className={inp + " min-w-[260px]"} /></td>
-                <td className={td}><input name="khach" required placeholder="Ten khach" className={inp + " min-w-[180px]"} /></td>
-                <td className={td}><input name="contact" placeholder="Phone" className={inp + " min-w-[140px]"} /></td>
-                <td className={td}><input name="expense" type="number" step="0.01" value={amounts.expense || ""} onChange={(e) => setAmount("expense", e.target.value)} className={inp + " text-right font-mono"} /></td>
-                <td className={td + " bg-band text-right font-mono text-muted"}>{money(condition.returnPo)}</td>
-                <td className={td + " bg-band text-right font-mono text-muted"}>{money(condition.receipt)}</td>
-                <td className={td + " bg-band text-right font-mono text-muted"}>{money(condition.deposit)}</td>
-                <td className={td}><input name="arCash" type="number" step="0.01" value={amounts.arCash || ""} onChange={(e) => setAmount("arCash", e.target.value)} className={inp + " text-right font-mono"} /></td>
-                <td className={td}><input name="arBankwire" type="number" step="0.01" value={amounts.arBankwire || ""} onChange={(e) => setAmount("arBankwire", e.target.value)} className={inp + " text-right font-mono"} /></td>
-                <td className={td}><input name="arZelle" type="number" step="0.01" value={amounts.arZelle || ""} onChange={(e) => setAmount("arZelle", e.target.value)} className={inp + " text-right font-mono"} /></td>
-                <td className={td}><input name="arCheck" type="number" step="0.01" value={amounts.arCheck || ""} onChange={(e) => setAmount("arCheck", e.target.value)} className={inp + " text-right font-mono"} /></td>
-                <td className={td}><input name="soNo" placeholder="SO#" className={inp + " min-w-[110px]"} /></td>
-                <td className={td}><input name="apptId" placeholder="AP-..." className={inp + " min-w-[140px]"} /></td>
-                <td className={td}><input name="rcJmNo" placeholder="9000... / 1000..." className={inp + " min-w-[140px]"} /></td>
-                <td className={td}>
-                  <select name="source1" className={inp + " min-w-[120px]"}><option value="">Khong co source</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>
-                </td>
-                <td className={td}>
-                  <select name="source2" className={inp + " min-w-[120px]"}><option value="">-</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>
-                </td>
-                <td className={td}>
-                  <select name="sale1" className={inp + " min-w-[130px]"}><option value="">-</option>{SALES.map((s) => <option key={s}>{s}</option>)}</select>
-                </td>
-                <td className={td}>
-                  <select name="saleOnline" className={inp + " min-w-[150px]"}><option value="">-</option>{SALES_ONLINE.map((s) => <option key={s}>{s}</option>)}</select>
-                </td>
-                <td className={td}><input name="pctSupport" type="number" step="0.01" placeholder="0.8" className={inp + " text-right font-mono"} /></td>
-                <td className={td}><input name="transactionValue" placeholder="1 luong / 2 oz..." className={inp + " min-w-[130px]"} /></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        {/* 1. Thông tin chung */}
+        <Section n="1" title="Thông tin chung">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {fld("Ngày *", <input name="ngay" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={inp} />)}
+            {fld("Công ty *", <select name="company" required value={company} onChange={(e) => setCompany(e.target.value)} className={inp}>{COMPANIES.map((c) => <option key={c}>{c}</option>)}</select>)}
+            {fld("Company account *", <select name="companyAccount" required className={inp}><option value="">- chọn -</option>{[`${company} cash`, `${company} bank`].map((a) => <option key={a} value={a}>{a}</option>)}</select>)}
+            {fld("Loại (Type) *", <select name="type" required value={type} onChange={(e) => setType(e.target.value as RcInput["type"])} className={inp}>{Object.entries(TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>)}
+            {fld("Khách hàng *", <input name="khach" required placeholder="Tên khách" className={inp} />)}
+            {fld("Liên hệ", <input name="contact" placeholder="408-…" className={inp} />)}
+            {fld("Mã SKU", <input name="maSku" placeholder="24KRI / VRP…" className={inp} />)}
+            {fld("Mã rung chuông", <select name="bellCode" className={inp}><option value="">—</option>{BELL_CODES.map((b) => <option key={b}>{b}</option>)}</select>)}
+            <div className="md:col-span-4">{fld("Diễn giải", <input name="dienGiai" placeholder="Khách mua 1L VRP / Mua vào 3.9gr vàng 18K…" className={inp} />)}</div>
+          </div>
+        </Section>
 
-        <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-          <section className="rounded-md border border-line bg-card p-4">
-            <div className="mb-2 flex items-center">
-              <h2 className="font-serif text-base">Dong hang / GIA#</h2>
-              <div className="flex-1" />
-              <span className="font-mono text-[13px]"><span className="text-muted">Tong dong hang </span><b>{money(lineTotal)}</b></span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse text-[12.5px]">
-                <thead><tr><th className={th}>DECRIPTION</th><th className={th}>SKU</th><th className={th}>GIA#</th><th className={th}>SL</th><th className={th}>DON GIA</th><th className={th}>THANH TIEN</th><th className={th}></th></tr></thead>
-                <tbody>
-                  {lines.map((l, i) => (
-                    <tr key={i}>
-                      <td className={td}><input value={l.moTa} onChange={(e) => setLine(i, { moTa: e.target.value })} className={inp} /></td>
-                      <td className={td}><input value={l.sku || ""} onChange={(e) => setLine(i, { sku: e.target.value })} className={inp} /></td>
-                      <td className={td}><input value={l.giaNo || ""} onChange={(e) => setLine(i, { giaNo: e.target.value })} className={inp} /></td>
-                      <td className={td}><input type="number" step="0.001" value={l.soLuong} onChange={(e) => setLine(i, { soLuong: +e.target.value })} className={inp + " text-right font-mono"} /></td>
-                      <td className={td}><input type="number" step="0.01" value={l.donGia} onChange={(e) => setLine(i, { donGia: +e.target.value })} className={inp + " text-right font-mono"} /></td>
-                      <td className={td + " text-right font-mono"}>{money((l.soLuong || 0) * (l.donGia || 0))}</td>
-                      <td className={td}><button type="button" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))} className="text-danger">Xoa</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <button type="button" onClick={() => setLines((ls) => [...ls, { moTa: "", soLuong: 1, donGia: 0 }])}
-              className="mt-3 rounded-md border border-line px-3 py-1.5 text-[12px] hover:border-accent">Them dong</button>
-          </section>
+        {/* 2. Dòng hàng */}
+        <Section n="2" title="Dòng hàng / sản phẩm">
+          <div className="space-y-2">
+            {lines.map((l, i) => (
+              <div key={i} className="grid grid-cols-[1fr_90px_110px_70px_100px_100px_auto] gap-2 items-center">
+                <input value={l.moTa} onChange={(e) => setLine(i, { moTa: e.target.value })} placeholder="Mô tả sản phẩm" className={inp} />
+                <input value={l.sku || ""} onChange={(e) => setLine(i, { sku: e.target.value })} placeholder="SKU" className={inp} />
+                <input value={l.giaNo || ""} onChange={(e) => setLine(i, { giaNo: e.target.value })} placeholder="GIA#" className={inp} />
+                <input type="number" step="0.001" value={l.soLuong} onChange={(e) => setLine(i, { soLuong: +e.target.value })} placeholder="SL" className={inp + " text-right font-mono"} />
+                <input type="number" step="0.01" value={l.donGia} onChange={(e) => setLine(i, { donGia: +e.target.value })} placeholder="Đơn giá" className={inp + " text-right font-mono"} />
+                <div className="text-right font-mono text-[13px]">{money(l.soLuong * l.donGia)}</div>
+                <button type="button" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))} className="text-muted hover:text-danger px-1">✕</button>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center">
+            <button type="button" onClick={() => setLines((ls) => [...ls, { moTa: "", soLuong: 1, donGia: 0 }])} className="rounded-md border border-line px-3 py-1.5 text-[12px] hover:border-accent">＋ Thêm dòng</button>
+            <div className="flex-1" />
+            <span className="font-mono text-[13px]"><span className="text-muted mr-2">Tổng dòng hàng</span><b>{money(lineTotal)}</b></span>
+          </div>
+        </Section>
 
-          <section className="rounded-md border border-line bg-card p-4">
-            <h2 className="mb-3 font-serif text-base">Cot JM / Pickup / ghi chu</h2>
+        {/* 3 + 4: A/R & A/P */}
+        <div className="grid md:grid-cols-2 gap-3.5">
+          <Section n="3" title="Thu tiền (A/R)">
+            {fld("Hình thức TT đợt đầu", <select name="pay" className={inp}>{PAYS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}</select>)}
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              {fld("Cash", amt(ar.arCash, (v) => setAr((s) => ({ ...s, arCash: v }))))}
+              {fld("Bank wire", amt(ar.arBankwire, (v) => setAr((s) => ({ ...s, arBankwire: v }))))}
+              {fld("Zelle", amt(ar.arZelle, (v) => setAr((s) => ({ ...s, arZelle: v }))))}
+              {fld("Check", amt(ar.arCheck, (v) => setAr((s) => ({ ...s, arCheck: v }))))}
+            </div>
+          </Section>
+          <Section n="4" title="Chi tiền (A/P) — PO / mua vào">
             <div className="grid grid-cols-2 gap-3">
-              <label><div className={lbl}>Company</div><select name="company" required className={inp}>{COMPANIES.map((c) => <option key={c}>{c}</option>)}</select></label>
-              <label><div className={lbl}>Hinh thuc TT dot dau</div><select name="pay" className={inp}>{PAYS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}</select></label>
-              <label className="col-span-2"><div className={lbl}>Company account (cash/bank)</div>
-                <select name="companyAccount" className={inp}>
-                  <option value="">- chọn tài khoản -</option>
-                  {COMPANIES.flatMap((c) => [`${c} cash`, `${c} bank`]).map((a) => <option key={a} value={a}>{a}</option>)}
-                </select></label>
-              <label><div className={lbl}>A/P Cash (chi)</div><input name="apCash" type="number" step="0.01" className={inp + " text-right font-mono"} /></label>
-              <label><div className={lbl}>A/P Bank wire</div><input name="apBankwire" type="number" step="0.01" className={inp + " text-right font-mono"} /></label>
-              <label><div className={lbl}>A/P Zelle</div><input name="apZelle" type="number" step="0.01" className={inp + " text-right font-mono"} /></label>
-              <label><div className={lbl}>A/P Check</div><input name="apCheck" type="number" step="0.01" className={inp + " text-right font-mono"} /></label>
-              <label><div className={lbl}>Old Receipt Number</div><input name="oldReceiptNo" placeholder="9000..." className={inp} /></label>
-              <label><div className={lbl}>Deposit Date</div><input name="depositDate" type="date" className={inp} /></label>
-              <label><div className={lbl}>Ma rung chuong</div><select name="bellCode" className={inp}><option value="">-</option>{BELL_CODES.map((b) => <option key={b}>{b}</option>)}</select></label>
-              <label className="col-span-2"><div className={lbl}>Ghi chu thanh toan / ly do / note</div><textarea name="note" rows={4} className={inp} placeholder="Cac dot sau: ngay - so tien - hinh thuc - xac nhan" /></label>
+              {fld("Cash", amt(ap.apCash, (v) => setAp((s) => ({ ...s, apCash: v }))))}
+              {fld("Bank wire", amt(ap.apBankwire, (v) => setAp((s) => ({ ...s, apBankwire: v }))))}
+              {fld("Zelle", amt(ap.apZelle, (v) => setAp((s) => ({ ...s, apZelle: v }))))}
+              {fld("Check", amt(ap.apCheck, (v) => setAp((s) => ({ ...s, apCheck: v }))))}
             </div>
-          </section>
+          </Section>
         </div>
 
-        <div className="mt-4 flex items-center gap-3">
-          <button disabled={busy} className="rounded-md bg-brand px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-accent disabled:opacity-60">
-            {busy ? "Dang luu..." : "Luu vao USBC101 va so RC JM"}
+        {/* CONDITION tự tính */}
+        <Section n="ƒ" title="CONDITION — tự tính">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {fld("Return/PO ƒ", <div className={fx}>{money(returnPo)}</div>)}
+            {fld("Receipt ƒ", <div className={fx}>{money(receipt)}</div>)}
+            {fld("Deposit ƒ", <div className={fx}>{money(deposit)}</div>)}
+            {fld("TỔNG CỘNG ƒ", <div className={fx + " font-bold"}>{money(tongCong)}</div>)}
+          </div>
+        </Section>
+
+        {/* 5. JM / Pickup / Sales */}
+        <Section n="5" title="Thông tin JM / Nguồn / Sales (bước 2 — có thể nhập sau)">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {fld("Số RC JM", <input name="rcJmNo" placeholder="9000…=cọc / 1000…=bán" className={inp} />)}
+            {fld("SO#", <input name="soNo" className={inp} />)}
+            {fld("Root Appt ID", <input name="apptId" placeholder="AP-…" className={inp} />)}
+            {fld("Source 1", <select name="source1" className={inp}><option value="">— Không có source —</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>)}
+            {fld("Source 2", <select name="source2" className={inp}><option value="">—</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>)}
+            {fld("Sale US", <select name="sale1" className={inp}><option value="">—</option>{SALES.map((s) => <option key={s}>{s}</option>)}</select>)}
+            {fld("Sale Online", <select name="saleOnline" className={inp}><option value="">—</option>{SALES_ONLINE.map((s) => <option key={s}>{s}</option>)}</select>)}
+            {fld("% Support", <input name="pctSupport" type="number" step="0.01" placeholder="0.8" className={inp + " text-right font-mono"} />)}
+            {fld("Transaction value", <input name="transactionValue" placeholder="1 lượng / 1 oz…" className={inp} />)}
+            {fld("Old Receipt # (pickup)", <input name="oldReceiptNo" placeholder="9000…" className={inp} />)}
+            {fld("Deposit Date", <input name="depositDate" type="date" className={inp} />)}
+          </div>
+          <div className="mt-3">{fld("Ghi chú / các đợt thanh toán sau", <textarea name="note" rows={2} placeholder="ngày – số tiền – hình thức – xác nhận…" className={inp} />)}</div>
+        </Section>
+
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={busy} className="rounded-md bg-brand px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-accent disabled:opacity-60">
+            {busy ? "Đang lưu…" : "Lưu vào USBC101 & sổ RC"}
           </button>
-          <span className="text-[12px] text-muted">Cot CONDITION chi hien thi tu tinh, khong ghi tay.</span>
+          <span className="text-[12px] text-muted">Bỏ trống Source 1 → RC vào danh sách thiếu nguồn.</span>
         </div>
       </form>
     </>
