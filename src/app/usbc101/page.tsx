@@ -5,8 +5,6 @@ import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
 import { listTransactions, listBankLines, listAccounts } from "@/lib/data";
 import type { Account } from "@/lib/types";
-import { accountMovements, balanceAsOf, monthlyGrand } from "@/lib/balance-daily";
-import MiniLineChart from "@/components/mini-line-chart";
 import { createBankLine, toggleBankMatched } from "@/app/actions";
 import { money, ddmm } from "@/lib/format";
 import { periodRange, periodLabel } from "@/lib/period";
@@ -40,7 +38,7 @@ export default async function Usbc101({ searchParams }: { searchParams: SP }) {
         </div>
 
         {sheet === "balance"
-          ? <BalanceView sp={searchParams} />
+          ? <BalanceView />
           : searchParams.acc === "bank"
             ? <BankView company={sheet} sp={searchParams} />
             : <LedgerView company={sheet} sp={searchParams} />}
@@ -55,16 +53,8 @@ function acct(n: number): React.ReactNode {
   return n < 0 ? <span className="text-danger">({s})</span> : <span>{s}</span>;
 }
 
-async function BalanceView({ sp }: { sp: SP }) {
-  const [accounts, txs, banks] = await Promise.all([listAccounts(), listTransactions({}), listBankLines({})]);
-  const asof = sp.asof || "";
-  const year = asof ? Number(asof.slice(0, 4)) : 2026;
-  const series = monthlyGrand(accounts, txs, banks, year);
-
-  const bal = new Map<string, number>();
-  for (const a of accounts) bal.set(a.id, balanceAsOf(a, accountMovements(a, txs, banks), asof || undefined));
-  const balOf = (a: Account) => bal.get(a.id) ?? a.ending;
-
+async function BalanceView() {
+  const accounts = await listAccounts();
   const groups: { entity: string; items: Account[] }[] = [];
   for (const a of accounts) {
     let g = groups.find((x) => x.entity === a.entity);
@@ -72,8 +62,7 @@ async function BalanceView({ sp }: { sp: SP }) {
     g.items.push(a);
   }
   const grandBeg = accounts.reduce((s, a) => s + a.beginning, 0);
-  const grandBal = accounts.reduce((s, a) => s + balOf(a), 0);
-  const balLabel = asof ? `Số dư đến ${asof.split("-").reverse().join("/")}` : "Số dư hiện tại";
+  const grandEnd = accounts.reduce((s, a) => s + a.ending, 0);
 
   const th = "px-2.5 py-2 border border-line bg-[#3a6ea5] text-white font-mono text-[10px] uppercase text-left whitespace-nowrap";
   const td = "px-2.5 py-1.5 border border-line";
@@ -81,38 +70,23 @@ async function BalanceView({ sp }: { sp: SP }) {
   return (
     <div className="bg-card border border-line rounded-xl p-4">
       <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
-        BALANCE ACCOUNT — {accounts.length} tài khoản / {groups.length} nhóm. Số dư <b>tính đến ngày</b> = Beginning + biến động (giao dịch + sao kê) tới ngày đó. Âm = nợ thẻ/loan.
+        BALANCE ACCOUNT — {accounts.length} tài khoản / {groups.length} nhóm. Beginning &amp; Ending Balance lấy từ Excel. Âm = nợ thẻ/loan.
       </div>
-
-      <form action="/usbc101" className="flex items-center gap-2 mb-3 flex-wrap">
-        <input type="hidden" name="sheet" value="balance" />
-        <label className="text-[12px] text-muted">Số dư đến ngày:</label>
-        <input type="date" name="asof" defaultValue={asof} aria-label="Đến ngày" className="rounded-md border border-line px-2.5 py-1.5 text-[13px]" />
-        <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[12px] hover:border-accent">Xem</button>
-        <Link href="/usbc101?sheet=balance" className={`px-3 py-1.5 rounded-md text-[12px] border font-mono ${asof ? "border-line" : "bg-brand text-white border-brand"}`}>Mới nhất</Link>
-        <span className="text-[12px] text-muted">{balLabel} · tổng {money(grandBal)}</span>
-      </form>
-
-      <div className="mb-4 rounded-lg border border-line p-3">
-        <div className="font-mono text-[10.5px] text-muted uppercase mb-1">Tổng số dư theo tháng — năm {year}</div>
-        <MiniLineChart points={series} />
-      </div>
-
       <div className="overflow-x-auto">
         <table className="border-collapse text-[12.5px] min-w-[680px]">
           <thead><tr>
             <th className={th}>Stt</th><th className={th}>Account Name</th><th className={th}>Account Type</th>
-            <th className={th + " text-right"}>Beginning</th><th className={th + " text-right"}>{balLabel}</th>
+            <th className={th + " text-right"}>Beginning</th><th className={th + " text-right"}>Ending Balance</th>
           </tr></thead>
           <tbody>
             <tr className="bg-[#dbe7f3] font-bold">
               <td className={td} colSpan={3}>SUBTOTAL (MONTH)</td>
               <td className={td + " text-right font-mono"}>{acct(grandBeg)}</td>
-              <td className={td + " text-right font-mono"}>{acct(grandBal)}</td>
+              <td className={td + " text-right font-mono"}>{acct(grandEnd)}</td>
             </tr>
             {groups.map((g) => {
               const beg = g.items.reduce((s, a) => s + a.beginning, 0);
-              const end = g.items.reduce((s, a) => s + balOf(a), 0);
+              const end = g.items.reduce((s, a) => s + a.ending, 0);
               return (
                 <Fragment key={g.entity}>
                   <tr className="bg-[#eaf1f8] font-bold text-accent">
@@ -126,7 +100,7 @@ async function BalanceView({ sp }: { sp: SP }) {
                       <td className={td + " text-brand"}>{a.name}</td>
                       <td className={td}>{a.accountType || ""}</td>
                       <td className={td + " text-right font-mono"}>{acct(a.beginning)}</td>
-                      <td className={td + " text-right font-mono"}>{acct(balOf(a))}</td>
+                      <td className={td + " text-right font-mono"}>{acct(a.ending)}</td>
                     </tr>
                   ))}
                 </Fragment>
