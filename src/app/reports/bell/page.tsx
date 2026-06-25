@@ -42,9 +42,6 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
             <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[13px] hover:border-accent">Lọc</button>
             <span className="text-[12px] text-muted">{periodLabel(searchParams)} · {rows.length} đơn</span>
           </form>
-          <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
-            <span className="inline-flex items-start gap-1.5"><Settings className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span>Tự gắn cờ đơn đạt mốc (≥ {money(BELL_THRESHOLD)} — <i>ngưỡng tạm, cần chốt</i>) &amp; cảnh báo nghi trùng (cùng khách/công ty).</span></span>
-          </div>
           <div className="overflow-x-auto">
             <table className="border-collapse text-[12.5px] min-w-[760px]">
               <thead><tr>
