@@ -206,6 +206,17 @@ export async function setStatus(id: string, s: TxStatus) {
   await sb().from("transactions").update({ trang_thai: s }).eq("id", id);
 }
 
+// ===== Chart of accounts (BALANCE ACCOUNT) =====
+import type { Account } from "./types";
+export async function listAccounts(): Promise<Account[]> {
+  const { data, error } = await sb().from("accounts").select("*").order("sort", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id, entity: r.entity, code: r.code ?? undefined, name: r.name,
+    accountType: r.account_type ?? undefined, beginning: N(r.beginning), ending: N(r.ending), sort: r.sort ?? 0,
+  }));
+}
+
 // ===== Sao kê ngân hàng =====
 import type { BankLine } from "./types";
 function rowToBank(r: any): BankLine {

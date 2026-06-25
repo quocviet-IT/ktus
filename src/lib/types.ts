@@ -76,6 +76,18 @@ export interface Transaction {
   payments: Payment[];
 }
 
+// Tài khoản trong BALANCE ACCOUNT (chart of accounts)
+export interface Account {
+  id: string;
+  entity: string;          // TRANS / PC49 / CL / AH / ...
+  code?: string;
+  name: string;
+  accountType?: string;    // Bank / Cash / CC / Loan / ...
+  beginning: number;
+  ending: number;
+  sort?: number;
+}
+
 // Dòng sao kê ngân hàng (THEO DÕI BANK)
 export interface BankLine {
   id: string;

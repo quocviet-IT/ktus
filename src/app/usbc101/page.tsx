@@ -1,13 +1,15 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
-import { listTransactions, listBankLines } from "@/lib/data";
+import { listTransactions, listBankLines, listAccounts } from "@/lib/data";
+import type { Account } from "@/lib/types";
 import { createBankLine, toggleBankMatched } from "@/app/actions";
-import { money, num, ddmm } from "@/lib/format";
+import { money, ddmm } from "@/lib/format";
 import { periodRange, periodLabel } from "@/lib/period";
 import {
-  USBC101_COMPANIES, LEDGER_COLUMNS, ledgerCells, isFx, computeBalances, arTotal, apTotal,
+  USBC101_COMPANIES, LEDGER_COLUMNS, ledgerCells, isFx, arTotal, apTotal,
 } from "@/lib/usbc101";
 
 const PAGE_SIZE = 50;
@@ -15,10 +17,7 @@ type SP = { sheet?: string; acc?: string; period?: string; day?: string; week?: 
 
 export default async function Usbc101({ searchParams }: { searchParams: SP }) {
   const sheet = searchParams.sheet || "balance";
-  const range = periodRange(searchParams);
   const tabs = ["balance", ...USBC101_COMPANIES];
-
-  const all = await listTransactions({ from: range.from, to: range.to });
 
   return (
     <>
@@ -39,7 +38,7 @@ export default async function Usbc101({ searchParams }: { searchParams: SP }) {
         </div>
 
         {sheet === "balance"
-          ? <BalanceView rows={all} />
+          ? <BalanceView accounts={await listAccounts()} />
           : searchParams.acc === "bank"
             ? <BankView company={sheet} sp={searchParams} />
             : <LedgerView company={sheet} sp={searchParams} />}
@@ -48,42 +47,65 @@ export default async function Usbc101({ searchParams }: { searchParams: SP }) {
   );
 }
 
-function BalanceView({ rows }: { rows: any[] }) {
-  const balances = computeBalances(rows);
-  const th = "px-2.5 py-2 border border-line bg-band font-mono text-[10px] uppercase text-brand text-left whitespace-nowrap";
+// hiển thị tiền: âm để trong ngoặc + đỏ (như Excel)
+function acct(n: number): React.ReactNode {
+  const s = "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n < 0 ? <span className="text-danger">({s})</span> : <span>{s}</span>;
+}
+
+function BalanceView({ accounts }: { accounts: Account[] }) {
+  const groups: { entity: string; items: Account[] }[] = [];
+  for (const a of accounts) {
+    let g = groups.find((x) => x.entity === a.entity);
+    if (!g) { g = { entity: a.entity, items: [] }; groups.push(g); }
+    g.items.push(a);
+  }
+  const grandBeg = accounts.reduce((s, a) => s + a.beginning, 0);
+  const grandEnd = accounts.reduce((s, a) => s + a.ending, 0);
+
+  const th = "px-2.5 py-2 border border-line bg-[#3a6ea5] text-white font-mono text-[10px] uppercase text-left whitespace-nowrap";
   const td = "px-2.5 py-1.5 border border-line";
-  const tIn = balances.reduce((s, b) => s + b.inflow, 0);
-  const tOut = balances.reduce((s, b) => s + b.outflow, 0);
 
   return (
     <div className="bg-card border border-line rounded-xl p-4">
       <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
-        ⚙️ Số dư mỗi tài khoản (cash/bank) <b>tự tính</b> = Thu (A/R) − Chi (A/P) theo Company account. Số dư đầu kỳ = 0 (có thể bổ sung sau).
+        BALANCE ACCOUNT — {accounts.length} tài khoản theo {groups.length} nhóm. Beginning &amp; Ending lấy từ Excel; âm = nợ thẻ / loan.
       </div>
       <div className="overflow-x-auto">
-        <table className="border-collapse text-[12.5px] min-w-[640px]">
+        <table className="border-collapse text-[12.5px] min-w-[680px]">
           <thead><tr>
-            <th className={th}>Công ty</th><th className={th}>Tài khoản</th><th className={th}>Loại</th>
-            <th className={th}>Thu (A/R)</th><th className={th}>Chi (A/P)</th><th className={th}>Số dư</th>
+            <th className={th}>Stt</th><th className={th}>Account Name</th><th className={th}>Account Type</th>
+            <th className={th + " text-right"}>Beginning</th><th className={th + " text-right"}>Ending Balance</th>
           </tr></thead>
           <tbody>
-            {balances.map((b) => (
-              <tr key={b.account} className="even:bg-band hover:bg-accentSoft">
-                <td className={td}>{b.company}</td>
-                <td className={td + " font-mono"}>{b.account}</td>
-                <td className={td}><span className="badge bg-[#eceee9] text-[#445]">{b.kind}</span></td>
-                <td className={td + " text-right font-mono"}>{num(b.inflow)}</td>
-                <td className={td + " text-right font-mono"}>{num(b.outflow)}</td>
-                <td className={td + ` text-right font-mono font-bold ${b.balance < 0 ? "text-danger" : ""}`}>{money(b.balance)}</td>
-              </tr>
-            ))}
+            <tr className="bg-[#dbe7f3] font-bold">
+              <td className={td} colSpan={3}>SUBTOTAL (MONTH)</td>
+              <td className={td + " text-right font-mono"}>{acct(grandBeg)}</td>
+              <td className={td + " text-right font-mono"}>{acct(grandEnd)}</td>
+            </tr>
+            {groups.map((g) => {
+              const beg = g.items.reduce((s, a) => s + a.beginning, 0);
+              const end = g.items.reduce((s, a) => s + a.ending, 0);
+              return (
+                <Fragment key={g.entity}>
+                  <tr className="bg-[#eaf1f8] font-bold text-accent">
+                    <td className={td}>{g.entity}</td><td className={td} /><td className={td} />
+                    <td className={td + " text-right font-mono"}>{acct(beg)}</td>
+                    <td className={td + " text-right font-mono"}>{acct(end)}</td>
+                  </tr>
+                  {g.items.map((a, i) => (
+                    <tr key={a.id} className="hover:bg-accentSoft">
+                      <td className={td + " text-right font-mono text-muted"}>{i + 1}</td>
+                      <td className={td + " text-brand"}>{a.name}</td>
+                      <td className={td}>{a.accountType || ""}</td>
+                      <td className={td + " text-right font-mono"}>{acct(a.beginning)}</td>
+                      <td className={td + " text-right font-mono"}>{acct(a.ending)}</td>
+                    </tr>
+                  ))}
+                </Fragment>
+              );
+            })}
           </tbody>
-          <tfoot><tr className="font-bold bg-accentSoft">
-            <td colSpan={3} className={td}>TỔNG</td>
-            <td className={td + " text-right font-mono"}>{num(tIn)}</td>
-            <td className={td + " text-right font-mono"}>{num(tOut)}</td>
-            <td className={td + " text-right font-mono"}>{money(tIn - tOut)}</td>
-          </tr></tfoot>
         </table>
       </div>
     </div>

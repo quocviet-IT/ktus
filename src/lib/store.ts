@@ -140,6 +140,12 @@ export function updateTransaction(id: string, patch: Partial<Transaction>) {
 }
 export function setStatus(id: string, s: TxStatus) { return updateTransaction(id, { trangThai: s }); }
 
+// ===== Chart of accounts (BALANCE ACCOUNT) =====
+import type { Account } from "./types";
+import { ACCOUNTS_SEED } from "./accounts-seed";
+const ACCOUNTS: Account[] = ACCOUNTS_SEED.map((a, i) => ({ ...a, id: "acc" + i }));
+export function listAccounts(): Account[] { return ACCOUNTS; }
+
 // ===== Sao kê ngân hàng (in-memory) =====
 import type { BankLine } from "./types";
 function seedBank(): BankLine[] {

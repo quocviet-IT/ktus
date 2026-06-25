@@ -1,7 +1,7 @@
 // Facade dữ liệu: chuyển giữa store (demo) và Supabase (thật) theo USE_DB.
 import * as store from "./store";
 import * as repo from "./db-repo";
-import type { Transaction, TxStatus, BankLine } from "./types";
+import type { Transaction, TxStatus, BankLine, Account } from "./types";
 import type { ExcelWorkbook, ExcelRow } from "./db-repo";
 
 const USE_DB = process.env.USE_DB === "true";
@@ -25,6 +25,11 @@ export async function updateTransaction(id: string, patch: Partial<Transaction>)
 export async function setStatus(id: string, s: TxStatus): Promise<void> {
   if (USE_DB) await repo.setStatus(id, s);
   else store.setStatus(id, s);
+}
+
+// Chart of accounts (BALANCE ACCOUNT)
+export async function listAccounts(): Promise<Account[]> {
+  return USE_DB ? repo.listAccounts() : store.listAccounts();
 }
 
 // Sao kê ngân hàng
