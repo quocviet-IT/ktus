@@ -72,6 +72,12 @@ export interface Transaction {
   trangThai: TxStatus;
   note?: string;
 
+  // Khoá ngoại (Phase 1) — DB tự nối qua trigger; đọc để dùng sau
+  companyId?: number;
+  customerId?: string;
+  accountId?: string;
+  parentId?: string;
+
   lineItems: LineItem[];
   payments: Payment[];
 }

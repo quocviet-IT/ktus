@@ -17,6 +17,8 @@ function rowToTx(r: any): Transaction {
     transactionValue: r.transaction_value ?? undefined, pctSupport: r.pct_support != null ? N(r.pct_support) : undefined,
     oldReceiptNo: r.old_receipt_no ?? undefined, depositDate: r.deposit_date ?? undefined,
     bellCode: r.bell_code ?? undefined, trangThai: r.trang_thai as TxStatus, note: r.note ?? undefined,
+    companyId: r.company_id ?? undefined, customerId: r.customer_id ?? undefined,
+    accountId: r.account_id ?? undefined, parentId: r.parent_id ?? undefined,
     lineItems: (r.line_items ?? []).map((l: any): LineItem => ({
       id: l.id, moTa: l.mo_ta ?? "", sku: l.sku ?? undefined, giaNo: l.gia_no ?? undefined,
       soLuong: N(l.so_luong), donGia: N(l.don_gia),
