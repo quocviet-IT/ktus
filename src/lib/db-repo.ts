@@ -1,24 +1,168 @@
 import { sb } from "./supabase-server";
-import type { Transaction, TxStatus, LineItem, Payment } from "./types";
+import type { Account, BankLine, CompanyCode, Transaction, TransactionSale, TxStatus, LineItem, Payment } from "./types";
 
 const N = (v: any) => (v == null ? 0 : Number(v));
 const PAGE_SIZE = 1000;
+const IN_BATCH_SIZE = 100;
+const WARNED = new Set<string>();
 
-function rowToTx(r: any): Transaction {
+type TxEnrichment = {
+  companies: Map<number, { code: string; name: string }>;
+  customers: Map<string, { ten: string; sdt?: string }>;
+  accounts: Map<string, { name: string; accountType?: string }>;
+  lookups: Map<string, { code: string; label: string; grp: string }>;
+  salesByTx: Map<string, TransactionSale[]>;
+};
+
+function companyCode(value: any): CompanyCode {
+  const raw = String(value || "").trim();
+  const up = raw.toUpperCase();
+  if (up === "TRANS" || up === "TFJ" || up === "TRANS / TFJ" || up === "TRANS/TFJ") return "Trans";
+  if (up === "OTHER") return "Other";
+  if (up === "PC49" || up === "TDW" || up === "HPLLC" || up === "3NVY") return up as CompanyCode;
+  return (raw || "Other") as CompanyCode;
+}
+
+function chunks<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+function warnOnce(key: string, message: string, error: unknown) {
+  const detail = (error as any)?.message || "";
+  if (detail.includes("schema cache") || detail.includes("Could not find the table")) return;
+  if (WARNED.has(key)) return;
+  WARNED.add(key);
+  console.warn(message, detail);
+}
+
+async function loadTxEnrichment(rows: any[]): Promise<TxEnrichment> {
+  const out: TxEnrichment = {
+    companies: new Map(),
+    customers: new Map(),
+    accounts: new Map(),
+    lookups: new Map(),
+    salesByTx: new Map(),
+  };
+  if (!rows.length) return out;
+
+  const s = sb();
+  const companyIds = [...new Set(rows.map((r) => r.company_id).filter((v) => v != null).map(Number))];
+  const customerIds = [...new Set(rows.map((r) => r.customer_id).filter(Boolean))];
+  const accountIds = [...new Set(rows.map((r) => r.account_id).filter(Boolean))];
+  const lookupIds = [...new Set(rows.flatMap((r) => [r.source1_lookup_id, r.source2_lookup_id, r.bell_code_lookup_id]).filter(Boolean))];
+  const txIds = rows.map((r) => r.id).filter(Boolean);
+
+  await Promise.all([
+    (async () => {
+      if (!companyIds.length) return;
+      try {
+        const { data, error } = await s.from("companies").select("id, code, name").in("id", companyIds);
+        if (error) throw error;
+        for (const r of data ?? []) out.companies.set(Number(r.id), { code: r.code, name: r.name });
+      } catch (e) {
+        warnOnce("rel-companies", "[relationships] không enrich được companies —", e);
+      }
+    })(),
+    (async () => {
+      if (!customerIds.length) return;
+      try {
+        for (const batch of chunks(customerIds, IN_BATCH_SIZE)) {
+          const { data, error } = await s.from("customers").select("id, ten, sdt").in("id", batch);
+          if (error) throw error;
+          for (const r of data ?? []) out.customers.set(r.id, { ten: r.ten, sdt: r.sdt ?? undefined });
+        }
+      } catch (e) {
+        warnOnce("rel-customers", "[relationships] không enrich được customers —", e);
+      }
+    })(),
+    (async () => {
+      if (!accountIds.length) return;
+      try {
+        for (const batch of chunks(accountIds, IN_BATCH_SIZE)) {
+          const { data, error } = await s.from("accounts").select("id, name, account_type").in("id", batch);
+          if (error) throw error;
+          for (const r of data ?? []) out.accounts.set(r.id, { name: r.name, accountType: r.account_type ?? undefined });
+        }
+      } catch (e) {
+        warnOnce("rel-accounts", "[relationships] không enrich được accounts —", e);
+      }
+    })(),
+    (async () => {
+      if (!lookupIds.length) return;
+      try {
+        for (const batch of chunks(lookupIds, IN_BATCH_SIZE)) {
+          const { data, error } = await s.from("lookups").select("id, grp, code, label").in("id", batch);
+          if (error) throw error;
+          for (const r of data ?? []) out.lookups.set(r.id, { grp: r.grp, code: r.code, label: r.label });
+        }
+      } catch (e) {
+        warnOnce("rel-lookups", "[relationships] không enrich được lookups —", e);
+      }
+    })(),
+    (async () => {
+      if (!txIds.length) return;
+      try {
+        for (const batch of chunks(txIds, IN_BATCH_SIZE)) {
+          const { data, error } = await s
+            .from("transaction_sales")
+            .select("transaction_id, sale_id, vai_tro, ty_le_pct, sales_people(ten, kind)")
+            .in("transaction_id", batch);
+          if (error) throw error;
+          for (const r of data ?? []) {
+            const person = Array.isArray(r.sales_people) ? r.sales_people[0] : r.sales_people;
+            const item: TransactionSale = {
+              saleId: r.sale_id,
+              ten: person?.ten ?? "",
+              kind: person?.kind ?? undefined,
+              vaiTro: r.vai_tro ?? undefined,
+              tyLePct: r.ty_le_pct != null ? N(r.ty_le_pct) : undefined,
+            };
+            if (!item.ten) continue;
+            out.salesByTx.set(r.transaction_id, [...(out.salesByTx.get(r.transaction_id) ?? []), item]);
+          }
+        }
+      } catch (e) {
+        warnOnce("rel-transaction-sales", "[relationships] không enrich được transaction_sales —", e);
+      }
+    })(),
+  ]);
+
+  return out;
+}
+
+function rowToTx(r: any, rel?: TxEnrichment): Transaction {
+  const company = r.company_id != null ? rel?.companies.get(Number(r.company_id)) : undefined;
+  const customer = r.customer_id ? rel?.customers.get(r.customer_id) : undefined;
+  const account = r.account_id ? rel?.accounts.get(r.account_id) : undefined;
+  const source1 = r.source1_lookup_id ? rel?.lookups.get(r.source1_lookup_id) : undefined;
+  const source2 = r.source2_lookup_id ? rel?.lookups.get(r.source2_lookup_id) : undefined;
+  const bell = r.bell_code_lookup_id ? rel?.lookups.get(r.bell_code_lookup_id) : undefined;
+  const sales = rel?.salesByTx.get(r.id) ?? [];
+  const counterSale = sales.find((s) => !String(s.kind || "").toLowerCase().includes("online") && !String(s.vaiTro || "").toLowerCase().includes("online"));
+  const onlineSale = sales.find((s) => String(s.kind || "").toLowerCase().includes("online") || String(s.vaiTro || "").toLowerCase().includes("online"));
+
   return {
-    id: r.id, ngay: r.ngay, company: r.company, type: r.type,
-    maSku: r.ma_sku ?? undefined, dienGiai: r.dien_giai ?? "", khach: r.khach, contact: r.contact ?? undefined,
+    id: r.id, ngay: r.ngay, company: companyCode(company?.code ?? r.company), type: r.type,
+    maSku: r.ma_sku ?? undefined, dienGiai: r.dien_giai ?? "", khach: customer?.ten ?? r.khach, contact: r.contact ?? customer?.sdt ?? undefined,
     companyAccount: r.company_account ?? undefined,
     expense: N(r.expense), arCash: N(r.ar_cash), arBankwire: N(r.ar_bankwire), arZelle: N(r.ar_zelle), arCheck: N(r.ar_check),
     apCash: N(r.ap_cash), apBankwire: N(r.ap_bankwire), apZelle: N(r.ap_zelle), apCheck: N(r.ap_check),
     rcJmNo: r.rc_jm_no ?? undefined, soNo: r.so_no ?? undefined, apptId: r.appt_id ?? undefined,
-    source1: r.source_1 ?? "", source2: r.source_2 ?? undefined,
-    sale1: r.sale_1 ?? undefined, saleOnline: r.sale_online ?? undefined,
-    transactionValue: r.transaction_value ?? undefined, pctSupport: r.pct_support != null ? N(r.pct_support) : undefined,
+    source1: source1?.label ?? r.source_1 ?? "", source2: source2?.label ?? r.source_2 ?? undefined,
+    sale1: counterSale?.ten ?? r.sale_1 ?? undefined, saleOnline: onlineSale?.ten ?? r.sale_online ?? undefined,
+    transactionValue: r.transaction_value ?? undefined, pctSupport: onlineSale?.tyLePct ?? (r.pct_support != null ? N(r.pct_support) : undefined),
     oldReceiptNo: r.old_receipt_no ?? undefined, depositDate: r.deposit_date ?? undefined,
-    bellCode: r.bell_code ?? undefined, trangThai: r.trang_thai as TxStatus, note: r.note ?? undefined,
-    companyId: r.company_id ?? undefined, customerId: r.customer_id ?? undefined,
-    accountId: r.account_id ?? undefined, parentId: r.parent_id ?? undefined,
+    bellCode: bell?.code ?? r.bell_code ?? undefined, trangThai: r.trang_thai as TxStatus, note: r.note ?? undefined,
+    companyId: r.company_id ?? undefined, companyName: company?.name,
+    customerId: r.customer_id ?? undefined,
+    accountId: r.account_id ?? undefined, accountName: account?.name, accountType: account?.accountType,
+    parentId: r.parent_id ?? undefined,
+    source1LookupId: r.source1_lookup_id ?? undefined, source2LookupId: r.source2_lookup_id ?? undefined,
+    bellCodeLookupId: r.bell_code_lookup_id ?? undefined,
+    source1Label: source1?.label, source2Label: source2?.label, bellCodeLabel: bell?.label,
+    sales: sales.length ? sales : undefined,
     lineItems: (r.line_items ?? []).map((l: any): LineItem => ({
       id: l.id, moTa: l.mo_ta ?? "", sku: l.sku ?? undefined, giaNo: l.gia_no ?? undefined,
       soLuong: N(l.so_luong), donGia: N(l.don_gia),
@@ -26,6 +170,7 @@ function rowToTx(r: any): Transaction {
     payments: (r.payments ?? []).map((p: any): Payment => ({
       id: p.id, ngay: p.ngay, soTien: N(p.so_tien), hinhThuc: p.hinh_thuc ?? undefined,
       nguoiXacNhan: p.nguoi_xac_nhan ?? undefined, ghiChu: p.ghi_chu ?? undefined, isDau: p.is_dau ?? false,
+      accountId: p.account_id ?? undefined,
     })),
   };
 }
@@ -51,7 +196,8 @@ export async function listTransactions(opts?: { company?: string; status?: strin
     from += PAGE_SIZE;
   }
 
-  return rows.map(rowToTx);
+  const rel = await loadTxEnrichment(rows);
+  return rows.map((row) => rowToTx(row, rel));
 }
 
 export interface ExcelWorkbook {
@@ -146,13 +292,17 @@ export async function listExcelRows(opts?: { workbookId?: string; sheetId?: stri
 
 export async function getTransaction(id: string): Promise<Transaction | undefined> {
   const { data } = await sb().from("transactions").select(SELECT).eq("id", id).maybeSingle();
-  return data ? rowToTx(data) : undefined;
+  if (!data) return undefined;
+  const rel = await loadTxEnrichment([data]);
+  return rowToTx(data, rel);
 }
 
 export async function findByJm(rc?: string): Promise<Transaction | undefined> {
   if (!rc) return undefined;
   const { data } = await sb().from("transactions").select(SELECT).eq("rc_jm_no", rc).maybeSingle();
-  return data ? rowToTx(data) : undefined;
+  if (!data) return undefined;
+  const rel = await loadTxEnrichment([data]);
+  return rowToTx(data, rel);
 }
 
 export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
@@ -208,14 +358,12 @@ export async function setStatus(id: string, s: TxStatus) {
   await sb().from("transactions").update({ trang_thai: s }).eq("id", id);
 }
 
-// ===== Chart of accounts (BALANCE ACCOUNT) =====
-import type { Account } from "./types";
 export async function listAccounts(): Promise<Account[]> {
   try {
     const { data, error } = await sb().from("accounts").select("*").order("sort", { ascending: true });
     if (error) throw error;
     return (data ?? []).map((r: any) => ({
-      id: r.id, entity: r.entity, code: r.code ?? undefined, name: r.name,
+      id: r.id, entity: r.entity, companyId: r.company_id ?? undefined, code: r.code ?? undefined, name: r.name,
       accountType: r.account_type ?? undefined, beginning: N(r.beginning), ending: N(r.ending), sort: r.sort ?? 0,
     }));
   } catch (e) {
@@ -225,10 +373,28 @@ export async function listAccounts(): Promise<Account[]> {
 }
 
 // ===== Sao kê ngân hàng =====
-import type { BankLine } from "./types";
-function rowToBank(r: any): BankLine {
+async function loadAccountMap(accountIds: string[]): Promise<Map<string, { name: string; accountType?: string }>> {
+  const out = new Map<string, { name: string; accountType?: string }>();
+  const ids = [...new Set(accountIds.filter(Boolean))];
+  if (!ids.length) return out;
+  try {
+    for (const batch of chunks(ids, IN_BATCH_SIZE)) {
+      const { data, error } = await sb().from("accounts").select("id, name, account_type").in("id", batch);
+      if (error) throw error;
+      for (const r of data ?? []) out.set(r.id, { name: r.name, accountType: r.account_type ?? undefined });
+    }
+  } catch (e) {
+    warnOnce("rel-bank-account", "[relationships] không enrich được bank account —", e);
+  }
+  return out;
+}
+
+function rowToBank(r: any, accounts?: Map<string, { name: string; accountType?: string }>): BankLine {
+  const account = r.account_id ? accounts?.get(r.account_id) : undefined;
   return {
-    id: r.id, company: r.company, bankAccount: r.bank_account ?? undefined, ngay: r.ngay,
+    id: r.id, company: companyCode(r.company), companyId: r.company_id ?? undefined,
+    bankAccount: r.bank_account ?? undefined, accountId: r.account_id ?? undefined, accountName: account?.name,
+    ngay: r.ngay,
     description: r.description ?? "", category: r.category ?? undefined, amount: N(r.amount),
     matched: !!r.matched, note: r.note ?? undefined,
   };
@@ -241,7 +407,8 @@ export async function listBankLines(opts?: { company?: string; from?: string; to
     if (opts?.to) q = q.lte("ngay", opts.to);
     const { data, error } = await q;
     if (error) throw error;
-    return (data ?? []).map(rowToBank);
+    const accounts = await loadAccountMap((data ?? []).map((r: any) => r.account_id).filter(Boolean));
+    return (data ?? []).map((r: any) => rowToBank(r, accounts));
   } catch (e) {
     console.warn("[bank_statements] bảng chưa có? chạy migration-bank.sql —", (e as any)?.message);
     return [];

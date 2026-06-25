@@ -10,6 +10,15 @@ export type TxStatus =
 
 export type PayMethod = "cash" | "bank_wire" | "zelle" | "check" | "card";
 
+export interface Lookup {
+  id: string;
+  grp: string;
+  code: string;
+  label: string;
+  sort?: number;
+  active?: boolean;
+}
+
 export interface LineItem {
   id: string;
   moTa: string;
@@ -27,6 +36,15 @@ export interface Payment {
   nguoiXacNhan?: string;
   ghiChu?: string;
   isDau?: boolean;
+  accountId?: string;
+}
+
+export interface TransactionSale {
+  saleId: string;
+  ten: string;
+  kind?: "counter" | "online" | string;
+  vaiTro?: string;
+  tyLePct?: number;
 }
 
 export interface Transaction {
@@ -74,9 +92,19 @@ export interface Transaction {
 
   // Khoá ngoại (Phase 1) — DB tự nối qua trigger; đọc để dùng sau
   companyId?: number;
+  companyName?: string;
   customerId?: string;
   accountId?: string;
+  accountName?: string;
+  accountType?: string;
   parentId?: string;
+  source1LookupId?: string;
+  source2LookupId?: string;
+  bellCodeLookupId?: string;
+  source1Label?: string;
+  source2Label?: string;
+  bellCodeLabel?: string;
+  sales?: TransactionSale[];
 
   lineItems: LineItem[];
   payments: Payment[];
@@ -86,6 +114,7 @@ export interface Transaction {
 export interface Account {
   id: string;
   entity: string;          // TRANS / PC49 / CL / AH / ...
+  companyId?: number;
   code?: string;
   name: string;
   accountType?: string;    // Bank / Cash / CC / Loan / ...
@@ -98,7 +127,10 @@ export interface Account {
 export interface BankLine {
   id: string;
   company: CompanyCode;
+  companyId?: number;
   bankAccount?: string;
+  accountId?: string;
+  accountName?: string;
   ngay: string;          // YYYY-MM-DD
   description: string;
   category?: string;

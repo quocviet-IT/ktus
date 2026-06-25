@@ -1,5 +1,6 @@
 import type { Account, Transaction, BankLine } from "./types";
 import { arTotal, apTotal } from "./usbc101";
+import { bankLineBelongsToAccount } from "./relationship-helpers";
 
 export interface Mv { date: string; amount: number; }
 
@@ -8,13 +9,16 @@ export interface Mv { date: string; amount: number; }
 //  - nếu là tài khoản CASH của công ty: cộng net giao dịch có companyAccount = "<entity> cash"
 export function accountMovements(a: Account, txs: Transaction[], banks: BankLine[]): Mv[] {
   const mv: Mv[] = [];
-  for (const b of banks) if (b.bankAccount && b.bankAccount === a.name) mv.push({ date: b.ngay, amount: b.amount });
-  if ((a.accountType || "").toLowerCase() === "cash") {
-    const acc = `${a.entity} cash`.toLowerCase();
-    for (const t of txs) {
-      if (t.trangThai === "cancel") continue;
-      if ((t.companyAccount || "").toLowerCase() === acc) mv.push({ date: t.ngay, amount: arTotal(t) - apTotal(t) });
+  for (const b of banks) if (bankLineBelongsToAccount(b, a)) mv.push({ date: b.ngay, amount: b.amount });
+  for (const t of txs) {
+    if (t.trangThai === "cancel") continue;
+    if (t.accountId) {
+      if (t.accountId === a.id) mv.push({ date: t.ngay, amount: arTotal(t) - apTotal(t) });
+      continue;
     }
+    if ((a.accountType || "").toLowerCase() !== "cash") continue;
+    const acc = `${a.entity} cash`.toLowerCase();
+    if ((t.companyAccount || "").toLowerCase() === acc) mv.push({ date: t.ngay, amount: arTotal(t) - apTotal(t) });
   }
   return mv;
 }

@@ -9,7 +9,7 @@ import { createBankLine, toggleBankMatched } from "@/app/actions";
 import { money, ddmm } from "@/lib/format";
 import { periodRange, periodLabel } from "@/lib/period";
 import {
-  USBC101_COMPANIES, LEDGER_COLUMNS, ledgerCells, isFx, arTotal, apTotal,
+  USBC101_COMPANIES, LEDGER_COLUMNS, ledgerCells, isFx, arTotal, apTotal, ledgerAccountFilter,
 } from "@/lib/usbc101";
 
 const PAGE_SIZE = 50;
@@ -116,8 +116,11 @@ async function BalanceView() {
 async function LedgerView({ company, sp }: { company: string; sp: SP }) {
   const range = periodRange(sp);
   const acc = sp.acc === "cash" || sp.acc === "bank" ? sp.acc : "all";
-  const fetched = await listTransactions({ company, from: range.from, to: range.to });
-  const all = acc === "all" ? fetched : fetched.filter((t) => (t.companyAccount || "").toLowerCase().endsWith(acc));
+  const [fetched, accounts] = await Promise.all([
+    listTransactions({ company, from: range.from, to: range.to }),
+    listAccounts(),
+  ]);
+  const all = fetched.filter((t) => ledgerAccountFilter(t, acc, accounts));
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
   const total = all.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -178,14 +181,15 @@ function AccTabs({ company, acc }: { company: string; acc: string }) {
 
 async function BankView({ company, sp }: { company: string; sp: SP }) {
   const range = periodRange(sp);
-  const [lines, txs] = await Promise.all([
+  const [lines, txs, accounts] = await Promise.all([
     listBankLines({ company, from: range.from, to: range.to }),
     listTransactions({ company, from: range.from, to: range.to }),
+    listAccounts(),
   ]);
   const stmtIn = lines.filter((l) => l.amount > 0).reduce((s, l) => s + l.amount, 0);
   const stmtOut = lines.filter((l) => l.amount < 0).reduce((s, l) => s + Math.abs(l.amount), 0);
   const stmtBalance = stmtIn - stmtOut;
-  const bankTx = txs.filter((t) => (t.companyAccount || "").toLowerCase().endsWith("bank") && t.trangThai !== "cancel");
+  const bankTx = txs.filter((t) => t.trangThai !== "cancel" && ledgerAccountFilter(t, "bank", accounts));
   const ledgerBank = bankTx.reduce((s, t) => s + arTotal(t) - apTotal(t), 0);
   const diff = ledgerBank - stmtBalance;
   const matched = lines.filter((l) => l.matched).length;

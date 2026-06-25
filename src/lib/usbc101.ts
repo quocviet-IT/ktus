@@ -1,5 +1,7 @@
 import type { Transaction } from "./types";
 import { computeCondition } from "./rules";
+import type { Account } from "./types";
+import { transactionBelongsToAccountKind } from "./relationship-helpers";
 
 // Các công ty có sổ riêng trong USBC101 (như các sheet Excel)
 export const USBC101_COMPANIES = ["Trans", "PC49", "TDW", "HPLLC", "3NVY", "Other"] as const;
@@ -34,7 +36,7 @@ export interface AccountBalance {
 }
 
 // Tự tính số dư từng tài khoản từ danh sách giao dịch
-export function computeBalances(rows: Transaction[]): AccountBalance[] {
+export function computeBalances(rows: Transaction[], accounts: Account[] = []): AccountBalance[] {
   const map = new Map<string, AccountBalance>();
   const ensure = (acc: string) => {
     if (!map.has(acc)) {
@@ -49,7 +51,8 @@ export function computeBalances(rows: Transaction[]): AccountBalance[] {
 
   for (const t of rows) {
     if (t.trangThai === "cancel") continue;
-    const acc = t.companyAccount || `${t.company} cash`;
+    const linked = t.accountId ? accounts.find((a) => a.id === t.accountId) : undefined;
+    const acc = linked?.name || t.accountName || t.companyAccount || `${t.company} cash`;
     const b = ensure(acc);
     b.inflow += arTotal(t);
     b.outflow += apTotal(t);
@@ -84,11 +87,16 @@ export function ledgerCells(t: Transaction, index: number): (string | number)[] 
     t.khach,
     t.contact || "",
     t.company,
-    t.companyAccount || "",
+    t.accountName || t.companyAccount || "",
     v(c.returnPo),
     v(c.receipt),
     v(c.deposit),
     v(t.arCash || 0), v(t.arBankwire || 0), v(t.arZelle || 0), v(t.arCheck || 0),
     v(t.apCash || 0), v(t.apBankwire || 0), v(t.apZelle || 0), v(t.apCheck || 0),
   ];
+}
+
+export function ledgerAccountFilter(t: Transaction, acc: "all" | "cash" | "bank", accounts: Account[]): boolean {
+  if (acc === "all") return true;
+  return transactionBelongsToAccountKind(t, acc, accounts);
 }
