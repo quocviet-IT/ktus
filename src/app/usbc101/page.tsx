@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { Check, Plus, Settings } from "lucide-react";
+import { Check, Plus, Settings, Pencil } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
@@ -149,7 +149,10 @@ async function LedgerView({ company, sp }: { company: string; sp: SP }) {
       </form>
       <div className="overflow-x-auto">
         <table className="border-collapse text-[12px] min-w-[1320px]">
-          <thead><tr>{LEDGER_COLUMNS.map((c) => <th key={c} className={th}>{c}{isFx(c) ? " ƒ" : ""}</th>)}</tr></thead>
+          <thead><tr>
+            {LEDGER_COLUMNS.map((c) => <th key={c} className={th}>{c}{isFx(c) ? " ƒ" : ""}</th>)}
+            <th className={`${th} text-center sticky right-0 bg-band`}>SỬA</th>
+          </tr></thead>
           <tbody>
             {rows.length ? rows.map((t, i) => (
               <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
@@ -158,8 +161,14 @@ async function LedgerView({ company, sp }: { company: string; sp: SP }) {
                     {k === 0 ? <Link href={`/rc/${t.id}`} className="text-brand hover:text-accent">{cell}</Link> : cell}
                   </td>
                 ))}
+                <td className={`${td} text-center sticky right-0 bg-card`}>
+                  <Link href={`/rc/${t.id}`} aria-label="Sửa đơn" title="Sửa đơn"
+                    className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11.5px] text-brand hover:border-accent hover:text-accent">
+                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Sửa
+                  </Link>
+                </td>
               </tr>
-            )) : <tr><td colSpan={LEDGER_COLUMNS.length} className="border border-line px-3 py-6 text-center text-muted">Sổ {company} chưa có giao dịch.</td></tr>}
+            )) : <tr><td colSpan={LEDGER_COLUMNS.length + 1} className="border border-line px-3 py-6 text-center text-muted">Sổ {company} chưa có giao dịch.</td></tr>}
           </tbody>
         </table>
       </div>
