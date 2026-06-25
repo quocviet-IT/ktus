@@ -94,9 +94,6 @@ export default async function SalesDaily({ searchParams }: { searchParams: { com
             <Link href={`/reports/sales-daily/export?company=${company}&date=${date}`}
               className="px-3 py-1.5 rounded-lg text-[12px] border border-brand text-brand hover:bg-brand hover:text-white">Xuất Excel</Link>
           </form>
-          <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
-            ⚙️ Cột giống file Excel; số liệu tự tổng hợp từ RC (TỔNG CỘNG = Receipt + Deposit − PO).
-          </div>
           <div className="overflow-x-auto">
             <table className="border-collapse text-[12.5px] min-w-[1180px]">
               <thead>

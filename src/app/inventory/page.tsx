@@ -1,5 +1,4 @@
 import PageHeader from "@/components/page-header";
-import LegendBar from "@/components/legend-bar";
 import { INVENTORY, different } from "@/lib/inventory";
 import { money, num } from "@/lib/format";
 
@@ -12,7 +11,6 @@ export default function Inventory() {
   return (
     <>
       <PageHeader crumb="Kho & danh mục / Tồn kho" title="Tồn kho vàng — đối chiếu KT ↔ US" />
-      <LegendBar />
       <div className="p-6">
         <div className="bg-card border border-line rounded-xl p-4">
           <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">

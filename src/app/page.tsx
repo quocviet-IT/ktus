@@ -1,6 +1,5 @@
 import Link from "next/link";
 import PageHeader from "@/components/page-header";
-import LegendBar from "@/components/legend-bar";
 import RcRow from "@/components/rc-row";
 import { listTransactions } from "@/lib/data";
 import { computeCondition, isMissingSource, isBell } from "@/lib/rules";
@@ -26,7 +25,6 @@ export default async function Dashboard() {
   return (
     <>
       <PageHeader crumb="Tổng quan" title="Bảng điều khiển" />
-      <LegendBar />
       <div className="p-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
           <Kpi label="Doanh thu (Receipt)" value={money(revenue)} sub="từ các RC bán/pickup" />

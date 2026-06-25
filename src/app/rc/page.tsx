@@ -57,10 +57,6 @@ export default async function SoGiaoDich({ searchParams }: { searchParams: SP })
           <span className="text-[12px] text-muted">{periodLabel(searchParams)} · {total} dòng</span>
         </form>
 
-        <div className="mb-3 rounded-md border border-line bg-accentSoft px-3 py-2 text-[12px] text-[#6c5320]">
-          Bảng bám cột theo Excel RC JM. Lọc theo ngày/tuần/tháng/năm + phân trang ({PAGE_SIZE} dòng/trang). Bấm cột NO # để mở chi tiết.
-        </div>
-
         <div className="overflow-x-auto rounded-md border border-line bg-card">
           <table className="min-w-[1180px] border-collapse text-[12.5px]">
             <thead>

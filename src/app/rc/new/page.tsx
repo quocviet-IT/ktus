@@ -95,10 +95,6 @@ export default function NhapRC() {
     <>
       <PageHeader crumb="Hàng ngày / Nhập RC" title="Nhập RC (USBC101)" />
       <form onSubmit={onSubmit} className="p-6 max-w-[920px]">
-        <div className="mb-4 rounded-md bg-accentSoft px-3.5 py-2.5 text-[12.5px] text-[#6c5320]">
-          Nhập 1 lần ở đây → tự đẩy vào sổ công ty, Sales Daily, RC JM. Các ô <span className="italic text-accent">ƒ</span> (Return/PO · Receipt · Deposit · Tổng cộng) hệ thống tự tính.
-        </div>
-
         {/* 1. Thông tin chung */}
         <Section n="1" title="Thông tin chung">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
