@@ -1,4 +1,5 @@
 import PageHeader from "@/components/page-header";
+import { BellRing, Settings } from "lucide-react";
 import PeriodFields from "@/components/period-fields";
 import { listTransactions } from "@/lib/data";
 import { BELL_CODES } from "@/lib/store";
@@ -24,7 +25,7 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
 
   return (
     <>
-      <PageHeader crumb="Báo cáo / Rung chuông" title="Báo cáo rung chuông 🔔" />
+      <PageHeader crumb="Báo cáo / Rung chuông" title="Báo cáo rung chuông" />
       <div className="p-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3.5">
           {BELL_CODES.map((c) => (
@@ -42,7 +43,7 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
             <span className="text-[12px] text-muted">{periodLabel(searchParams)} · {rows.length} đơn</span>
           </form>
           <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
-            ⚙️ Tự gắn cờ đơn đạt mốc (≥ {money(BELL_THRESHOLD)} — <i>ngưỡng tạm, cần chốt</i>) &amp; cảnh báo nghi trùng (cùng khách/công ty).
+            <span className="inline-flex items-start gap-1.5"><Settings className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span>Tự gắn cờ đơn đạt mốc (≥ {money(BELL_THRESHOLD)} — <i>ngưỡng tạm, cần chốt</i>) &amp; cảnh báo nghi trùng (cùng khách/công ty).</span></span>
           </div>
           <div className="overflow-x-auto">
             <table className="border-collapse text-[12.5px] min-w-[760px]">
@@ -63,7 +64,7 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
                       <td className={td}>{t.khach}</td>
                       <td className={td}>{t.sale1 || "—"}</td>
                       <td className={td + " text-right font-mono"}>{money(c.receipt || c.deposit)}</td>
-                      <td className={td}><span className="text-accent">🔔 {t.bellCode || "đạt mốc"}</span></td>
+                      <td className={td}><span className="inline-flex items-center gap-1 text-accent"><BellRing className="h-3.5 w-3.5" aria-hidden="true" /> {t.bellCode || "đạt mốc"}</span></td>
                       <td className={td}>{dup ? <span className="badge bg-[#FBEFD6] text-[#8a6512]">Nghi trùng</span> : <span className="badge bg-okSoft text-ok">OK</span>}</td>
                     </tr>
                   );

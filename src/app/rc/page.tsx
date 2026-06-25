@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
@@ -33,7 +34,9 @@ export default async function SoGiaoDich({ searchParams }: { searchParams: SP })
   return (
     <>
       <PageHeader crumb="Hàng ngày / Sổ giao dịch" title={selectedCompany === "Trans" ? "TRANS RC JM (FINAL)" : selectedCompany === "all" ? "Sổ RC JM (tất cả)" : "PC49 RC JM (FINAL)"}>
-        <Link href="/rc/new" className="rounded-md bg-brand px-3 py-2 text-[13px] text-white hover:bg-accent">＋ Nhập RC</Link>
+        <Link href="/rc/new" className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-2 text-[13px] text-white hover:bg-accent">
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Nhập RC
+        </Link>
       </PageHeader>
 
       <div className="p-6">

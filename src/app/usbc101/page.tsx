@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import Link from "next/link";
+import { Check, Plus, Settings } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
@@ -145,7 +146,9 @@ async function LedgerView({ company, sp }: { company: string; sp: SP }) {
         <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[13px] hover:border-accent">Lọc</button>
         <span className="text-[12px] text-muted">Sổ {company} · {periodLabel(sp)} · {total} dòng</span>
         <div className="flex-1" />
-        <Link href="/rc/new" className="rounded-md bg-brand px-3 py-1.5 text-[12px] text-white hover:bg-accent">＋ Nhập RC</Link>
+        <Link href="/rc/new" className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-[12px] text-white hover:bg-accent">
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Nhập RC
+        </Link>
       </form>
       <div className="overflow-x-auto">
         <table className="border-collapse text-[12px] min-w-[1320px]">
@@ -209,7 +212,7 @@ async function BankView({ company, sp }: { company: string; sp: SP }) {
       <AccTabs company={company} acc="bank" />
       <div className="bg-card border border-line rounded-xl p-4">
         <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
-          ⚙️ THEO DÕI BANK — sao kê ngân hàng của {company}. <b>Đối chiếu</b>: Số dư sổ (bank) so với Số dư sao kê.
+          <span className="inline-flex items-start gap-1.5"><Settings className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span>THEO DÕI BANK — sao kê ngân hàng của {company}. <b>Đối chiếu</b>: Số dư sổ (bank) so với Số dư sao kê.</span></span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <Card l="Số dư sao kê" v={money(stmtBalance)} />
@@ -224,7 +227,9 @@ async function BankView({ company, sp }: { company: string; sp: SP }) {
           <input name="category" placeholder="Loại" aria-label="Loại" className={inp + " w-28"} />
           <input name="bankAccount" placeholder="Số TK" aria-label="Số tài khoản" className={inp + " w-32"} />
           <input name="amount" type="number" step="0.01" required placeholder="+ nạp / − rút" aria-label="Số tiền" className={inp + " w-32 text-right font-mono"} />
-          <button type="submit" className="rounded-md bg-brand px-3 py-1.5 text-[12px] text-white hover:bg-accent">＋ Thêm dòng sao kê</button>
+          <button type="submit" className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-[12px] text-white hover:bg-accent">
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Thêm dòng sao kê
+          </button>
         </form>
 
         <div className="overflow-x-auto">
@@ -244,7 +249,7 @@ async function BankView({ company, sp }: { company: string; sp: SP }) {
                   <td className={td}>
                     <form action={toggleBankMatched.bind(null, l.id, !l.matched)}>
                       <button type="submit" className={`text-[11px] rounded-md px-2 py-1 border ${l.matched ? "bg-okSoft text-ok border-okSoft" : "border-line hover:border-accent"}`}>
-                        {l.matched ? "✓ Đã khớp" : "Đánh dấu khớp"}
+                        {l.matched ? <span className="inline-flex items-center gap-1"><Check className="h-3.5 w-3.5" aria-hidden="true" /> Đã khớp</span> : "Đánh dấu khớp"}
                       </button>
                     </form>
                   </td>

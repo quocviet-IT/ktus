@@ -1,17 +1,18 @@
 import Link from "next/link";
+import { ArrowRight, Bell } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import RcRow from "@/components/rc-row";
 import { listTransactions } from "@/lib/data";
 import { computeCondition, isMissingSource, isBell } from "@/lib/rules";
 import { money } from "@/lib/format";
 
-function Kpi({ label, value, alert, sub }: { label: string; value: string; alert?: boolean; sub?: string }) {
+function Kpi({ label, value, alert, sub }: { label: string; value: string; alert?: boolean; sub?: React.ReactNode }) {
   return (
     <div className={`bg-card border rounded-xl p-4 relative overflow-hidden ${alert ? "border-danger" : "border-line"}`}>
       <span className={`absolute left-0 top-0 bottom-0 w-1 ${alert ? "bg-danger" : "bg-accent"}`} />
       <div className="font-mono text-[11px] uppercase text-muted">{label}</div>
       <div className={`font-serif text-[26px] mt-1 leading-none ${alert ? "text-danger" : ""}`}>{value}</div>
-      {sub && <div className="font-mono text-[11px] text-muted mt-1.5">{sub}</div>}
+      {sub && <div className="font-mono text-[11px] text-muted mt-1.5 flex items-center gap-1.5">{sub}</div>}
     </div>
   );
 }
@@ -30,14 +31,14 @@ export default async function Dashboard() {
           <Kpi label="Doanh thu (Receipt)" value={money(revenue)} sub="từ các RC bán/pickup" />
           <Kpi label="Số RC" value={String(all.length)} sub="tổng giao dịch" />
           <Kpi label="RC thiếu nguồn" value={String(missing.length)} alert sub="cần US bổ sung" />
-          <Kpi label="Đơn rung chuông" value={String(bell.length)} sub="đạt mốc 🔔" />
+          <Kpi label="Đơn rung chuông" value={String(bell.length)} sub={<><span>đạt mốc</span><Bell className="h-3.5 w-3.5 text-accent" aria-hidden="true" /></>} />
         </div>
 
         <div className="bg-card border border-line rounded-xl p-4">
           <div className="flex items-center mb-3">
             <h2 className="font-serif text-base m-0">RC mới nhất</h2>
             <div className="flex-1" />
-            <Link href="/rc" className="text-[13px] text-brand hover:text-accent">Xem sổ giao dịch →</Link>
+            <Link href="/rc" className="inline-flex items-center gap-1 text-[13px] text-brand hover:text-accent">Xem sổ giao dịch <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>
           </div>
           <div>
             {all.slice(0, 8).map((t) => <RcRow key={t.id} t={t} />)}
@@ -46,8 +47,8 @@ export default async function Dashboard() {
 
         {missing.length > 0 && (
           <div className="mt-3.5">
-            <Link href="/missing-source" className="inline-block bg-brand text-white rounded-lg px-4 py-2 text-[13px] hover:bg-accent">
-              Xử lý {missing.length} RC thiếu nguồn →
+            <Link href="/missing-source" className="inline-flex items-center gap-1.5 bg-brand text-white rounded-lg px-4 py-2 text-[13px] hover:bg-accent">
+              Xử lý {missing.length} RC thiếu nguồn <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           </div>
         )}

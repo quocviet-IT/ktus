@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Bell, Link2 } from "lucide-react";
 import type { Transaction } from "@/lib/types";
 import { computeCondition, isMissingSource, isBell, TYPE_LABEL } from "@/lib/rules";
 import { money } from "@/lib/format";
@@ -19,11 +20,11 @@ export default function RcRow({ t }: { t: Transaction }) {
           <div className="text-[13.5px] truncate flex items-center gap-2">
             <span className="badge bg-[#eceee9] text-[#445]">{t.company}</span>
             {t.dienGiai}
-            {isBell(t) && <span className="text-accent">🔔{t.bellCode ? " " + t.bellCode : ""}</span>}
+            {isBell(t) && <span className="inline-flex items-center gap-1 text-accent"><Bell className="h-3.5 w-3.5" aria-hidden="true" />{t.bellCode || ""}</span>}
           </div>
           <div className="text-[11.5px] text-muted mt-0.5">
             {meta.join(" ")}
-            {t.oldReceiptNo && <span className="text-brand"> · 🔗 cọc {t.oldReceiptNo}</span>}
+            {t.oldReceiptNo && <span className="inline-flex items-center gap-1 text-brand"> · <Link2 className="h-3 w-3" aria-hidden="true" /> cọc {t.oldReceiptNo}</span>}
           </div>
         </div>
         <div className="text-right font-mono whitespace-nowrap">

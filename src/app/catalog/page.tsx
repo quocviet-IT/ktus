@@ -1,4 +1,5 @@
 import PageHeader from "@/components/page-header";
+import { Plus } from "lucide-react";
 import { SOURCES, SALES, SALES_ONLINE, BELL_CODES, COMPANIES } from "@/lib/store";
 
 function Group({ title, items }: { title: string; items: string[] }) {
@@ -7,7 +8,9 @@ function Group({ title, items }: { title: string; items: string[] }) {
       <div className="flex items-center mb-2">
         <h2 className="font-serif text-[15px] m-0">{title}</h2>
         <div className="flex-1" />
-        <button className="border border-line rounded-lg px-2.5 py-1 text-[12px] hover:border-accent">＋ Thêm</button>
+        <button className="inline-flex items-center gap-1.5 border border-line rounded-lg px-2.5 py-1 text-[12px] hover:border-accent">
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Thêm
+        </button>
       </div>
       <div className="flex flex-wrap gap-2">
         {items.map((i) => <span key={i} className="font-mono text-[11.5px] bg-band border border-line rounded-full px-2.5 py-1">{i}</span>)}
@@ -45,7 +48,9 @@ export default function Catalog() {
           <div className="flex items-center mb-2">
             <h2 className="font-serif text-[15px] m-0">Loại vàng &amp; quy đổi</h2>
             <div className="flex-1" />
-            <button className="border border-line rounded-lg px-2.5 py-1 text-[12px] hover:border-accent">＋ Thêm</button>
+            <button className="inline-flex items-center gap-1.5 border border-line rounded-lg px-2.5 py-1 text-[12px] hover:border-accent">
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Thêm
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="border-collapse text-[12.5px] min-w-[520px]">

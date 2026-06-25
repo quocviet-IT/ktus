@@ -140,6 +140,6 @@ export async function sendToUS(id: string) {
 }
 export async function resolveSource(id: string, source: string) {
   const t = await getTransaction(id);
-  await updateTransaction(id, { source1: source || "WI", note: (t?.note || "") + " · Đã cập nhật JM ✓" });
+  await updateTransaction(id, { source1: source || "WI", note: (t?.note || "") + " · Đã cập nhật JM" });
   revalidatePath("/missing-source"); revalidatePath("/rc"); revalidatePath("/");
 }

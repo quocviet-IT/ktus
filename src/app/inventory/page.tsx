@@ -1,4 +1,5 @@
 import PageHeader from "@/components/page-header";
+import { Calculator, PencilLine, Settings } from "lucide-react";
 import { INVENTORY, different } from "@/lib/inventory";
 import { money, num } from "@/lib/format";
 
@@ -14,7 +15,7 @@ export default function Inventory() {
       <div className="p-6">
         <div className="bg-card border border-line rounded-xl p-4">
           <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
-            ⚙️ Cột <span className="italic text-accent">ƒ</span> Beginning/Book/Different tự tính. <span className="text-brand">✎</span> Available (US) &amp; Unit Price nhập tay để đối chiếu.
+            <span className="inline-flex items-start gap-1.5"><Settings className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span>Cột <span className="inline-flex items-center gap-1 italic text-accent"><Calculator className="h-3 w-3" aria-hidden="true" />ƒ</span> Beginning/Book/Different tự tính. Available (US) &amp; Unit Price <span className="inline-flex items-center gap-1 text-brand"><PencilLine className="h-3 w-3" aria-hidden="true" />nhập tay</span> để đối chiếu.</span></span>
             {lech > 0 && <b className="text-danger"> · Đang lệch {lech} loại.</b>}
           </div>
           <div className="overflow-x-auto">
@@ -22,7 +23,7 @@ export default function Inventory() {
               <thead><tr>
                 <th className={th}>Description</th><th className={th}>Unit</th><th className={th}>Beginning ƒ</th>
                 <th className={th}>Sale ƒ</th><th className={th}>Deposit ƒ</th><th className={th}>PO ƒ</th>
-                <th className={th}>Book Inv. (KT) ƒ</th><th className={th}>Available (US) ✎</th><th className={th}>Unit Price ✎</th>
+                <th className={th}>Book Inv. (KT) ƒ</th><th className={th}>Available (US)</th><th className={th}>Unit Price</th>
                 <th className={th}>Different ƒ</th><th className={th}>Trạng thái</th>
               </tr></thead>
               <tbody>

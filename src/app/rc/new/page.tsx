@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, cloneElement, isValidElement } from "react";
+import { ArrowRight, Plus, Save, X } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { createRc, type RcInput } from "@/app/actions";
 import { COMPANIES, SOURCES, SALES, SALES_ONLINE, BELL_CODES } from "@/lib/store";
@@ -121,12 +122,16 @@ export default function NhapRC() {
                 <input type="number" step="0.001" value={l.soLuong} onChange={(e) => setLine(i, { soLuong: +e.target.value })} placeholder="SL" className={inp + " text-right font-mono"} />
                 <input type="number" step="0.01" value={l.donGia} onChange={(e) => setLine(i, { donGia: +e.target.value })} placeholder="Đơn giá" className={inp + " text-right font-mono"} />
                 <div className="text-right font-mono text-[13px]">{money(l.soLuong * l.donGia)}</div>
-                <button type="button" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))} className="text-muted hover:text-danger px-1">✕</button>
+                <button type="button" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-dangerSoft hover:text-danger" aria-label="Xóa dòng">
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
               </div>
             ))}
           </div>
           <div className="mt-3 flex items-center">
-            <button type="button" onClick={() => setLines((ls) => [...ls, { moTa: "", soLuong: 1, donGia: 0 }])} className="rounded-md border border-line px-3 py-1.5 text-[12px] hover:border-accent">＋ Thêm dòng</button>
+            <button type="button" onClick={() => setLines((ls) => [...ls, { moTa: "", soLuong: 1, donGia: 0 }])} className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-[12px] hover:border-accent">
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Thêm dòng
+            </button>
             <div className="flex-1" />
             <span className="font-mono text-[13px]"><span className="text-muted mr-2">Tổng dòng hàng</span><b>{money(lineTotal)}</b></span>
           </div>
@@ -183,9 +188,9 @@ export default function NhapRC() {
 
         <div className="flex items-center gap-3">
           <button type="submit" disabled={busy} className="rounded-md bg-brand px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-accent disabled:opacity-60">
-            {busy ? "Đang lưu…" : "Lưu vào USBC101 & sổ RC"}
+            {busy ? "Đang lưu…" : <span className="inline-flex items-center gap-2"><Save className="h-4 w-4" aria-hidden="true" />Lưu vào USBC101 & sổ RC</span>}
           </button>
-          <span className="text-[12px] text-muted">Bỏ trống Source 1 → RC vào danh sách thiếu nguồn.</span>
+          <span className="inline-flex items-center gap-1.5 text-[12px] text-muted">Bỏ trống Source 1 <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /> RC vào danh sách thiếu nguồn.</span>
         </div>
       </form>
     </>

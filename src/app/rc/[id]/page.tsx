@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft, Bell, Check, Link2 } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import StatusBadge from "@/components/status-badge";
 import { getTransaction, findByJm } from "@/lib/data";
@@ -26,7 +27,9 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
   return (
     <>
       <PageHeader crumb="Sổ giao dịch / Chi tiết" title={`Đơn ${t.rcJmNo || "(chưa có số JM)"}`}>
-        <Link href="/rc" className="text-[13px] text-brand hover:text-accent">← Sổ giao dịch</Link>
+        <Link href="/rc" className="inline-flex items-center gap-1 text-[13px] text-brand hover:text-accent">
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" /> Sổ giao dịch
+        </Link>
       </PageHeader>
       <div className="p-6 max-w-[920px]">
         <div className="bg-card border border-line rounded-xl p-5 mb-3.5">
@@ -34,7 +37,7 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
             <span className="badge bg-[#eceee9] text-[#445]">{t.company}</span>
             <span className="text-[13px]">{TYPE_LABEL[t.type]}</span>
             <StatusBadge s={t.trangThai} />
-            {t.bellCode && <span className="text-accent text-[13px]">🔔 {t.bellCode}</span>}
+            {t.bellCode && <span className="inline-flex items-center gap-1 text-accent text-[13px]"><Bell className="h-3.5 w-3.5" aria-hidden="true" /> {t.bellCode}</span>}
             <div className="flex-1" />
             <form action={setStatus.bind(null, t.id, "cancel")}>
               <button type="submit" className="border border-line rounded-lg px-3 py-1.5 text-[12px] hover:border-danger hover:text-danger">Cancel đơn</button>
@@ -54,7 +57,7 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
 
           {dep && (
             <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12.5px] text-[#6c5320] mb-4">
-              🔗 Pickup nối đơn đặt cọc <b>{dep.rcJmNo}</b> ngày {ddmmyyyy(dep.ngay)} — đã cọc {money(paidTotal(dep))}
+              <span className="inline-flex items-start gap-1.5"><Link2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span>Pickup nối đơn đặt cọc <b>{dep.rcJmNo}</b> ngày {ddmmyyyy(dep.ngay)} — đã cọc {money(paidTotal(dep))}</span></span>
             </div>
           )}
 
@@ -95,7 +98,7 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
                   <span className="text-muted">{p.hinhThuc || ""}</span>
                   {p.isDau && <span className="badge bg-okSoft text-ok">đợt đầu</span>}
                   {p.ghiChu && <span className="text-muted">· {p.ghiChu}</span>}
-                  {p.nguoiXacNhan && <span className="text-muted">· {p.nguoiXacNhan} ✓</span>}
+                  {p.nguoiXacNhan && <span className="inline-flex items-center gap-1 text-muted">· {p.nguoiXacNhan} <Check className="h-3.5 w-3.5" aria-hidden="true" /></span>}
                 </div>
               ))}
             </div>
