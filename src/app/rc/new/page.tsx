@@ -99,12 +99,12 @@ export default function NhapRC() {
         {/* 1. Thông tin chung */}
         <Section n="1" title="Thông tin chung">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {fld("Ngày *", <input name="ngay" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={inp} />)}
-            {fld("Công ty *", <select name="company" required value={company} onChange={(e) => setCompany(e.target.value)} className={inp}>{COMPANIES.map((c) => <option key={c}>{c}</option>)}</select>)}
+            {fld("Date *", <input name="ngay" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={inp} />)}
+            {fld("Company *", <select name="company" required value={company} onChange={(e) => setCompany(e.target.value)} className={inp}>{COMPANIES.map((c) => <option key={c}>{c}</option>)}</select>)}
             {fld("Company account *", <select name="companyAccount" required className={inp}><option value="">- chọn -</option>{[`${company} cash`, `${company} bank`].map((a) => <option key={a} value={a}>{a}</option>)}</select>)}
-            {fld("Loại (Type) *", <select name="type" required value={type} onChange={(e) => setType(e.target.value as RcInput["type"])} className={inp}>{Object.entries(TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>)}
-            {fld("Khách hàng *", <input name="khach" required placeholder="Tên khách" className={inp} />)}
-            {fld("Liên hệ", <input name="contact" placeholder="408-…" className={inp} />)}
+            {fld("Type *", <select name="type" required value={type} onChange={(e) => setType(e.target.value as RcInput["type"])} className={inp}>{Object.entries(TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>)}
+            {fld("Customer name *", <input name="khach" required placeholder="Tên khách" className={inp} />)}
+            {fld("Contact", <input name="contact" placeholder="408-…" className={inp} />)}
             {fld("Mã SKU", <input name="maSku" placeholder="24KRI / VRP…" className={inp} />)}
             {fld("Mã rung chuông", <select name="bellCode" className={inp}><option value="">—</option>{BELL_CODES.map((b) => <option key={b}>{b}</option>)}</select>)}
             <div className="md:col-span-4">{fld("Diễn giải", <input name="dienGiai" placeholder="Khách mua 1L VRP / Mua vào 3.9gr vàng 18K…" className={inp} />)}</div>
@@ -116,11 +116,11 @@ export default function NhapRC() {
           <div className="space-y-2">
             {lines.map((l, i) => (
               <div key={i} className="grid grid-cols-[1fr_90px_110px_70px_100px_100px_auto] gap-2 items-center">
-                <input value={l.moTa} onChange={(e) => setLine(i, { moTa: e.target.value })} placeholder="Mô tả sản phẩm" className={inp} />
+                <input value={l.moTa} onChange={(e) => setLine(i, { moTa: e.target.value })} placeholder="Description" className={inp} />
                 <input value={l.sku || ""} onChange={(e) => setLine(i, { sku: e.target.value })} placeholder="SKU" className={inp} />
                 <input value={l.giaNo || ""} onChange={(e) => setLine(i, { giaNo: e.target.value })} placeholder="GIA#" className={inp} />
-                <input type="number" step="0.001" value={l.soLuong} onChange={(e) => setLine(i, { soLuong: +e.target.value })} placeholder="SL" className={inp + " text-right font-mono"} />
-                <input type="number" step="0.01" value={l.donGia} onChange={(e) => setLine(i, { donGia: +e.target.value })} placeholder="Đơn giá" className={inp + " text-right font-mono"} />
+                <input type="number" step="0.001" value={l.soLuong} onChange={(e) => setLine(i, { soLuong: +e.target.value })} placeholder="Quantity" className={inp + " text-right font-mono"} />
+                <input type="number" step="0.01" value={l.donGia} onChange={(e) => setLine(i, { donGia: +e.target.value })} placeholder="Unit Price" className={inp + " text-right font-mono"} />
                 <div className="text-right font-mono text-[13px]">{money(l.soLuong * l.donGia)}</div>
                 <button type="button" onClick={() => setLines((ls) => ls.filter((_, k) => k !== i))} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-dangerSoft hover:text-danger" aria-label="Xóa dòng">
                   <X className="h-4 w-4" aria-hidden="true" />
