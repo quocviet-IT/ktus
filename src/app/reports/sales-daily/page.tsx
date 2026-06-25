@@ -4,7 +4,6 @@ import Pagination from "@/components/pagination";
 import { listTransactions } from "@/lib/data";
 import { computeCondition, TYPE_LABEL } from "@/lib/rules";
 import { num } from "@/lib/format";
-import type { PayMethod } from "@/lib/types";
 
 const PAGE_SIZE = 50;
 
@@ -22,34 +21,47 @@ export default async function SalesDaily({ searchParams }: { searchParams: { com
   const startIdx = (page - 1) * PAGE_SIZE;
   const pageRows = rows.slice(startIdx, startIdx + PAGE_SIZE);
 
-  const recvCol = (t: any, m: PayMethod) => {
-    const c = computeCondition(t);
-    const amt = c.receipt || c.deposit;
-    const pay: PayMethod | undefined = t.payments[0]?.hinhThuc;
-    return pay === m ? amt : 0;
-  };
   const cell = (n: number) => (n ? num(n) : "");
+  const arOf = (t: any) => ({ cash: t.arCash || 0, bankwire: t.arBankwire || 0, zelle: t.arZelle || 0, check: t.arCheck || 0 });
+  const apOf = (t: any) => {
+    const ap = { cash: t.apCash || 0, bankwire: t.apBankwire || 0, zelle: t.apZelle || 0, check: t.apCheck || 0 };
+    const sum = ap.cash + ap.bankwire + ap.zelle + ap.check;
+    if (sum === 0 && (t.type === "po" || t.type === "return" || t.type === "exchange")) ap.cash = t.expense || 0;
+    return ap;
+  };
 
   // Tổng cộng tính trên TOÀN BỘ kỳ lọc (không chỉ trang hiện tại)
   let tTong = 0, tPO = 0, tRec = 0, tDep = 0;
-  rows.forEach((t) => { const c = computeCondition(t); tTong += c.tongCong; tPO += c.returnPo; tRec += c.receipt; tDep += c.deposit; });
+  const thu = { cash: 0, bankwire: 0, zelle: 0, check: 0 };
+  const chi = { cash: 0, bankwire: 0, zelle: 0, check: 0 };
+  rows.forEach((t) => {
+    const c = computeCondition(t); tTong += c.tongCong; tPO += c.returnPo; tRec += c.receipt; tDep += c.deposit;
+    const a = arOf(t), p = apOf(t);
+    thu.cash += a.cash; thu.bankwire += a.bankwire; thu.zelle += a.zelle; thu.check += a.check;
+    chi.cash += p.cash; chi.bankwire += p.bankwire; chi.zelle += p.zelle; chi.check += p.check;
+  });
 
+  const tdc = "px-2.5 py-1.5 border border-line text-right font-mono";
   const body = pageRows.map((t, i) => {
-    const c = computeCondition(t);
+    const c = computeCondition(t); const a = arOf(t), p = apOf(t);
     return (
       <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
         <td className="px-2.5 py-1.5 border border-line">{startIdx + i + 1}</td>
         <td className="px-2.5 py-1.5 border border-line">{TYPE_LABEL[t.type]}</td>
         <td className="px-2.5 py-1.5 border border-line">{t.dienGiai}</td>
         <td className="px-2.5 py-1.5 border border-line">{t.khach}</td>
-        <td className={`px-2.5 py-1.5 border border-line text-right font-mono ${c.tongCong < 0 ? "text-danger" : ""}`}>{num(c.tongCong)}</td>
-        <td className="px-2.5 py-1.5 border border-line text-right font-mono">{cell(c.returnPo)}</td>
-        <td className="px-2.5 py-1.5 border border-line text-right font-mono">{cell(c.receipt)}</td>
-        <td className="px-2.5 py-1.5 border border-line text-right font-mono">{cell(c.deposit)}</td>
-        <td className="px-2.5 py-1.5 border border-line text-right font-mono">{cell(recvCol(t, "cash"))}</td>
-        <td className="px-2.5 py-1.5 border border-line text-right font-mono">{cell(recvCol(t, "bank_wire"))}</td>
-        <td className="px-2.5 py-1.5 border border-line text-right font-mono">{cell(recvCol(t, "zelle"))}</td>
-        <td className="px-2.5 py-1.5 border border-line text-right font-mono">{cell(recvCol(t, "check"))}</td>
+        <td className={`${tdc} ${c.tongCong < 0 ? "text-danger" : ""}`}>{num(c.tongCong)}</td>
+        <td className={tdc}>{cell(c.returnPo)}</td>
+        <td className={tdc}>{cell(c.receipt)}</td>
+        <td className={tdc}>{cell(c.deposit)}</td>
+        <td className={tdc + " bg-okSoft/40"}>{cell(a.cash)}</td>
+        <td className={tdc}>{cell(a.bankwire)}</td>
+        <td className={tdc}>{cell(a.zelle)}</td>
+        <td className={tdc}>{cell(a.check)}</td>
+        <td className={tdc + " bg-dangerSoft/40"}>{cell(p.cash)}</td>
+        <td className={tdc}>{cell(p.bankwire)}</td>
+        <td className={tdc}>{cell(p.zelle)}</td>
+        <td className={tdc}>{cell(p.check)}</td>
         <td className="px-2.5 py-1.5 border border-line">{t.company}</td>
       </tr>
     );
@@ -86,20 +98,36 @@ export default async function SalesDaily({ searchParams }: { searchParams: { com
             ⚙️ Cột giống file Excel; số liệu tự tổng hợp từ RC (TỔNG CỘNG = Receipt + Deposit − PO).
           </div>
           <div className="overflow-x-auto">
-            <table className="border-collapse text-[12.5px] min-w-[900px]">
-              <thead><tr>
-                <th className={th}>STT</th><th className={th}>TYPE</th><th className={th}>DISCRIPTION</th><th className={th}>CUSTOMER</th>
-                <th className={th}>TỔNG CỘNG</th><th className={th}>PURCHASE/PO</th><th className={th}>{recLabel}</th><th className={th}>DEPOSIT</th>
-                <th className={th}>CASH</th><th className={th}>BANKWIRE</th><th className={th}>ZELLE</th><th className={th}>CHECK</th><th className={th}>COMPANY</th>
-              </tr></thead>
-              <tbody>{body.length ? body : <tr><td colSpan={13} className="px-2.5 py-4 border border-line text-center text-muted">Chưa có giao dịch.</td></tr>}</tbody>
+            <table className="border-collapse text-[12.5px] min-w-[1180px]">
+              <thead>
+                <tr>
+                  <th className={th} rowSpan={2}>STT</th><th className={th} rowSpan={2}>TYPE</th><th className={th} rowSpan={2}>DISCRIPTION</th><th className={th} rowSpan={2}>CUSTOMER</th>
+                  <th className={th} rowSpan={2}>TỔNG CỘNG</th><th className={th} rowSpan={2}>PURCHASE/PO</th><th className={th} rowSpan={2}>{recLabel}</th><th className={th} rowSpan={2}>DEPOSIT</th>
+                  <th className={th + " text-center bg-okSoft text-ok"} colSpan={4}>THU TIỀN (RECEIVABLES)</th>
+                  <th className={th + " text-center bg-dangerSoft text-danger"} colSpan={4}>CHI TIỀN (PAYABLES)</th>
+                  <th className={th} rowSpan={2}>COMPANY</th>
+                </tr>
+                <tr>
+                  <th className={th}>CASH</th><th className={th}>BANKWIRE</th><th className={th}>ZELLE</th><th className={th}>CHECK</th>
+                  <th className={th}>CASH</th><th className={th}>BANKWIRE</th><th className={th}>ZELLE</th><th className={th}>CHECK</th>
+                </tr>
+              </thead>
+              <tbody>{body.length ? body : <tr><td colSpan={17} className="px-2.5 py-4 border border-line text-center text-muted">Chưa có giao dịch.</td></tr>}</tbody>
               <tfoot><tr className="font-bold bg-accentSoft">
                 <td colSpan={4} className="px-2.5 py-2 border border-line">TỔNG CỘNG</td>
                 <td className="px-2.5 py-2 border border-line text-right font-mono">{num(tTong)}</td>
                 <td className="px-2.5 py-2 border border-line text-right font-mono">{num(tPO)}</td>
                 <td className="px-2.5 py-2 border border-line text-right font-mono">{num(tRec)}</td>
                 <td className="px-2.5 py-2 border border-line text-right font-mono">{num(tDep)}</td>
-                <td colSpan={5} className="px-2.5 py-2 border border-line" />
+                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(thu.cash)}</td>
+                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(thu.bankwire)}</td>
+                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(thu.zelle)}</td>
+                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(thu.check)}</td>
+                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(chi.cash)}</td>
+                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(chi.bankwire)}</td>
+                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(chi.zelle)}</td>
+                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(chi.check)}</td>
+                <td className="px-2.5 py-2 border border-line" />
               </tr></tfoot>
             </table>
           </div>
