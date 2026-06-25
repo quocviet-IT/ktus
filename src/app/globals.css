@@ -17,3 +17,59 @@ body { @apply bg-ground text-text font-sans; }
 
 /* nhãn cột tự tính ƒ */
 .fx-field { @apply bg-band text-muted; }
+
+.nav-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.nav-progress__bar {
+  height: 3px;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #2f6f4e, #c9942f, #2f6f4e);
+  animation: nav-progress-bar 1.05s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(47, 111, 78, 0.2);
+}
+
+.nav-progress__pill {
+  position: fixed;
+  top: 10px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #D8E0D4;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 20px rgba(30, 45, 35, 0.12);
+}
+
+.nav-progress__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #D8E0D4;
+  border-top-color: #2f6f4e;
+  border-radius: 999px;
+  animation: nav-progress-spin 0.75s linear infinite;
+}
+
+@keyframes nav-progress-bar {
+  0% { transform: scaleX(0.08); opacity: 0.65; }
+  45% { transform: scaleX(0.72); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+@keyframes nav-progress-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress__bar,
+  .nav-progress__spinner {
+    animation: none;
+  }
+}
