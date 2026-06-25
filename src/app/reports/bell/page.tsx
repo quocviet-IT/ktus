@@ -5,7 +5,8 @@ import { listTransactions } from "@/lib/data";
 import { BELL_CODES } from "@/lib/store";
 import { isBell, computeCondition, BELL_THRESHOLD } from "@/lib/rules";
 import { money, ddmm } from "@/lib/format";
-import { periodRange, periodLabel } from "@/lib/period";
+import { periodRange, periodLabel, byEntryAsc } from "@/lib/period";
+import type { Transaction } from "@/lib/types";
 
 type SP = { period?: string; day?: string; week?: string; month?: string; year?: string };
 
@@ -13,12 +14,18 @@ type SP = { period?: string; day?: string; week?: string; month?: string; year?:
 export default async function Bell({ searchParams }: { searchParams: SP }) {
   const range = periodRange(searchParams);
   const all = await listTransactions({ from: range.from, to: range.to });
+
+  // Gộp 1 đơn = 1 dòng (tránh ghi nhận trùng), rồi sắp xếp theo NGÀY tăng dần
+  const byOrder = new Map<string, Transaction>();
+  for (const t of all.filter(isBell)) {
+    const key = t.oldReceiptNo || t.rcJmNo || t.id;
+    if (!byOrder.has(key)) byOrder.set(key, t);
+  }
+  const rows = [...byOrder.values()].sort(byEntryAsc);
+
   const counts: Record<string, number> = {};
   BELL_CODES.forEach((c) => (counts[c] = 0));
-  all.forEach((t) => { if (t.bellCode && counts[t.bellCode] !== undefined) counts[t.bellCode]++; });
-
-  const rows = all.filter(isBell);
-  const seen = new Set<string>();
+  rows.forEach((t) => { if (t.bellCode && counts[t.bellCode] !== undefined) counts[t.bellCode]++; });
 
   const th = "px-2.5 py-2 border border-line bg-band font-mono text-[10px] uppercase text-brand text-left whitespace-nowrap";
   const td = "px-2.5 py-1.5 border border-line";
@@ -46,12 +53,10 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
             <table className="border-collapse text-[12.5px] min-w-[760px]">
               <thead><tr>
                 <th className={th}>DATE</th><th className={th}>JM RECEIPT#</th><th className={th}>Công ty</th><th className={th}>Customer</th>
-                <th className={th}>Sale</th><th className={th}>Số tiền</th><th className={th}>Mã RC</th><th className={th}>Kiểm tra trùng</th>
+                <th className={th}>Sale</th><th className={th}>Số tiền</th><th className={th}>Mã RC</th>
               </tr></thead>
               <tbody>
                 {rows.length ? rows.map((t) => {
-                  const key = t.company + "|" + t.khach;
-                  const dup = seen.has(key); seen.add(key);
                   const c = computeCondition(t);
                   return (
                     <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
@@ -62,10 +67,9 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
                       <td className={td}>{t.sale1 || "—"}</td>
                       <td className={td + " text-right font-mono"}>{money(c.receipt || c.deposit)}</td>
                       <td className={td}><span className="inline-flex items-center gap-1 text-accent"><BellRing className="h-3.5 w-3.5" aria-hidden="true" /> {t.bellCode || "đạt mốc"}</span></td>
-                      <td className={td}>{dup ? <span className="badge bg-[#FBEFD6] text-[#8a6512]">Nghi trùng</span> : <span className="badge bg-okSoft text-ok">OK</span>}</td>
                     </tr>
                   );
-                }) : <tr><td colSpan={8} className={td + " text-center text-muted py-4"}>Chưa có đơn rung chuông.</td></tr>}
+                }) : <tr><td colSpan={7} className={td + " text-center text-muted py-4"}>Chưa có đơn rung chuông.</td></tr>}
               </tbody>
             </table>
           </div>

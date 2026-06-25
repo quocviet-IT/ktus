@@ -39,6 +39,13 @@ function fld(label: string, node: React.ReactNode) {
 function amt(val: number, set: (v: number) => void) {
   return <input type="number" step="0.01" value={val || ""} onChange={(e) => set(Number(e.target.value) || 0)} className={inp + " text-right font-mono"} />;
 }
+// Combobox: chọn từ danh mục HOẶC gõ giá trị mới (feedback: cho phép bổ sung khi phát sinh)
+function combo(name: string, listId: string, placeholder?: string, defaultValue?: string) {
+  return <input name={name} list={listId} placeholder={placeholder} defaultValue={defaultValue} autoComplete="off" className={inp} />;
+}
+function pctInp(name: string, placeholder?: string) {
+  return <input name={name} type="number" step="0.01" placeholder={placeholder} className={inp + " text-right font-mono"} />;
+}
 
 export default function NhapRC() {
   const [company, setCompany] = useState<string>("PC49");
@@ -46,7 +53,11 @@ export default function NhapRC() {
   const [lines, setLines] = useState<Line[]>([{ moTa: "", soLuong: 1, donGia: 0 }]);
   const [ar, setAr] = useState({ arCash: 0, arBankwire: 0, arZelle: 0, arCheck: 0 });
   const [ap, setAp] = useState({ apCash: 0, apBankwire: 0, apZelle: 0, apCheck: 0 });
+  const [orderTotalRaw, setOrderTotalRaw] = useState<string>("");
   const [busy, setBusy] = useState(false);
+
+  // TRANS = 3 sale, PC49 (và còn lại) = 2 sale (theo file Excel thật)
+  const salesCount = company === "Trans" ? 3 : 2;
 
   const lineTotal = useMemo(() => lines.reduce((s, l) => s + (Number(l.soLuong) || 0) * (Number(l.donGia) || 0), 0), [lines]);
   const arTotal = ar.arCash + ar.arBankwire + ar.arZelle + ar.arCheck;
@@ -55,6 +66,12 @@ export default function NhapRC() {
   const deposit = DEPOSIT_T.includes(type) ? arTotal : 0;
   const returnPo = RETURN_T.includes(type) ? (apTotal || lineTotal) : 0;
   const tongCong = receipt + deposit - returnPo;
+
+  // Tổng đơn / đã thanh toán / còn lại (đơn bán & cọc)
+  const orderTotal = orderTotalRaw === "" ? lineTotal : Number(orderTotalRaw) || 0;
+  const paid = arTotal;
+  const remaining = orderTotal - paid;
+  const isPO = RETURN_T.includes(type);
 
   const setLine = (i: number, p: Partial<Line>) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...p } : l)));
 
@@ -83,9 +100,17 @@ export default function NhapRC() {
       source1: String(f.get("source1") || ""),
       source2: String(f.get("source2") || ""),
       sale1: String(f.get("sale1") || ""),
+      sale2: String(f.get("sale2") || ""),
+      sale3: String(f.get("sale3") || ""),
+      sale1Pct: Number(f.get("sale1Pct")) || undefined,
+      sale2Pct: Number(f.get("sale2Pct")) || undefined,
+      sale3Pct: Number(f.get("sale3Pct")) || undefined,
       saleOnline: String(f.get("saleOnline") || ""),
+      saleOnline2: String(f.get("saleOnline2") || ""),
+      saleOnline3: String(f.get("saleOnline3") || ""),
       transactionValue: String(f.get("transactionValue") || ""),
       pctSupport: Number(f.get("pctSupport")) || undefined,
+      orderTotal: orderTotal || undefined,
       bellCode: String(f.get("bellCode") || ""),
       note: String(f.get("note") || ""),
     };
@@ -106,7 +131,6 @@ export default function NhapRC() {
             {fld("Customer name *", <input name="khach" required placeholder="Tên khách" className={inp} />)}
             {fld("Contact", <input name="contact" placeholder="408-…" className={inp} />)}
             {fld("Mã SKU", <input name="maSku" placeholder="24KRI / VRP…" className={inp} />)}
-            {fld("Mã rung chuông", <select name="bellCode" className={inp}><option value="">—</option>{BELL_CODES.map((b) => <option key={b}>{b}</option>)}</select>)}
             <div className="md:col-span-4">{fld("Diễn giải", <input name="dienGiai" placeholder="Khách mua 1L VRP / Mua vào 3.9gr vàng 18K…" className={inp} />)}</div>
           </div>
         </Section>
@@ -139,27 +163,38 @@ export default function NhapRC() {
 
         {/* 3 + 4: A/R & A/P */}
         <div className="grid md:grid-cols-2 gap-3.5">
-          <Section n="3" title="Thu tiền (A/R)">
+          <Section n="3" title="Thu tiền (A/R) — khách trả">
             {fld("Hình thức TT đợt đầu", <select name="pay" className={inp}>{PAYS.map((p) => <option key={p.v} value={p.v}>{p.l}</option>)}</select>)}
-            <div className="grid grid-cols-2 gap-3 mt-3">
+            <p className="text-[11.5px] text-muted mt-2 mb-1">Khách trả <b>nhiều hình thức</b>? Nhập số tiền vào từng ô tương ứng — hệ thống tự cộng.</p>
+            <div className="grid grid-cols-2 gap-3 mt-2">
               {fld("Cash", amt(ar.arCash, (v) => setAr((s) => ({ ...s, arCash: v }))))}
               {fld("Bank wire", amt(ar.arBankwire, (v) => setAr((s) => ({ ...s, arBankwire: v }))))}
               {fld("Zelle", amt(ar.arZelle, (v) => setAr((s) => ({ ...s, arZelle: v }))))}
               {fld("Check", amt(ar.arCheck, (v) => setAr((s) => ({ ...s, arCheck: v }))))}
             </div>
+            <div className="mt-2 flex justify-end font-mono text-[12.5px]"><span className="text-muted mr-2">Đã thu đợt này</span><b>{money(paid)}</b></div>
           </Section>
           <Section n="4" title="Chi tiền (A/P) — PO / mua vào">
+            <p className="text-[11.5px] text-muted mb-2">Hình thức thanh toán <b>đơn mua vào</b>: nhập số tiền chi ra theo từng hình thức.</p>
             <div className="grid grid-cols-2 gap-3">
               {fld("Cash", amt(ap.apCash, (v) => setAp((s) => ({ ...s, apCash: v }))))}
               {fld("Bank wire", amt(ap.apBankwire, (v) => setAp((s) => ({ ...s, apBankwire: v }))))}
               {fld("Zelle", amt(ap.apZelle, (v) => setAp((s) => ({ ...s, apZelle: v }))))}
               {fld("Check", amt(ap.apCheck, (v) => setAp((s) => ({ ...s, apCheck: v }))))}
             </div>
+            <div className="mt-2 flex justify-end font-mono text-[12.5px]"><span className="text-muted mr-2">Đã chi đợt này</span><b className="text-danger">{money(apTotal)}</b></div>
           </Section>
         </div>
 
-        {/* CONDITION tự tính */}
-        <Section n="ƒ" title="CONDITION — tự tính">
+        {/* Tổng đơn / Đã thanh toán / Còn lại + CONDITION tự tính */}
+        <Section n="ƒ" title="Tổng đơn & CONDITION — tự tính">
+          {!isPO && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+              {fld("Tổng tiền đơn hàng", <input name="orderTotal" type="number" step="0.01" value={orderTotalRaw} onChange={(e) => setOrderTotalRaw(e.target.value)} placeholder={String(lineTotal || 0)} className={inp + " text-right font-mono"} />)}
+              {fld("Số tiền thanh toán ƒ", <div className={fx}>{money(paid)}</div>)}
+              {fld("Số tiền còn lại ƒ", <div className={fx + (remaining > 0 ? " text-danger" : " text-ok")}>{money(remaining)}</div>)}
+            </div>
+          )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {fld("Return/PO ƒ", <div className={fx}>{money(returnPo)}</div>)}
             {fld("Receipt ƒ", <div className={fx}>{money(receipt)}</div>)}
@@ -168,23 +203,53 @@ export default function NhapRC() {
           </div>
         </Section>
 
-        {/* 5. JM / Pickup / Sales */}
-        <Section n="5" title="Thông tin JM / Nguồn / Sales (bước 2 — có thể nhập sau)">
+        {/* 5. JM / Pickup / Nguồn */}
+        <Section n="5" title="Thông tin JM / Nguồn (bước 2 — có thể nhập sau)">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {fld("Số RC JM", <input name="rcJmNo" placeholder="9000…=cọc / 1000…=bán" className={inp} />)}
             {fld("SO#", <input name="soNo" className={inp} />)}
             {fld("Root Appt ID", <input name="apptId" placeholder="AP-…" className={inp} />)}
-            {fld("Source 1", <select name="source1" className={inp}><option value="">— Không có source —</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>)}
-            {fld("Source 2", <select name="source2" className={inp}><option value="">—</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>)}
-            {fld("Sale US", <select name="sale1" className={inp}><option value="">—</option>{SALES.map((s) => <option key={s}>{s}</option>)}</select>)}
-            {fld("Sale Online", <select name="saleOnline" className={inp}><option value="">—</option>{SALES_ONLINE.map((s) => <option key={s}>{s}</option>)}</select>)}
-            {fld("% Support", <input name="pctSupport" type="number" step="0.01" placeholder="0.8" className={inp + " text-right font-mono"} />)}
+            {fld("Source 1", combo("source1", "dl-sources", "WI / TEL / FB… (gõ mới được)"))}
+            {fld("Source 2", combo("source2", "dl-sources", "— hoặc gõ mới —"))}
             {fld("Transaction value", <input name="transactionValue" placeholder="1 lượng / 1 oz…" className={inp} />)}
             {fld("Old Receipt # (pickup)", <input name="oldReceiptNo" placeholder="9000…" className={inp} />)}
             {fld("Deposit Date", <input name="depositDate" type="date" className={inp} />)}
           </div>
+        </Section>
+
+        {/* 6. Sales & phân bổ */}
+        <Section n="6" title={`Sales & tỷ lệ phân bổ — ${company === "Trans" ? "TRANS: 3 sale" : "PC49: 2 sale"}`}>
+          <div className="space-y-2">
+            {Array.from({ length: salesCount }).map((_, i) => (
+              <div key={i} className="grid grid-cols-[24px_1fr_120px] gap-2 items-end">
+                <div className="font-mono text-[12px] text-muted pb-1.5">#{i + 1}</div>
+                {fld(`Sale #${i + 1}`, combo(`sale${i + 1}`, "dl-sales", i === 0 ? "Sale chính (gõ mới được)" : "— hoặc gõ mới —"))}
+                {fld("Tỷ lệ %", pctInp(`sale${i + 1}Pct`, i === 0 ? "80" : "20"))}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 border-t border-line pt-3">
+            {fld("Sale Online #1", combo("saleOnline", "dl-online", "Team VN…"))}
+            {fld("Sale Online #2", combo("saleOnline2", "dl-online", "—"))}
+            {fld("Sale Online #3", combo("saleOnline3", "dl-online", "—"))}
+            {fld("% Support (hỗ trợ online)", pctInp("pctSupport", "0.8"))}
+          </div>
+          <p className="text-[11px] text-muted mt-2">Lưu ý: <b>% Support</b> là mức hỗ trợ đơn của sale online — khác với <b>Tỷ lệ %</b> phân bổ giữa các sale.</p>
+        </Section>
+
+        {/* 7. Rung chuông & ghi chú */}
+        <Section n="7" title="Rung chuông & ghi chú">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {fld("Mã rung chuông", combo("bellCode", "dl-bell", "RC1 / RC2… (gõ mới được)"))}
+          </div>
           <div className="mt-3">{fld("Ghi chú / các đợt thanh toán sau", <textarea name="note" rows={2} placeholder="ngày – số tiền – hình thức – xác nhận…" className={inp} />)}</div>
         </Section>
+
+        {/* Danh mục gợi ý (combobox) — cho phép chọn hoặc gõ giá trị mới */}
+        <datalist id="dl-sources">{SOURCES.map((s) => <option key={s} value={s} />)}</datalist>
+        <datalist id="dl-sales">{SALES.map((s) => <option key={s} value={s} />)}</datalist>
+        <datalist id="dl-online">{SALES_ONLINE.map((s) => <option key={s} value={s} />)}</datalist>
+        <datalist id="dl-bell">{BELL_CODES.map((b) => <option key={b} value={b} />)}</datalist>
 
         <div className="flex items-center gap-3">
           <button type="submit" disabled={busy} className="rounded-md bg-brand px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-accent disabled:opacity-60">

@@ -80,9 +80,17 @@ export interface Transaction {
   source1?: string;
   source2?: string;
   sale1?: string;
-  saleOnline?: string;
+  sale2?: string;
+  sale3?: string;
+  sale1Pct?: number;        // tỷ lệ % phân bổ cho Sale #1
+  sale2Pct?: number;        // tỷ lệ % phân bổ cho Sale #2
+  sale3Pct?: number;        // tỷ lệ % phân bổ cho Sale #3
+  saleOnline?: string;      // Sale Online #1
+  saleOnline2?: string;
+  saleOnline3?: string;
   transactionValue?: string;
-  pctSupport?: number;
+  pctSupport?: number;      // % SUPPORT (mức hỗ trợ của sale online) — KHÁC tỷ lệ phân bổ
+  orderTotal?: number;      // tổng tiền đơn hàng (để tính còn lại qua nhiều đợt)
 
   oldReceiptNo?: string;
   depositDate?: string;
@@ -105,6 +113,7 @@ export interface Transaction {
   source2Label?: string;
   bellCodeLabel?: string;
   sales?: TransactionSale[];
+  createdAt?: string;       // thứ tự nhập (sắp xếp báo cáo)
 
   lineItems: LineItem[];
   payments: Payment[];

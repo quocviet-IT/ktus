@@ -60,6 +60,13 @@ export function periodLabel(sp: PeriodParams): string {
   }
 }
 
+// Sắp xếp theo THỨ TỰ NHẬP (cũ → mới): ưu tiên created_at, rồi ngày, rồi id
+export function byEntryAsc(a: { createdAt?: string; ngay: string; id: string }, b: { createdAt?: string; ngay: string; id: string }): number {
+  const ka = a.createdAt || a.ngay, kb = b.createdAt || b.ngay;
+  if (ka !== kb) return ka < kb ? -1 : 1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
 // Giữ lại query khi tạo link (phân trang) — bỏ 'page'
 export function buildQuery(sp: Record<string, string | undefined>, extra: Record<string, string | number>): string {
   const q = new URLSearchParams();

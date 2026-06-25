@@ -32,9 +32,17 @@ export interface RcInput {
   source1?: string;
   source2?: string;
   sale1?: string;
+  sale2?: string;
+  sale3?: string;
+  sale1Pct?: number;
+  sale2Pct?: number;
+  sale3Pct?: number;
   saleOnline?: string;
+  saleOnline2?: string;
+  saleOnline3?: string;
   transactionValue?: string;
   pctSupport?: number;
+  orderTotal?: number;
   oldReceiptNo?: string;
   depositDate?: string;
   bellCode?: string;
@@ -82,8 +90,14 @@ export async function createRc(input: RcInput) {
     expense: Number(input.expense) || (isPO ? tong : 0), ...ar, ...ap,
     rcJmNo: input.rcJmNo || "", soNo: input.soNo || "", apptId: input.apptId || "",
     source1: input.source1 || "", source2: input.source2 || "", sale1: input.sale1,
-    saleOnline: input.saleOnline || "", transactionValue: input.transactionValue || "",
+    sale2: input.sale2 || "", sale3: input.sale3 || "",
+    sale1Pct: input.sale1Pct ? Number(input.sale1Pct) : undefined,
+    sale2Pct: input.sale2Pct ? Number(input.sale2Pct) : undefined,
+    sale3Pct: input.sale3Pct ? Number(input.sale3Pct) : undefined,
+    saleOnline: input.saleOnline || "", saleOnline2: input.saleOnline2 || "", saleOnline3: input.saleOnline3 || "",
+    transactionValue: input.transactionValue || "",
     pctSupport: input.pctSupport ? Number(input.pctSupport) : undefined,
+    orderTotal: input.orderTotal ? Number(input.orderTotal) : (tong || undefined),
     oldReceiptNo: input.oldReceiptNo || "", depositDate: input.depositDate || undefined,
     bellCode: input.bellCode, note: input.note || "",
     trangThai: input.type === "deposit" ? "dat_coc" : "hoan_tat",
@@ -102,12 +116,15 @@ export async function setStatus(id: string, s: TxStatus) {
 // Sửa RC — cập nhật cột JM/Source/Sale (bước 2, UC-04)
 export async function updateRcJm(id: string, fd: FormData) {
   const s = (k: string) => String(fd.get(k) ?? "");
-  const pct = parseFloat(s("pctSupport"));
+  const numOrU = (k: string) => { const n = parseFloat(s(k)); return isNaN(n) ? undefined : n; };
   await updateTransaction(id, {
     rcJmNo: s("rcJmNo"), soNo: s("soNo"), apptId: s("apptId"),
     source1: s("source1"), source2: s("source2"),
-    sale1: s("sale1"), saleOnline: s("saleOnline"),
-    transactionValue: s("transactionValue"), pctSupport: isNaN(pct) ? undefined : pct,
+    sale1: s("sale1"), sale2: s("sale2"), sale3: s("sale3"),
+    sale1Pct: numOrU("sale1Pct"), sale2Pct: numOrU("sale2Pct"), sale3Pct: numOrU("sale3Pct"),
+    saleOnline: s("saleOnline"), saleOnline2: s("saleOnline2"), saleOnline3: s("saleOnline3"),
+    transactionValue: s("transactionValue"), pctSupport: numOrU("pctSupport"),
+    orderTotal: numOrU("orderTotal"),
     oldReceiptNo: s("oldReceiptNo"), depositDate: s("depositDate"),
     bellCode: s("bellCode"), trangThai: (s("trangThai") || undefined) as any, note: s("note"),
   });
@@ -141,5 +158,20 @@ export async function sendToUS(id: string) {
 export async function resolveSource(id: string, source: string) {
   const t = await getTransaction(id);
   await updateTransaction(id, { source1: source || "WI", note: (t?.note || "") + " · Đã cập nhật JM" });
+  revalidatePath("/missing-source"); revalidatePath("/rc"); revalidatePath("/");
+}
+
+// Cập nhật CHI TIẾT nguồn cho RC thiếu nguồn (FR-MISS-03)
+export async function resolveSourceDetail(id: string, fd: FormData) {
+  const s = (k: string) => String(fd.get(k) ?? "").trim();
+  const t = await getTransaction(id);
+  const src1 = s("source1") || "WI";
+  const extra = s("detail");
+  await updateTransaction(id, {
+    source1: src1,
+    source2: s("source2") || undefined,
+    rcJmNo: s("rcJmNo") || t?.rcJmNo,
+    note: ((t?.note || "").replace(/ · Đã gửi US.*$/, "")) + ` · Nguồn đã cập nhật: ${src1}${extra ? " — " + extra : ""}`,
+  });
   revalidatePath("/missing-source"); revalidatePath("/rc"); revalidatePath("/");
 }

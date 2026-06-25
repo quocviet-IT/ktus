@@ -1,19 +1,23 @@
 import Link from "next/link";
 import PageHeader from "@/components/page-header";
 import Pagination from "@/components/pagination";
+import PeriodFields from "@/components/period-fields";
 import { listTransactions } from "@/lib/data";
 import { computeCondition, TYPE_LABEL } from "@/lib/rules";
 import { num } from "@/lib/format";
+import { periodRange, periodLabel, byEntryAsc } from "@/lib/period";
 
 const PAGE_SIZE = 50;
 
+type SP = { company?: string; period?: string; day?: string; week?: string; month?: string; year?: string; page?: string };
+
 // Báo cáo bán hàng ngày — CỘT GIỐNG EXCEL (BRD §12.1)
-export default async function SalesDaily({ searchParams }: { searchParams: { company?: string; date?: string; page?: string } }) {
+export default async function SalesDaily({ searchParams }: { searchParams: SP }) {
   const company = searchParams.company === "Trans" ? "Trans" : "PC49";
-  const all = await listTransactions({ company });
-  const dates = Array.from(new Set(all.map((t) => t.ngay))).sort().reverse();
-  const date = searchParams.date && searchParams.date !== "all" ? searchParams.date : "all";
-  const rows = date === "all" ? all : all.filter((t) => t.ngay === date);
+  const range = periodRange(searchParams);
+  const all = await listTransactions({ company, from: range.from, to: range.to });
+  // Sắp xếp theo THỨ TỰ NHẬP (cũ → mới), không hiển thị ngược
+  const rows = [...all].sort(byEntryAsc);
 
   const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
   const total = rows.length;
@@ -80,18 +84,12 @@ export default async function SalesDaily({ searchParams }: { searchParams: { com
             <Link href="/reports/sales-daily?company=Trans" className={`px-3 py-1.5 rounded-lg text-[12px] border ${company === "Trans" ? "bg-brand text-white border-brand" : "border-line"}`}>Trans</Link>
             <span className="mx-1 text-line">|</span>
             <input type="hidden" name="company" value={company} />
-            <label className="text-[12px] text-muted">Chọn ngày:</label>
-            <input type="date" name="date" aria-label="Chọn ngày"
-              defaultValue={date === "all" ? "" : date}
-              min={dates.length ? dates[dates.length - 1] : undefined}
-              max={dates.length ? dates[0] : undefined}
-              className="rounded-md border border-line px-2.5 py-1.5 text-[13px]" />
-            <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[12px] hover:border-accent">Xem</button>
-            <Link href={`/reports/sales-daily?company=${company}`}
-              className={`px-3 py-1.5 rounded-lg text-[12px] border font-mono ${date === "all" ? "bg-brand text-white border-brand" : "border-line"}`}>Tất cả ngày</Link>
-            <span className="text-[12px] text-muted">{date === "all" ? `${dates.length} ngày có giao dịch` : `Ngày ${date.split("-").reverse().join("/")}`}</span>
+            <PeriodFields period={searchParams.period} day={searchParams.day} week={searchParams.week} month={searchParams.month} year={searchParams.year} />
+            <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[12px] hover:border-accent">Lọc</button>
+            <Link href={`/reports/sales-daily?company=${company}`} className="rounded-md border border-line px-3 py-1.5 text-[12px] text-muted hover:border-accent">Xóa lọc</Link>
+            <span className="text-[12px] text-muted">{periodLabel(searchParams)} · {total} dòng</span>
             <div className="flex-1" />
-            <Link href={`/reports/sales-daily/export?company=${company}&date=${date}`}
+            <Link href={`/reports/sales-daily/export?company=${company}`}
               className="px-3 py-1.5 rounded-lg text-[12px] border border-brand text-brand hover:bg-brand hover:text-white">Xuất Excel</Link>
           </form>
           <div className="overflow-x-auto">

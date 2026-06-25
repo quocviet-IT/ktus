@@ -152,7 +152,15 @@ function rowToTx(r: any, rel?: TxEnrichment): Transaction {
     rcJmNo: r.rc_jm_no ?? undefined, soNo: r.so_no ?? undefined, apptId: r.appt_id ?? undefined,
     source1: source1?.label ?? r.source_1 ?? "", source2: source2?.label ?? r.source_2 ?? undefined,
     sale1: counterSale?.ten ?? r.sale_1 ?? undefined, saleOnline: onlineSale?.ten ?? r.sale_online ?? undefined,
-    transactionValue: r.transaction_value ?? undefined, pctSupport: onlineSale?.tyLePct ?? (r.pct_support != null ? N(r.pct_support) : undefined),
+    sale2: r.sale_2 ?? undefined, sale3: r.sale_3 ?? undefined,
+    sale1Pct: r.sale_1_pct != null ? N(r.sale_1_pct) : undefined,
+    sale2Pct: r.sale_2_pct != null ? N(r.sale_2_pct) : undefined,
+    sale3Pct: r.sale_3_pct != null ? N(r.sale_3_pct) : undefined,
+    saleOnline2: r.sale_online_2 ?? undefined, saleOnline3: r.sale_online_3 ?? undefined,
+    transactionValue: r.transaction_value ?? undefined,
+    pctSupport: r.pct_support != null ? N(r.pct_support) : (onlineSale?.tyLePct ?? undefined),
+    orderTotal: r.order_total != null ? N(r.order_total) : undefined,
+    createdAt: r.created_at ?? undefined,
     oldReceiptNo: r.old_receipt_no ?? undefined, depositDate: r.deposit_date ?? undefined,
     bellCode: bell?.code ?? r.bell_code ?? undefined, trangThai: r.trang_thai as TxStatus, note: r.note ?? undefined,
     companyId: r.company_id ?? undefined, companyName: company?.name,
@@ -314,8 +322,11 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
     ap_cash: t.apCash || 0, ap_bankwire: t.apBankwire || 0, ap_zelle: t.apZelle || 0, ap_check: t.apCheck || 0,
     rc_jm_no: t.rcJmNo || null, so_no: t.soNo || null, appt_id: t.apptId || null,
     source_1: t.source1 || null, source_2: t.source2 || null, sale_1: t.sale1 || null,
-    sale_online: t.saleOnline || null, transaction_value: t.transactionValue || null,
-    pct_support: t.pctSupport ?? null, old_receipt_no: t.oldReceiptNo || null,
+    sale_2: t.sale2 || null, sale_3: t.sale3 || null,
+    sale_1_pct: t.sale1Pct ?? null, sale_2_pct: t.sale2Pct ?? null, sale_3_pct: t.sale3Pct ?? null,
+    sale_online: t.saleOnline || null, sale_online_2: t.saleOnline2 || null, sale_online_3: t.saleOnline3 || null,
+    transaction_value: t.transactionValue || null,
+    pct_support: t.pctSupport ?? null, order_total: t.orderTotal ?? null, old_receipt_no: t.oldReceiptNo || null,
     deposit_date: t.depositDate || null, bell_code: t.bellCode || null,
     note: t.note || null, trang_thai: t.trangThai,
   }).select("id").single();
@@ -343,9 +354,17 @@ export async function updateTransaction(id: string, patch: Partial<Transaction>)
   set("source_1", patch.source1);
   set("source_2", patch.source2);
   set("sale_1", patch.sale1);
+  set("sale_2", patch.sale2);
+  set("sale_3", patch.sale3);
+  set("sale_1_pct", patch.sale1Pct);
+  set("sale_2_pct", patch.sale2Pct);
+  set("sale_3_pct", patch.sale3Pct);
   set("sale_online", patch.saleOnline);
+  set("sale_online_2", patch.saleOnline2);
+  set("sale_online_3", patch.saleOnline3);
   set("transaction_value", patch.transactionValue);
   set("pct_support", patch.pctSupport);
+  set("order_total", patch.orderTotal);
   set("old_receipt_no", patch.oldReceiptNo);
   set("deposit_date", patch.depositDate);
   set("bell_code", patch.bellCode);

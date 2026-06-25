@@ -15,7 +15,13 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
   const c = computeCondition(t);
   const dep = t.oldReceiptNo ? await findByJm(t.oldReceiptNo) : undefined;
   const paid = paidTotal(t);
-  const tongDon = t.lineItems.reduce((s, l) => s + l.soLuong * l.donGia, 0) || c.tongCong;
+  const tongDon = t.orderTotal || t.lineItems.reduce((s, l) => s + l.soLuong * l.donGia, 0) || c.tongCong;
+  const apTotal = (t.apCash || 0) + (t.apBankwire || 0) + (t.apZelle || 0) + (t.apCheck || 0);
+  const isPO = t.type === "po" || t.type === "return" || t.type === "exchange";
+  const salesList = [
+    { ten: t.sale1, pct: t.sale1Pct }, { ten: t.sale2, pct: t.sale2Pct }, { ten: t.sale3, pct: t.sale3Pct },
+  ].filter((s) => s.ten);
+  const onlineList = [t.saleOnline, t.saleOnline2, t.saleOnline3].filter(Boolean);
 
   const Field = ({ label, children, fx }: { label: string; children: React.ReactNode; fx?: boolean }) => (
     <div>
@@ -47,8 +53,9 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <Field label="Ngày">{ddmmyyyy(t.ngay)}</Field>
             <Field label="Khách hàng">{t.khach}{t.contact ? ` · ${t.contact}` : ""}</Field>
-            <Field label="Source 1">{t.source1 || <span className="text-danger">Thiếu nguồn</span>}</Field>
-            <Field label="Sale">{t.sale1 || "—"}{t.saleOnline ? ` / ${t.saleOnline}` : ""}</Field>
+            <Field label="Source 1 / 2">{t.source1 || <span className="text-danger">Thiếu nguồn</span>}{t.source2 ? ` / ${t.source2}` : ""}</Field>
+            <Field label="Sales (tỷ lệ %)">{salesList.length ? salesList.map((s, i) => <span key={i}>{i > 0 ? ", " : ""}{s.ten}{s.pct != null ? ` (${s.pct}%)` : ""}</span>) : "—"}</Field>
+            <Field label="Sale Online (% support)">{onlineList.length ? `${onlineList.join(", ")}${t.pctSupport != null ? ` · ${t.pctSupport}` : ""}` : "—"}</Field>
             <Field label="Diễn giải">{t.dienGiai}</Field>
             <Field label="SO#">{t.soNo || "—"}</Field>
             <Field label="Appt ID">{t.apptId || "—"}</Field>
@@ -87,6 +94,21 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
           </div>
         )}
 
+        {(isPO || apTotal > 0) && (
+          <div className="bg-card border border-line rounded-xl p-5 mb-3.5">
+            <h2 className="font-serif text-base mb-3">Hình thức thanh toán — đơn mua vào (A/P)</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[13px]">
+              <Field label="Cash">{money(t.apCash || 0)}</Field>
+              <Field label="Bank wire">{money(t.apBankwire || 0)}</Field>
+              <Field label="Zelle">{money(t.apZelle || 0)}</Field>
+              <Field label="Check">{money(t.apCheck || 0)}</Field>
+            </div>
+            <div className="flex justify-end font-mono text-[13px] pt-2 border-t border-line mt-2">
+              <span className="text-muted mr-3">Tổng chi ra</span><b className="text-danger">{money(apTotal || c.returnPo)}</b>
+            </div>
+          </div>
+        )}
+
         {t.payments.length > 0 && (
           <div className="bg-card border border-line rounded-xl p-5">
             <h2 className="font-serif text-base mb-3">Thanh toán <span className="text-muted text-[12px]">(đợt đầu + chú thích các đợt sau)</span></h2>
@@ -118,25 +140,32 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
               <label><div className={lbl}>SO#</div><input name="soNo" defaultValue={t.soNo || ""} className={inp} /></label>
               <label><div className={lbl}>Root Appt ID</div><input name="apptId" defaultValue={t.apptId || ""} className={inp} /></label>
               <label><div className={lbl}>Trạng thái</div>
-                <select name="trangThai" defaultValue={t.trangThai} className={inp}>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-              <label><div className={lbl}>Source 1</div>
-                <select name="source1" defaultValue={t.source1 || ""} className={inp}><option value="">— Không có source —</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select></label>
-              <label><div className={lbl}>Source 2</div>
-                <select name="source2" defaultValue={t.source2 || ""} className={inp}><option value="">—</option>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select></label>
-              <label><div className={lbl}>Sale US</div>
-                <select name="sale1" defaultValue={t.sale1 || ""} className={inp}><option value="">—</option>{SALES.map((s) => <option key={s}>{s}</option>)}</select></label>
-              <label><div className={lbl}>Sale Online</div>
-                <select name="saleOnline" defaultValue={t.saleOnline || ""} className={inp}><option value="">—</option>{SALES_ONLINE.map((s) => <option key={s}>{s}</option>)}</select></label>
-              <label><div className={lbl}>% Support</div><input name="pctSupport" type="number" step="0.01" defaultValue={t.pctSupport ?? ""} className={inp} /></label>
+                <select name="trangThai" aria-label="Trạng thái" defaultValue={t.trangThai} className={inp}>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+              <label><div className={lbl}>Source 1</div><input name="source1" list="dl-sources" defaultValue={t.source1 || ""} placeholder="WI / TEL… (gõ mới được)" autoComplete="off" className={inp} /></label>
+              <label><div className={lbl}>Source 2</div><input name="source2" list="dl-sources" defaultValue={t.source2 || ""} placeholder="— hoặc gõ mới —" autoComplete="off" className={inp} /></label>
+              <label><div className={lbl}>Tổng tiền đơn hàng</div><input name="orderTotal" type="number" step="0.01" defaultValue={t.orderTotal ?? ""} className={inp} /></label>
               <label><div className={lbl}>Transaction value</div><input name="transactionValue" defaultValue={t.transactionValue || ""} className={inp} /></label>
-              <label><div className={lbl}>Mã rung chuông</div>
-                <select name="bellCode" defaultValue={t.bellCode || ""} className={inp}><option value="">—</option>{BELL_CODES.map((b) => <option key={b}>{b}</option>)}</select></label>
+              <label><div className={lbl}>Sale #1</div><input name="sale1" list="dl-sales" defaultValue={t.sale1 || ""} autoComplete="off" className={inp} /></label>
+              <label><div className={lbl}>Tỷ lệ % #1</div><input name="sale1Pct" type="number" step="0.01" defaultValue={t.sale1Pct ?? ""} className={inp} /></label>
+              <label><div className={lbl}>Sale #2</div><input name="sale2" list="dl-sales" defaultValue={t.sale2 || ""} autoComplete="off" className={inp} /></label>
+              <label><div className={lbl}>Tỷ lệ % #2</div><input name="sale2Pct" type="number" step="0.01" defaultValue={t.sale2Pct ?? ""} className={inp} /></label>
+              <label><div className={lbl}>Sale #3 (TRANS)</div><input name="sale3" list="dl-sales" defaultValue={t.sale3 || ""} autoComplete="off" className={inp} /></label>
+              <label><div className={lbl}>Tỷ lệ % #3</div><input name="sale3Pct" type="number" step="0.01" defaultValue={t.sale3Pct ?? ""} className={inp} /></label>
+              <label><div className={lbl}>Sale Online #1</div><input name="saleOnline" list="dl-online" defaultValue={t.saleOnline || ""} autoComplete="off" className={inp} /></label>
+              <label><div className={lbl}>% Support (hỗ trợ online)</div><input name="pctSupport" type="number" step="0.01" defaultValue={t.pctSupport ?? ""} className={inp} /></label>
+              <label><div className={lbl}>Sale Online #2</div><input name="saleOnline2" list="dl-online" defaultValue={t.saleOnline2 || ""} autoComplete="off" className={inp} /></label>
+              <label><div className={lbl}>Sale Online #3</div><input name="saleOnline3" list="dl-online" defaultValue={t.saleOnline3 || ""} autoComplete="off" className={inp} /></label>
+              <label><div className={lbl}>Mã rung chuông</div><input name="bellCode" list="dl-bell" defaultValue={t.bellCode || ""} placeholder="RC1 / RC2… (gõ mới được)" autoComplete="off" className={inp} /></label>
               <label><div className={lbl}>Old Receipt # (pickup)</div><input name="oldReceiptNo" defaultValue={t.oldReceiptNo || ""} className={inp} /></label>
               <label><div className={lbl}>Deposit Date</div><input name="depositDate" type="date" defaultValue={t.depositDate || ""} className={inp} /></label>
               <label className="col-span-2 md:col-span-4"><div className={lbl}>Ghi chú</div><input name="note" defaultValue={t.note || ""} className={inp} /></label>
             </>); })()}
           </div>
           <button type="submit" className="mt-3 rounded-md bg-brand px-4 py-2 text-[13px] font-semibold text-white hover:bg-accent">Lưu cập nhật</button>
+          <datalist id="dl-sources">{SOURCES.map((s) => <option key={s} value={s} />)}</datalist>
+          <datalist id="dl-sales">{SALES.map((s) => <option key={s} value={s} />)}</datalist>
+          <datalist id="dl-online">{SALES_ONLINE.map((s) => <option key={s} value={s} />)}</datalist>
+          <datalist id="dl-bell">{BELL_CODES.map((b) => <option key={b} value={b} />)}</datalist>
         </form>
       </div>
     </>

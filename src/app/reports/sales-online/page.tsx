@@ -4,7 +4,8 @@ import Pagination from "@/components/pagination";
 import { listTransactions } from "@/lib/data";
 import { jmKind } from "@/lib/rules";
 import { ddmm } from "@/lib/format";
-import { periodRange, periodLabel } from "@/lib/period";
+import { periodRange, periodLabel, byEntryAsc } from "@/lib/period";
+import type { Transaction } from "@/lib/types";
 
 const PAGE_SIZE = 50;
 type SP = { period?: string; day?: string; week?: string; month?: string; year?: string; page?: string };
@@ -12,7 +13,19 @@ type SP = { period?: string; day?: string; week?: string; month?: string; year?:
 // Sales Online — CỘT GIỐNG EXCEL (BRD §12.2)
 export default async function SalesOnline({ searchParams }: { searchParams: SP }) {
   const range = periodRange(searchParams);
-  const all = (await listTransactions({ from: range.from, to: range.to })).filter((t) => t.saleOnline);
+  const withOnline = (await listTransactions({ from: range.from, to: range.to }))
+    .filter((t) => t.saleOnline || t.saleOnline2 || t.saleOnline3)
+    .sort(byEntryAsc);
+
+  // Gộp 1 đơn = 1 dòng (cọc + pickup chung 1 đơn) → tránh ghi nhận trùng
+  const byOrder = new Map<string, Transaction>();
+  for (const t of withOnline) {
+    const key = t.oldReceiptNo || t.rcJmNo || t.id;
+    const prev = byOrder.get(key);
+    if (!prev || (jmKind(t.rcJmNo) === "sale" && jmKind(prev.rcJmNo) !== "sale")) byOrder.set(key, t);
+  }
+  const all = [...byOrder.values()].sort(byEntryAsc);
+
   const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
   const total = all.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -35,15 +48,18 @@ export default async function SalesOnline({ searchParams }: { searchParams: SP }
               className="px-3 py-1.5 rounded-lg text-[12px] border border-brand text-brand hover:bg-brand hover:text-white whitespace-nowrap">Xuất Excel</a>
           </form>
           <div className="overflow-x-auto">
-            <table className="border-collapse text-[12.5px] min-w-[940px]">
+            <table className="border-collapse text-[12.5px] min-w-[1100px]">
               <thead><tr>
                 <th className={th}>NO.</th><th className={th}>DATE</th><th className={th}>CUST. NAME</th><th className={th}>FACEBOOK</th>
                 <th className={th}>DECRIPTION</th><th className={th}>JM US DEPOSIT#</th><th className={th}>JM US RECEIPT N#</th>
-                <th className={th}>SALE US</th><th className={th}>Sale Onl #1</th><th className={th}>% SUPPORT</th><th className={th}>TRANSACTION VALUE</th>
+                <th className={th}>SALE US</th><th className={th}>Sale Onl #1</th><th className={th}>Sale Onl #2</th><th className={th}>Sale Onl #3</th>
+                <th className={th}>% SUPPORT (hỗ trợ)</th><th className={th}>TRANSACTION VALUE</th>
               </tr></thead>
               <tbody>
                 {rows.length ? rows.map((t, i) => {
-                  const isDep = jmKind(t.rcJmNo) === "deposit";
+                  const isSale = jmKind(t.rcJmNo) === "sale";
+                  const depNo = t.oldReceiptNo || (jmKind(t.rcJmNo) === "deposit" ? t.rcJmNo : "");
+                  const recNo = isSale ? t.rcJmNo : "";
                   return (
                     <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
                       <td className={td}>{startIdx + i + 1}</td>
@@ -51,15 +67,17 @@ export default async function SalesOnline({ searchParams }: { searchParams: SP }
                       <td className={td}>{t.khach}</td>
                       <td className={td}><span className="badge bg-accentSoft text-[#7a5a1d]">{t.source1 || "—"}</span></td>
                       <td className={td}>{t.dienGiai}</td>
-                      <td className={td + " font-mono text-brand"}>{isDep ? t.rcJmNo : ""}</td>
-                      <td className={td + " font-mono text-brand"}>{!isDep ? t.rcJmNo : ""}</td>
+                      <td className={td + " font-mono text-brand"}>{depNo}</td>
+                      <td className={td + " font-mono text-brand"}>{recNo}</td>
                       <td className={td}>{t.sale1 || "—"}</td>
-                      <td className={td}>{t.saleOnline}</td>
+                      <td className={td}>{t.saleOnline || "—"}</td>
+                      <td className={td}>{t.saleOnline2 || "—"}</td>
+                      <td className={td}>{t.saleOnline3 || "—"}</td>
                       <td className={td + " text-right font-mono"}>{t.pctSupport ?? ""}</td>
                       <td className={td}>{t.transactionValue || "—"}</td>
                     </tr>
                   );
-                }) : <tr><td colSpan={11} className={td + " text-center text-muted py-4"}>Chưa có đơn sales online.</td></tr>}
+                }) : <tr><td colSpan={13} className={td + " text-center text-muted py-4"}>Chưa có đơn sales online.</td></tr>}
               </tbody>
             </table>
           </div>
