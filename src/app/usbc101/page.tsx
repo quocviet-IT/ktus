@@ -5,7 +5,7 @@ import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
 import EditableCell from "@/components/editable-cell";
-import { listTransactions, listBankLines, listAccounts } from "@/lib/data";
+import { listTransactions, listTransactionsPaged, listBankLines, listAccounts } from "@/lib/data";
 import type { Account } from "@/lib/types";
 import { createBankLine, toggleBankMatched } from "@/app/actions";
 import { money, ddmm } from "@/lib/format";
@@ -115,16 +115,24 @@ async function BalanceView() {
 async function LedgerView({ company, sp }: { company: string; sp: SP }) {
   const range = periodRange(sp);
   const acc = sp.acc === "cash" || sp.acc === "bank" ? sp.acc : "all";
-  const [fetched, accounts] = await Promise.all([
-    listTransactions({ company, from: range.from, to: range.to }),
-    listAccounts(),
-  ]);
-  const all = fetched.filter((t) => ledgerAccountFilter(t, acc, accounts));
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
-  const total = all.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const startIdx = (page - 1) * PAGE_SIZE;
-  const rows = all.slice(startIdx, startIdx + PAGE_SIZE);
+
+  // acc = "all": phân trang TẠI SERVER (nhanh). cash/bank: lọc trong bộ nhớ nên kéo đủ rồi cắt trang.
+  let rows, total: number;
+  if (acc === "all") {
+    const paged = await listTransactionsPaged({ company, from: range.from, to: range.to }, page, PAGE_SIZE);
+    rows = paged.rows; total = paged.total;
+  } else {
+    const [fetched, accounts] = await Promise.all([
+      listTransactions({ company, from: range.from, to: range.to }),
+      listAccounts(),
+    ]);
+    const filtered = fetched.filter((t) => ledgerAccountFilter(t, acc, accounts));
+    total = filtered.length;
+    rows = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+  }
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const th = "px-2 py-2 border border-line bg-band font-mono text-[9.5px] uppercase text-brand text-left whitespace-nowrap align-bottom";
   const td = "px-2 py-1.5 border border-line align-top";

@@ -9,6 +9,12 @@ const USE_DB = process.env.USE_DB === "true";
 export async function listTransactions(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
   return USE_DB ? repo.listTransactions(opts) : store.listTransactions(opts);
 }
+export async function listTransactionsPaged(
+  opts: { company?: string; status?: string; q?: string; from?: string; to?: string },
+  page: number, pageSize: number,
+): Promise<{ rows: Transaction[]; total: number }> {
+  return USE_DB ? repo.listTransactionsPaged(opts, page, pageSize) : store.listTransactionsPaged(opts, page, pageSize);
+}
 export async function getTransaction(id: string): Promise<Transaction | undefined> {
   return USE_DB ? repo.getTransaction(id) : store.getTransaction(id);
 }

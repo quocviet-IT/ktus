@@ -125,6 +125,11 @@ export function listTransactions(opts?: { company?: string; status?: string; q?:
   }
   return rows;
 }
+export function listTransactionsPaged(opts: { company?: string; status?: string; q?: string; from?: string; to?: string }, page: number, pageSize: number) {
+  const all = listTransactions(opts);
+  const start = (Math.max(1, page) - 1) * pageSize;
+  return { rows: all.slice(start, start + pageSize), total: all.length };
+}
 export function getTransaction(id: string) { return TX.find((t) => t.id === id); }
 export function findByJm(rc?: string) { return rc ? TX.find((t) => t.rcJmNo === rc) : undefined; }
 

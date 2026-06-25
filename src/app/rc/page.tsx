@@ -3,7 +3,7 @@ import { Plus, Pencil } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
-import { listTransactions } from "@/lib/data";
+import { listTransactionsPaged } from "@/lib/data";
 import { COMPANIES } from "@/lib/store";
 import { STATUS_LABEL } from "@/lib/rules";
 import { rcJmCells, rcJmHeaders } from "@/lib/excel-ledger";
@@ -19,13 +19,13 @@ export default async function SoGiaoDich({ searchParams }: { searchParams: SP })
   const status = searchParams.status || "all";
   const range = periodRange(searchParams);
 
-  const all = await listTransactions({ company: selectedCompany, status, q: searchParams.q, from: range.from, to: range.to });
-
   const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
-  const total = all.length;
+  const { rows, total } = await listTransactionsPaged(
+    { company: selectedCompany, status, q: searchParams.q, from: range.from, to: range.to },
+    page, PAGE_SIZE,
+  );
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const start = (page - 1) * PAGE_SIZE;
-  const rows = all.slice(start, start + PAGE_SIZE);
 
   const headers = rcJmHeaders(selectedCompany);
   const th = "border border-line bg-band px-2.5 py-2 text-left font-mono text-[10px] uppercase text-brand whitespace-nowrap align-bottom";

@@ -211,6 +211,24 @@ export async function listTransactions(opts?: { company?: string; status?: strin
   return rows.map((row) => rowToTx(row));
 }
 
+// Phân trang TẠI SERVER (chỉ kéo 1 trang) — dùng cho sổ chỉ phân trang, không tổng hợp toàn kỳ
+export async function listTransactionsPaged(
+  opts: { company?: string; status?: string; q?: string; from?: string; to?: string },
+  page: number, pageSize: number,
+): Promise<{ rows: Transaction[]; total: number }> {
+  const fromIdx = (Math.max(1, page) - 1) * pageSize;
+  let query: any = sb().from("transactions").select(LIST_SELECT, { count: "exact" })
+    .order("ngay", { ascending: false }).range(fromIdx, fromIdx + pageSize - 1);
+  if (opts.company && opts.company !== "all") query = query.eq("company", opts.company);
+  if (opts.status && opts.status !== "all") query = query.eq("trang_thai", opts.status);
+  if (opts.from) query = query.gte("ngay", opts.from);
+  if (opts.to) query = query.lte("ngay", opts.to);
+  if (opts.q) query = query.or(`rc_jm_no.ilike.%${opts.q}%,khach.ilike.%${opts.q}%,dien_giai.ilike.%${opts.q}%`);
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return { rows: (data ?? []).map((r: any) => rowToTx(r)), total: count ?? 0 };
+}
+
 export interface ExcelWorkbook {
   id: string;
   fileName: string;
