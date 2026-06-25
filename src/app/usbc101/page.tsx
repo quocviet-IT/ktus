@@ -4,13 +4,14 @@ import { Check, Plus, Settings, Pencil } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
+import EditableCell from "@/components/editable-cell";
 import { listTransactions, listBankLines, listAccounts } from "@/lib/data";
 import type { Account } from "@/lib/types";
 import { createBankLine, toggleBankMatched } from "@/app/actions";
 import { money, ddmm } from "@/lib/format";
 import { periodRange, periodLabel } from "@/lib/period";
 import {
-  USBC101_COMPANIES, LEDGER_COLUMNS, ledgerCells, isFx, arTotal, apTotal, ledgerAccountFilter,
+  USBC101_COMPANIES, LEDGER_COLUMNS, LEDGER_FIELDS, ledgerCells, isFx, arTotal, apTotal, ledgerAccountFilter,
 } from "@/lib/usbc101";
 
 const PAGE_SIZE = 50;
@@ -147,6 +148,9 @@ async function LedgerView({ company, sp }: { company: string; sp: SP }) {
           <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Nhập RC
         </Link>
       </form>
+      <div className="bg-accentSoft rounded-lg px-3 py-1.5 text-[11.5px] text-[#6c5320] mb-2 inline-flex items-center gap-1.5">
+        <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Bấm vào ô để sửa trực tiếp (Enter để lưu, Esc để hủy). Ô <span className="italic text-accent">ƒ</span> tự tính. Nút <b>Sửa</b> cuối dòng mở form đầy đủ.
+      </div>
       <div className="overflow-x-auto">
         <table className="border-collapse text-[12px] min-w-[1320px]">
           <thead><tr>
@@ -156,11 +160,20 @@ async function LedgerView({ company, sp }: { company: string; sp: SP }) {
           <tbody>
             {rows.length ? rows.map((t, i) => (
               <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
-                {ledgerCells(t, startIdx + i).map((cell, k) => (
-                  <td key={k} className={`${td} ${isFx(LEDGER_COLUMNS[k]) ? "bg-band text-muted text-right font-mono" : (/^[\d,.-]+$/.test(String(cell)) && cell !== "" ? "text-right font-mono" : "")}`}>
-                    {k === 0 ? <Link href={`/rc/${t.id}`} className="text-brand hover:text-accent">{cell}</Link> : cell}
-                  </td>
-                ))}
+                {ledgerCells(t, startIdx + i).map((cell, k) => {
+                  const meta = LEDGER_FIELDS[k];
+                  const editable = !!meta?.field && meta.kind !== "ro";
+                  const fx = isFx(LEDGER_COLUMNS[k]);
+                  if (k === 0)
+                    return <td key={k} className={`${td} text-right font-mono`}><Link href={`/rc/${t.id}`} className="text-brand hover:text-accent">{cell}</Link></td>;
+                  if (editable) {
+                    const raw = meta.field === "companyAccount" ? (t.accountName || t.companyAccount || "") : ((t as any)[meta.field!] ?? "");
+                    return <td key={k} className={`${td} p-0`}><EditableCell id={t.id} field={meta.field!} kind={meta.kind} value={raw} /></td>;
+                  }
+                  return (
+                    <td key={k} className={`${td} ${fx ? "bg-band text-muted text-right font-mono" : (/^[\d,.-]+$/.test(String(cell)) && cell !== "" ? "text-right font-mono" : "")}`}>{cell}</td>
+                  );
+                })}
                 <td className={`${td} text-center sticky right-0 bg-card`}>
                   <Link href={`/rc/${t.id}`} aria-label="Sửa đơn" title="Sửa đơn"
                     className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11.5px] text-brand hover:border-accent hover:text-accent">

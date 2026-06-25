@@ -131,6 +131,17 @@ export async function updateRcJm(id: string, fd: FormData) {
   revalidatePath(`/rc/${id}`); revalidatePath("/rc"); revalidatePath("/missing-source"); revalidatePath("/");
 }
 
+// Sửa nhanh 1 ô ngay trên sổ (inline edit, như Excel)
+const RC_NUM_FIELDS = new Set(["arCash", "arBankwire", "arZelle", "arCheck", "apCash", "apBankwire", "apZelle", "apCheck", "expense", "orderTotal", "pctSupport"]);
+const RC_TEXT_FIELDS = new Set(["ngay", "type", "dienGiai", "maSku", "bellCode", "khach", "contact", "companyAccount", "rcJmNo", "soNo", "transactionValue", "source1", "source2", "sale1", "sale2", "sale3"]);
+export async function updateRcField(id: string, field: string, value: string | number) {
+  if (!RC_NUM_FIELDS.has(field) && !RC_TEXT_FIELDS.has(field)) return;
+  const patch: Record<string, any> = {};
+  patch[field] = RC_NUM_FIELDS.has(field) ? (Number(value) || 0) : String(value ?? "");
+  await updateTransaction(id, patch as any);
+  revalidatePath("/usbc101"); revalidatePath("/rc"); revalidatePath(`/rc/${id}`); revalidatePath("/");
+}
+
 // ===== Sao kê ngân hàng =====
 export async function createBankLine(company: string, fd: FormData) {
   const s = (k: string) => String(fd.get(k) ?? "");

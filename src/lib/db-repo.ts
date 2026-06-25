@@ -348,6 +348,23 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
 export async function updateTransaction(id: string, patch: Partial<Transaction>) {
   const map: Record<string, any> = {};
   const set = (k: string, v: any) => { if (v !== undefined) map[k] = v === "" ? null : v; };
+  // các cột nhập tay (sửa trực tiếp trên sổ)
+  set("ngay", patch.ngay);
+  set("type", patch.type);
+  set("dien_giai", patch.dienGiai);
+  set("ma_sku", patch.maSku);
+  set("khach", patch.khach);
+  set("contact", patch.contact);
+  set("company_account", patch.companyAccount);
+  set("expense", patch.expense);
+  set("ar_cash", patch.arCash);
+  set("ar_bankwire", patch.arBankwire);
+  set("ar_zelle", patch.arZelle);
+  set("ar_check", patch.arCheck);
+  set("ap_cash", patch.apCash);
+  set("ap_bankwire", patch.apBankwire);
+  set("ap_zelle", patch.apZelle);
+  set("ap_check", patch.apCheck);
   set("rc_jm_no", patch.rcJmNo);
   set("so_no", patch.soNo);
   set("appt_id", patch.apptId);

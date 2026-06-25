@@ -74,6 +74,25 @@ export function isFx(col: string): boolean {
   return ["Return/PO", "Receipt", "Deposit"].includes(col);
 }
 
+// Metadata cho sửa trực tiếp trên ô (song song với LEDGER_COLUMNS / ledgerCells)
+export type LedgerCellKind = "ro" | "text" | "number" | "date" | "type";
+export interface LedgerColMeta { field?: string; kind: LedgerCellKind; }
+export const LEDGER_FIELDS: LedgerColMeta[] = [
+  { kind: "ro" },                          // No
+  { field: "ngay", kind: "date" },         // Date
+  { field: "type", kind: "type" },         // Type
+  { field: "dienGiai", kind: "text" },     // Decription
+  { field: "maSku", kind: "text" },        // Mã SKU
+  { field: "bellCode", kind: "text" },     // Rung Chuông
+  { field: "khach", kind: "text" },        // Customer name
+  { field: "contact", kind: "text" },      // Contact
+  { kind: "ro" },                          // Company (đổi = chuyển sổ → để trang chi tiết)
+  { field: "companyAccount", kind: "text" },// Company account
+  { kind: "ro" }, { kind: "ro" }, { kind: "ro" },           // Return/PO, Receipt, Deposit (ƒ)
+  { field: "arCash", kind: "number" }, { field: "arBankwire", kind: "number" }, { field: "arZelle", kind: "number" }, { field: "arCheck", kind: "number" },
+  { field: "apCash", kind: "number" }, { field: "apBankwire", kind: "number" }, { field: "apZelle", kind: "number" }, { field: "apCheck", kind: "number" },
+];
+
 export function ledgerCells(t: Transaction, index: number): (string | number)[] {
   const c = computeCondition(t);
   const v = (n: number) => (n ? n.toLocaleString("en-US") : "");
