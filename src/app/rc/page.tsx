@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
@@ -63,7 +63,10 @@ export default async function SoGiaoDich({ searchParams }: { searchParams: SP })
         <div className="overflow-x-auto rounded-md border border-line bg-card">
           <table className="min-w-[1180px] border-collapse text-[12.5px]">
             <thead>
-              <tr>{headers.map((h) => <th key={h} className={th}>{h}</th>)}</tr>
+              <tr>
+                {headers.map((h) => <th key={h} className={th}>{h}</th>)}
+                <th className={`${th} text-center sticky right-0 bg-band`}>SỬA</th>
+              </tr>
             </thead>
             <tbody>
               {rows.length ? rows.map((t, i) => (
@@ -73,9 +76,15 @@ export default async function SoGiaoDich({ searchParams }: { searchParams: SP })
                       {k === 0 ? <Link href={`/rc/${t.id}`} className="text-brand hover:text-accent">{cell}</Link> : cell}
                     </td>
                   ))}
+                  <td className={`${td} text-center sticky right-0 bg-card`}>
+                    <Link href={`/rc/${t.id}`} aria-label="Sửa đơn" title="Sửa đơn"
+                      className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11.5px] text-brand hover:border-accent hover:text-accent">
+                      <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Sửa
+                    </Link>
+                  </td>
                 </tr>
               )) : (
-                <tr><td colSpan={headers.length} className="border border-line px-3 py-6 text-center text-muted">Không có giao dịch phù hợp.</td></tr>
+                <tr><td colSpan={headers.length + 1} className="border border-line px-3 py-6 text-center text-muted">Không có giao dịch phù hợp.</td></tr>
               )}
             </tbody>
           </table>
