@@ -70,9 +70,6 @@ async function BalanceView() {
 
   return (
     <div className="bg-card border border-line rounded-xl p-4">
-      <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
-        BALANCE ACCOUNT — {accounts.length} tài khoản / {groups.length} nhóm. Beginning &amp; Ending Balance lấy từ Excel. Âm = nợ thẻ/loan.
-      </div>
       <div className="overflow-x-auto">
         <table className="border-collapse text-[12.5px] min-w-[680px]">
           <thead><tr>
