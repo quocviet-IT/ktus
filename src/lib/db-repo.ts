@@ -209,12 +209,17 @@ export async function setStatus(id: string, s: TxStatus) {
 // ===== Chart of accounts (BALANCE ACCOUNT) =====
 import type { Account } from "./types";
 export async function listAccounts(): Promise<Account[]> {
-  const { data, error } = await sb().from("accounts").select("*").order("sort", { ascending: true });
-  if (error) throw error;
-  return (data ?? []).map((r: any) => ({
-    id: r.id, entity: r.entity, code: r.code ?? undefined, name: r.name,
-    accountType: r.account_type ?? undefined, beginning: N(r.beginning), ending: N(r.ending), sort: r.sort ?? 0,
-  }));
+  try {
+    const { data, error } = await sb().from("accounts").select("*").order("sort", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((r: any) => ({
+      id: r.id, entity: r.entity, code: r.code ?? undefined, name: r.name,
+      accountType: r.account_type ?? undefined, beginning: N(r.beginning), ending: N(r.ending), sort: r.sort ?? 0,
+    }));
+  } catch (e) {
+    console.warn("[accounts] bảng chưa có? chạy migration-accounts.sql —", (e as any)?.message);
+    return [];
+  }
 }
 
 // ===== Sao kê ngân hàng =====
@@ -227,13 +232,18 @@ function rowToBank(r: any): BankLine {
   };
 }
 export async function listBankLines(opts?: { company?: string; from?: string; to?: string }): Promise<BankLine[]> {
-  let q: any = sb().from("bank_statements").select("*").order("ngay", { ascending: false });
-  if (opts?.company && opts.company !== "all") q = q.eq("company", opts.company);
-  if (opts?.from) q = q.gte("ngay", opts.from);
-  if (opts?.to) q = q.lte("ngay", opts.to);
-  const { data, error } = await q;
-  if (error) throw error;
-  return (data ?? []).map(rowToBank);
+  try {
+    let q: any = sb().from("bank_statements").select("*").order("ngay", { ascending: false });
+    if (opts?.company && opts.company !== "all") q = q.eq("company", opts.company);
+    if (opts?.from) q = q.gte("ngay", opts.from);
+    if (opts?.to) q = q.lte("ngay", opts.to);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []).map(rowToBank);
+  } catch (e) {
+    console.warn("[bank_statements] bảng chưa có? chạy migration-bank.sql —", (e as any)?.message);
+    return [];
+  }
 }
 export async function addBankLine(b: Omit<BankLine, "id">): Promise<void> {
   await sb().from("bank_statements").insert({
