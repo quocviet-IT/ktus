@@ -16,6 +16,29 @@ const RECEIPT_T = ["receipt", "pick_up", "repair"];
 const DEPOSIT_T = ["deposit", "extra_deposit"];
 const RETURN_T = ["po", "return", "exchange"];
 
+// Đặt NGOÀI component để không bị tạo lại mỗi lần render (tránh input mất focus)
+const lbl = "font-mono text-[11px] text-muted mb-0.5";
+const inp = "w-full rounded-md border border-line px-2.5 py-1.5 text-[13px] bg-white";
+const fx = "rounded-md border border-line bg-band px-2.5 py-1.5 text-right font-mono text-[13px]";
+function Section({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-xl border border-line bg-card p-4 mb-3.5">
+      <h2 className="font-serif text-[15px] mb-3"><span className="text-accent font-mono text-[13px] mr-1.5">{n}</span>{title}</h2>
+      {children}
+    </section>
+  );
+}
+function fld(label: string, node: React.ReactNode) {
+  return (
+    <label className="block"><div className={lbl}>{label}</div>
+      {isValidElement(node) ? cloneElement(node as React.ReactElement<any>, { "aria-label": label }) : node}
+    </label>
+  );
+}
+function amt(val: number, set: (v: number) => void) {
+  return <input type="number" step="0.01" value={val || ""} onChange={(e) => set(Number(e.target.value) || 0)} className={inp + " text-right font-mono"} />;
+}
+
 export default function NhapRC() {
   const [company, setCompany] = useState<string>("PC49");
   const [type, setType] = useState<RcInput["type"]>("receipt");
@@ -67,24 +90,6 @@ export default function NhapRC() {
     };
     try { await createRc(input); } finally { setBusy(false); }
   }
-
-  const lbl = "font-mono text-[11px] text-muted mb-0.5";
-  const inp = "w-full rounded-md border border-line px-2.5 py-1.5 text-[13px] bg-white";
-  const fx = "rounded-md border border-line bg-band px-2.5 py-1.5 text-right font-mono text-[13px]";
-  const fld = (label: string, node: React.ReactNode) => (
-    <label className="block"><div className={lbl}>{label}</div>
-      {isValidElement(node) ? cloneElement(node as React.ReactElement<any>, { "aria-label": label }) : node}
-    </label>
-  );
-  const Section = ({ n, title, children }: { n: string; title: string; children: React.ReactNode }) => (
-    <section className="rounded-xl border border-line bg-card p-4 mb-3.5">
-      <h2 className="font-serif text-[15px] mb-3"><span className="text-accent font-mono text-[13px] mr-1.5">{n}</span>{title}</h2>
-      {children}
-    </section>
-  );
-  const amt = (val: number, set: (v: number) => void) => (
-    <input type="number" step="0.01" value={val || ""} onChange={(e) => set(Number(e.target.value) || 0)} className={inp + " text-right font-mono"} />
-  );
 
   return (
     <>
