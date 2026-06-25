@@ -183,14 +183,16 @@ function rowToTx(r: any, rel?: TxEnrichment): Transaction {
   };
 }
 
-const SELECT = "*, line_items(*), payments(*)";
+// Sổ/báo cáo: KHÔNG join line_items/payments (chỉ trang chi tiết cần) → tải nhanh hơn nhiều.
+const LIST_SELECT = "*";
+const DETAIL_SELECT = "*, line_items(*), payments(*)";
 
 export async function listTransactions(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
   const rows: any[] = [];
   let from = 0;
 
   while (true) {
-    let query: any = sb().from("transactions").select(SELECT).order("ngay", { ascending: false }).range(from, from + PAGE_SIZE - 1);
+    let query: any = sb().from("transactions").select(LIST_SELECT).order("ngay", { ascending: false }).range(from, from + PAGE_SIZE - 1);
     if (opts?.company && opts.company !== "all") query = query.eq("company", opts.company);
     if (opts?.status && opts.status !== "all") query = query.eq("trang_thai", opts.status);
     if (opts?.from) query = query.gte("ngay", opts.from);
@@ -204,8 +206,9 @@ export async function listTransactions(opts?: { company?: string; status?: strin
     from += PAGE_SIZE;
   }
 
-  const rel = await loadTxEnrichment(rows);
-  return rows.map((row) => rowToTx(row, rel));
+  // Hiển thị sổ dùng cột phẳng (source/sale/khach…) → bỏ enrichment cho nhanh.
+  // rowToTx tự fallback về cột phẳng khi không có rel.
+  return rows.map((row) => rowToTx(row));
 }
 
 export interface ExcelWorkbook {
@@ -299,7 +302,7 @@ export async function listExcelRows(opts?: { workbookId?: string; sheetId?: stri
 }
 
 export async function getTransaction(id: string): Promise<Transaction | undefined> {
-  const { data } = await sb().from("transactions").select(SELECT).eq("id", id).maybeSingle();
+  const { data } = await sb().from("transactions").select(DETAIL_SELECT).eq("id", id).maybeSingle();
   if (!data) return undefined;
   const rel = await loadTxEnrichment([data]);
   return rowToTx(data, rel);
@@ -307,7 +310,7 @@ export async function getTransaction(id: string): Promise<Transaction | undefine
 
 export async function findByJm(rc?: string): Promise<Transaction | undefined> {
   if (!rc) return undefined;
-  const { data } = await sb().from("transactions").select(SELECT).eq("rc_jm_no", rc).maybeSingle();
+  const { data } = await sb().from("transactions").select(DETAIL_SELECT).eq("rc_jm_no", rc).maybeSingle();
   if (!data) return undefined;
   const rel = await loadTxEnrichment([data]);
   return rowToTx(data, rel);
