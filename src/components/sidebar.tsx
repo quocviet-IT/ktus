@@ -68,8 +68,22 @@ export default function Sidebar() {
         )}
       </div>
 
+      {/* Nút thu gọn (phía trên, có nhãn) */}
+      <div className="px-2.5 pt-2.5">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
+          title={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
+          className={`flex items-center gap-2.5 w-full rounded-lg text-[12.5px] text-[#CFE0D5] hover:bg-white/[0.06] hover:text-white ${collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2"}`}
+        >
+          <ChevronLeft className={`h-[18px] w-[18px] shrink-0 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} aria-hidden="true" strokeWidth={1.8} />
+          {!collapsed && <span>Thu gọn menu</span>}
+        </button>
+      </div>
+
       {/* Điều hướng */}
-      <nav className="p-2.5 flex-1 overflow-y-auto">
+      <nav className="px-2.5 pb-2.5 flex-1 overflow-y-auto">
         {NAV.map((n) => {
           const Icon = n.icon;
           const active = path === n.href;
@@ -95,22 +109,10 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Nút thu gọn (trong menu, có nhãn) */}
-      <div className="p-2.5 border-t border-white/10">
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
-          title={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
-          className={`flex items-center gap-2.5 w-full rounded-lg text-[12.5px] text-[#CFE0D5] hover:bg-white/[0.06] hover:text-white ${collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2"}`}
-        >
-          <ChevronLeft className={`h-[18px] w-[18px] shrink-0 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} aria-hidden="true" strokeWidth={1.8} />
-          {!collapsed && <span>Thu gọn menu</span>}
-        </button>
-        {!collapsed && (
-          <div className="px-3 pt-2 text-[11px] text-[#7E9387]">intern1@ctyhp.vn · MVP</div>
-        )}
-      </div>
+      {/* Chân menu */}
+      {!collapsed && (
+        <div className="px-5 py-3 border-t border-white/10 text-[11px] text-[#7E9387]">intern1@ctyhp.vn · MVP</div>
+      )}
     </aside>
   );
 }
