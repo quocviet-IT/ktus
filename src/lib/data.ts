@@ -8,8 +8,8 @@ import type { CatalogGroup, CatalogGroupKey, CatalogItem } from "./catalog";
 import type { ExcelWorkbook, ExcelRow } from "./db-repo";
 
 const USE_DB = process.env.USE_DB === "true";
-// Parallel-run: ĐỌC báo cáo từ mô hình mới (v_rc_entry). Ghi vẫn theo đường cũ.
-const USE_RC_READS = USE_DB && process.env.USE_RC_READS === "true";
+// MẶC ĐỊNH chạy mô hình mới (rc_entries). Muốn tạm về dữ liệu cũ: đặt USE_RC_READS=false.
+const USE_RC_READS = USE_DB && process.env.USE_RC_READS !== "false";
 
 export async function listTransactions(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
   if (USE_RC_READS) return rcrepo.listTransactions(opts);
