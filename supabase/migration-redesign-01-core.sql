@@ -6,6 +6,19 @@
 -- ============================================================
 create extension if not exists pgcrypto;
 
+-- ---------- TỰ NÂNG CẤP (nếu đã chạy bản CŨ có 4 cột ar_cash…) ----------
+-- rc_entries bản cũ thiếu cột ar_total → drop các bảng redesign (đang rỗng) để tạo lại đúng cấu trúc.
+-- KHÔNG đụng tới `transactions`/`accounts` cũ.
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_name = 'rc_entries')
+     and not exists (select 1 from information_schema.columns
+                     where table_name = 'rc_entries' and column_name = 'ar_total') then
+    drop table if exists rc_entries cascade;   -- cascade xoá luôn entry_payments/entry_sales/rc_line_items
+    drop table if exists deals cascade;
+  end if;
+end $$;
+
 -- ---------- SHARED MASTER ----------
 
 -- companies (đã có) — đảm bảo seed đủ 6 công ty
