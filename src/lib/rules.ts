@@ -41,10 +41,35 @@ export function paidTotal(t: Transaction): number {
 }
 
 export const TYPE_LABEL: Record<TxType, string> = {
-  receipt: "Bán (Receipt)", deposit: "Đặt cọc", pick_up: "Pickup",
-  extra_deposit: "Cọc thêm", po: "Mua vào (PO)", return: "Trả hàng",
-  exchange: "Đổi hàng", transfer: "Chuyển", repair: "Sửa chữa",
+  receipt: "Receipt",
+  deposit: "Deposit",
+  pick_up: "Pick up",
+  extra_deposit: "Extra Deposit",
+  po: "PO",
+  return: "Return",
+  exchange: "Exchange",
+  transfer: "Transfer",
+  cancel: "Cancel",
+  memo: "Memo",
+  cash_report: "Cash report",
+  ra_rp: "Ra RP",
+  repair: "Repair",
 };
+
+export const ACTIVE_TYPE_OPTIONS: TxType[] = [
+  "receipt",
+  "deposit",
+  "pick_up",
+  "extra_deposit",
+  "po",
+  "return",
+  "exchange",
+  "transfer",
+  "cancel",
+  "memo",
+  "cash_report",
+  "ra_rp",
+];
 
 export const STATUS_LABEL: Record<TxStatus, string> = {
   moi: "Mới", dat_coc: "Đặt cọc", dang_order: "Đang order", cho_giao: "Chờ giao",

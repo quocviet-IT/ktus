@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateRcField } from "@/app/actions";
-import { TYPE_LABEL } from "@/lib/rules";
+import { ACTIVE_TYPE_OPTIONS, TYPE_LABEL } from "@/lib/rules";
 import type { LedgerCellKind } from "@/lib/usbc101";
 
 // Ô sửa trực tiếp trên sổ (click → nhập → Enter/blur để lưu, Esc để hủy)
@@ -62,7 +62,7 @@ export default function EditableCell({
   if (kind === "type") {
     return (
       <select {...common}>
-        {Object.entries(TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        {ACTIVE_TYPE_OPTIONS.map((k) => <option key={k} value={k}>{TYPE_LABEL[k]}</option>)}
       </select>
     );
   }

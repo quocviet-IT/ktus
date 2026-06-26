@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 
 // ===== ENUMS (khớp BRD §16) =====
 export const transactionType = pgEnum("transaction_type", [
-  "receipt","deposit","pick_up","extra_deposit","po","return","exchange","transfer","repair",
+  "receipt","deposit","pick_up","extra_deposit","po","return","exchange","transfer","cancel","memo","cash_report","ra_rp","repair",
 ]);
 export const transactionStatus = pgEnum("transaction_status", [
   "moi","dat_coc","dang_order","cho_giao","hoan_tat","cancel","return","exchange",

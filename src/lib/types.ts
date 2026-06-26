@@ -2,7 +2,9 @@ export type CompanyCode = "PC49" | "Trans" | "HPLLC" | "3NVY" | "Other" | "TDW";
 
 export type TxType =
   | "receipt" | "deposit" | "pick_up" | "extra_deposit"
-  | "po" | "return" | "exchange" | "transfer" | "repair";
+  | "po" | "return" | "exchange" | "transfer"
+  | "cancel" | "memo" | "cash_report" | "ra_rp"
+  | "repair";
 
 export type TxStatus =
   | "moi" | "dat_coc" | "dang_order" | "cho_giao" | "hoan_tat"

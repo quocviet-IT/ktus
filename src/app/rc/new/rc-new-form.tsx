@@ -5,12 +5,12 @@ import { ArrowRight, Plus, Save, X } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { createRc, type RcInput } from "@/app/actions";
 import { COMPANIES } from "@/lib/store";
-import { TYPE_LABEL } from "@/lib/rules";
+import { ACTIVE_TYPE_OPTIONS, TYPE_LABEL } from "@/lib/rules";
 import { money } from "@/lib/format";
 import type { PaymentMethod } from "@/lib/payments";
 
 type Line = { moTa: string; soLuong: number; donGia: number; giaNo?: string; sku?: string };
-const RECEIPT_T = ["receipt", "pick_up", "repair"];
+const RECEIPT_T = ["receipt", "pick_up"];
 const DEPOSIT_T = ["deposit", "extra_deposit"];
 const RETURN_T = ["po", "return", "exchange"];
 
@@ -132,7 +132,7 @@ export default function NhapRCForm({
             {fld("Date *", <input name="ngay" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={inp} />)}
             {fld("Company *", <select name="company" required value={company} onChange={(e) => setCompany(e.target.value)} className={inp}>{COMPANIES.map((c) => <option key={c}>{c}</option>)}</select>)}
             {fld("Company account *", <select name="companyAccount" required className={inp}><option value="">- chọn -</option>{[`${company} cash`, `${company} bank`].map((a) => <option key={a} value={a}>{a}</option>)}</select>)}
-            {fld("Type *", <select name="type" required value={type} onChange={(e) => setType(e.target.value as RcInput["type"])} className={inp}>{Object.entries(TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>)}
+            {fld("Type *", <select name="type" required value={type} onChange={(e) => setType(e.target.value as RcInput["type"])} className={inp}>{ACTIVE_TYPE_OPTIONS.map((k) => <option key={k} value={k}>{TYPE_LABEL[k]}</option>)}</select>)}
             {fld("Customer name *", <input name="khach" required placeholder="Tên khách" className={inp} />)}
             {fld("Contact", <input name="contact" placeholder="408-…" className={inp} />)}
             {fld("Mã SKU", <input name="maSku" placeholder="24KRI / VRP…" className={inp} />)}
