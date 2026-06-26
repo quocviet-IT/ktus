@@ -6,6 +6,10 @@
 -- (chạy lại không nhân đôi). Yêu cầu: đã chạy migration-redesign-01-core.sql.
 -- ============================================================
 
+-- 0) Nới rộng cột % cho dữ liệu cũ (lưu 80/100 thay vì 0.8) → tránh numeric overflow.
+alter table rc_entries  alter column pct_support type numeric(7,4);
+alter table entry_sales alter column pct        type numeric(7,4);
+
 -- 1) Khách hàng: tạo từ tên (chuẩn hoá phone), bỏ qua nếu đã có theo tên
 insert into customers (ten, phone_raw, phone_normalized)
 select distinct on (lower(trim(t.khach)))

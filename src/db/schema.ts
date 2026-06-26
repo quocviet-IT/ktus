@@ -243,7 +243,7 @@ export const rcEntries = pgTable("rc_entries", {
   source1Id: text("source_1_id").references(() => sources.code),
   source2Id: text("source_2_id").references(() => sources.code),
   transactionValue: text("transaction_value"),
-  pctSupport: numeric("pct_support", { precision: 5, scale: 4 }),
+  pctSupport: numeric("pct_support", { precision: 7, scale: 4 }),
   oldReceiptNo: text("old_receipt_no"),
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -275,7 +275,7 @@ export const entrySales = pgTable("entry_sales", {
   channel: text("channel").notNull(),
   position: smallint("position").notNull(),
   tierCode: text("tier_code").references(() => commissionTiers.code),
-  pct: numeric("pct", { precision: 5, scale: 4 }),
+  pct: numeric("pct", { precision: 7, scale: 4 }),
 }, (t) => ({ uq: unique().on(t.rcEntryId, t.channel, t.position) }));
 
 // entry_payments — tiền theo TỪNG hình thức thanh toán (động). Tổng cộng dồn lên rc_entries.ar_total/ap_total qua trigger.

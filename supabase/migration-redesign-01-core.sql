@@ -185,7 +185,7 @@ create table if not exists rc_entries (
   source1_id        text references sources(code),
   source2_id        text references sources(code),
   transaction_value text,
-  pct_support       numeric(5,4),
+  pct_support       numeric(7,4),                          -- chứa cả 0.8 lẫn 80/100 (dữ liệu cũ)
   old_receipt_no    text,
   note              text,
   created_at  timestamptz not null default now(),
@@ -250,7 +250,7 @@ create table if not exists entry_sales (
   channel        text not null,                            -- counter | online
   position       smallint not null,                        -- 1 | 2 | 3
   tier_code      text references commission_tiers(code),
-  pct            numeric(5,4),
+  pct            numeric(7,4),                             -- tỷ lệ phân bổ (chứa 80/20 hoặc 0.8/0.2)
   unique (rc_entry_id, channel, position)
 );
 create index if not exists idx_es_entry on entry_sales (rc_entry_id);
