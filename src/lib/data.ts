@@ -2,6 +2,7 @@
 import * as store from "./store";
 import * as repo from "./db-repo";
 import type { Transaction, TxStatus, BankLine, Account } from "./types";
+import type { PaymentMethod } from "./payments";
 import type { ExcelWorkbook, ExcelRow } from "./db-repo";
 
 const USE_DB = process.env.USE_DB === "true";
@@ -36,6 +37,14 @@ export async function setStatus(id: string, s: TxStatus): Promise<void> {
 // Chart of accounts (BALANCE ACCOUNT)
 export async function listAccounts(): Promise<Account[]> {
   return USE_DB ? repo.listAccounts() : store.listAccounts();
+}
+
+export async function listPaymentMethods(): Promise<PaymentMethod[]> {
+  return USE_DB ? repo.listPaymentMethods() : store.PAYMENT_METHODS();
+}
+
+export async function addPaymentMethod(label: string): Promise<PaymentMethod> {
+  return USE_DB ? repo.addPaymentMethod(label) : store.addPaymentMethod(label);
 }
 
 // Sao kê ngân hàng

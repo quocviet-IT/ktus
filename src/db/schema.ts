@@ -8,7 +8,6 @@ export const transactionType = pgEnum("transaction_type", [
 export const transactionStatus = pgEnum("transaction_status", [
   "moi","dat_coc","dang_order","cho_giao","hoan_tat","cancel","return","exchange",
 ]);
-export const paymentMethod = pgEnum("payment_method", ["cash","bank_wire","zelle","check","card"]);
 export const salesKind = pgEnum("sales_kind", ["counter","online"]);
 
 // ===== DANH MỤC =====
@@ -92,7 +91,7 @@ export const transactions = pgTable("transactions", {
   // Thanh toán đợt đầu (BR-06)
   ttDauNgay: date("tt_dau_ngay"),
   ttDauSoTien: numeric("tt_dau_so_tien", { precision: 14, scale: 2 }),
-  ttDauHinhThuc: paymentMethod("tt_dau_hinh_thuc"),
+  ttDauHinhThuc: text("tt_dau_hinh_thuc"),
   chuThichThanhToan: text("chu_thich_thanh_toan"),
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -118,7 +117,8 @@ export const payments = pgTable("payments", {
   transactionId: uuid("transaction_id").notNull().references(() => transactions.id, { onDelete: "cascade" }),
   ngay: date("ngay").notNull(),
   soTien: numeric("so_tien", { precision: 14, scale: 2 }).notNull(),
-  hinhThuc: paymentMethod("hinh_thuc"),
+  hinhThuc: text("hinh_thuc"),
+  direction: text("direction").notNull().default("ar"),
   nguoiXacNhan: text("nguoi_xac_nhan"),
   ghiChu: text("ghi_chu"),
   isDau: boolean("is_dau").notNull().default(false),

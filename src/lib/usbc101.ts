@@ -2,6 +2,7 @@ import type { Transaction } from "./types";
 import { computeCondition } from "./rules";
 import type { Account } from "./types";
 import { transactionBelongsToAccountKind } from "./relationship-helpers";
+import { paymentTotal } from "./payments";
 
 // Các công ty có sổ riêng trong USBC101 (như các sheet Excel)
 export const USBC101_COMPANIES = ["Trans", "PC49", "TDW", "HPLLC", "3NVY", "Other"] as const;
@@ -13,13 +14,10 @@ export function companyAccounts(company: string): string[] {
 export const ALL_ACCOUNTS: string[] = USBC101_COMPANIES.flatMap(companyAccounts);
 
 export function arTotal(t: Transaction): number {
-  return (t.arCash || 0) + (t.arBankwire || 0) + (t.arZelle || 0) + (t.arCheck || 0);
+  return paymentTotal(t, "ar");
 }
 export function apTotal(t: Transaction): number {
-  const ap = (t.apCash || 0) + (t.apBankwire || 0) + (t.apZelle || 0) + (t.apCheck || 0);
-  // dữ liệu cũ chỉ có expense (PO) → coi như chi ra
-  if (ap === 0 && (t.type === "po" || t.type === "return" || t.type === "exchange")) return t.expense || 0;
-  return ap;
+  return paymentTotal(t, "ap");
 }
 // Tiền ròng vào tài khoản của giao dịch (thu − chi)
 export function netToAccount(t: Transaction): number {

@@ -1,4 +1,5 @@
 import type { Transaction, TxStatus } from "./types";
+import { addPaymentMethod as addMemoryPaymentMethod, listPaymentMethods, type PaymentMethod } from "./payments";
 
 // ===== Danh mục dùng chung (FR-CAT) =====
 export const SOURCES = ["WI", "TEL", "FB", "IG-APPT", "RF-APPT", "RC", "VIP"];
@@ -6,6 +7,8 @@ export const COMPANIES = ["PC49", "Trans", "HPLLC", "3NVY", "Other", "TDW"] as c
 export const SALES = ["T.Vân", "B.Khanh", "S.Mai", "N.Ý", "T.Quỳnh"];
 export const SALES_ONLINE = ["Văn Vương US", "Mạnh Thắng US", "Trà My US", "Kim Thanh US"];
 export const BELL_CODES = ["RC1", "RC2", "RC3", "SBO1"];
+export const PAYMENT_METHODS = listPaymentMethods;
+export function addPaymentMethod(label: string): PaymentMethod { return addMemoryPaymentMethod(label); }
 
 let _id = 100;
 const nid = () => "t" + ++_id;

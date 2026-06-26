@@ -2,10 +2,11 @@ import Link from "next/link";
 import PageHeader from "@/components/page-header";
 import Pagination from "@/components/pagination";
 import PeriodFields from "@/components/period-fields";
-import { listTransactions } from "@/lib/data";
+import { listPaymentMethods, listTransactions } from "@/lib/data";
 import { computeCondition, TYPE_LABEL } from "@/lib/rules";
 import { num } from "@/lib/format";
 import { periodRange, periodLabel, byEntryAsc } from "@/lib/period";
+import { currentAmountByPaymentMethod } from "@/lib/payments";
 
 const PAGE_SIZE = 50;
 
@@ -15,7 +16,10 @@ type SP = { company?: string; period?: string; day?: string; week?: string; mont
 export default async function SalesDaily({ searchParams }: { searchParams: SP }) {
   const company = searchParams.company === "Trans" ? "Trans" : "PC49";
   const range = periodRange(searchParams);
-  const all = await listTransactions({ company, from: range.from, to: range.to });
+  const [all, paymentMethods] = await Promise.all([
+    listTransactions({ company, from: range.from, to: range.to }),
+    listPaymentMethods(),
+  ]);
   // Sắp xếp theo THỨ TỰ NHẬP (cũ → mới), không hiển thị ngược
   const rows = [...all].sort(byEntryAsc);
 
@@ -26,28 +30,22 @@ export default async function SalesDaily({ searchParams }: { searchParams: SP })
   const pageRows = rows.slice(startIdx, startIdx + PAGE_SIZE);
 
   const cell = (n: number) => (n ? num(n) : "");
-  const arOf = (t: any) => ({ cash: t.arCash || 0, bankwire: t.arBankwire || 0, zelle: t.arZelle || 0, check: t.arCheck || 0 });
-  const apOf = (t: any) => {
-    const ap = { cash: t.apCash || 0, bankwire: t.apBankwire || 0, zelle: t.apZelle || 0, check: t.apCheck || 0 };
-    const sum = ap.cash + ap.bankwire + ap.zelle + ap.check;
-    if (sum === 0 && (t.type === "po" || t.type === "return" || t.type === "exchange")) ap.cash = t.expense || 0;
-    return ap;
-  };
 
   // Tổng cộng tính trên TOÀN BỘ kỳ lọc (không chỉ trang hiện tại)
   let tTong = 0, tPO = 0, tRec = 0, tDep = 0;
-  const thu = { cash: 0, bankwire: 0, zelle: 0, check: 0 };
-  const chi = { cash: 0, bankwire: 0, zelle: 0, check: 0 };
+  const thu: Record<string, number> = {};
+  const chi: Record<string, number> = {};
   rows.forEach((t) => {
     const c = computeCondition(t); tTong += c.tongCong; tPO += c.returnPo; tRec += c.receipt; tDep += c.deposit;
-    const a = arOf(t), p = apOf(t);
-    thu.cash += a.cash; thu.bankwire += a.bankwire; thu.zelle += a.zelle; thu.check += a.check;
-    chi.cash += p.cash; chi.bankwire += p.bankwire; chi.zelle += p.zelle; chi.check += p.check;
+    for (const method of paymentMethods) {
+      thu[method.code] = (thu[method.code] || 0) + currentAmountByPaymentMethod(t, method.code, "ar");
+      chi[method.code] = (chi[method.code] || 0) + currentAmountByPaymentMethod(t, method.code, "ap");
+    }
   });
 
   const tdc = "px-2.5 py-1.5 border border-line text-right font-mono";
   const body = pageRows.map((t, i) => {
-    const c = computeCondition(t); const a = arOf(t), p = apOf(t);
+    const c = computeCondition(t);
     return (
       <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
         <td className="px-2.5 py-1.5 border border-line">{startIdx + i + 1}</td>
@@ -58,14 +56,8 @@ export default async function SalesDaily({ searchParams }: { searchParams: SP })
         <td className={tdc}>{cell(c.returnPo)}</td>
         <td className={tdc}>{cell(c.receipt)}</td>
         <td className={tdc}>{cell(c.deposit)}</td>
-        <td className={tdc + " bg-okSoft/40"}>{cell(a.cash)}</td>
-        <td className={tdc}>{cell(a.bankwire)}</td>
-        <td className={tdc}>{cell(a.zelle)}</td>
-        <td className={tdc}>{cell(a.check)}</td>
-        <td className={tdc + " bg-dangerSoft/40"}>{cell(p.cash)}</td>
-        <td className={tdc}>{cell(p.bankwire)}</td>
-        <td className={tdc}>{cell(p.zelle)}</td>
-        <td className={tdc}>{cell(p.check)}</td>
+        {paymentMethods.map((method, index) => <td key={`ar-${method.code}`} className={tdc + (index === 0 ? " bg-okSoft/40" : "")}>{cell(currentAmountByPaymentMethod(t, method.code, "ar"))}</td>)}
+        {paymentMethods.map((method, index) => <td key={`ap-${method.code}`} className={tdc + (index === 0 ? " bg-dangerSoft/40" : "")}>{cell(currentAmountByPaymentMethod(t, method.code, "ap"))}</td>)}
         <td className="px-2.5 py-1.5 border border-line">{t.company}</td>
       </tr>
     );
@@ -98,30 +90,24 @@ export default async function SalesDaily({ searchParams }: { searchParams: SP })
                 <tr>
                   <th className={th} rowSpan={2}>STT</th><th className={th} rowSpan={2}>TYPE</th><th className={th} rowSpan={2}>DISCRIPTION</th><th className={th} rowSpan={2}>CUSTOMER</th>
                   <th className={th} rowSpan={2}>TỔNG CỘNG</th><th className={th} rowSpan={2}>PURCHASE/PO</th><th className={th} rowSpan={2}>{recLabel}</th><th className={th} rowSpan={2}>DEPOSIT</th>
-                  <th className={th + " text-center bg-okSoft text-ok"} colSpan={4}>THU TIỀN (RECEIVABLES)</th>
-                  <th className={th + " text-center bg-dangerSoft text-danger"} colSpan={4}>CHI TIỀN (PAYABLES)</th>
+                  <th className={th + " text-center bg-okSoft text-ok"} colSpan={paymentMethods.length}>THU TIỀN (RECEIVABLES)</th>
+                  <th className={th + " text-center bg-dangerSoft text-danger"} colSpan={paymentMethods.length}>CHI TIỀN (PAYABLES)</th>
                   <th className={th} rowSpan={2}>COMPANY</th>
                 </tr>
                 <tr>
-                  <th className={th}>CASH</th><th className={th}>BANKWIRE</th><th className={th}>ZELLE</th><th className={th}>CHECK</th>
-                  <th className={th}>CASH</th><th className={th}>BANKWIRE</th><th className={th}>ZELLE</th><th className={th}>CHECK</th>
+                  {paymentMethods.map((method) => <th key={`arh-${method.code}`} className={th}>{method.label}</th>)}
+                  {paymentMethods.map((method) => <th key={`aph-${method.code}`} className={th}>{method.label}</th>)}
                 </tr>
               </thead>
-              <tbody>{body.length ? body : <tr><td colSpan={17} className="px-2.5 py-4 border border-line text-center text-muted">Chưa có giao dịch.</td></tr>}</tbody>
+              <tbody>{body.length ? body : <tr><td colSpan={9 + paymentMethods.length * 2} className="px-2.5 py-4 border border-line text-center text-muted">Chưa có giao dịch.</td></tr>}</tbody>
               <tfoot><tr className="font-bold bg-accentSoft">
                 <td colSpan={4} className="px-2.5 py-2 border border-line">TỔNG CỘNG</td>
                 <td className="px-2.5 py-2 border border-line text-right font-mono">{num(tTong)}</td>
                 <td className="px-2.5 py-2 border border-line text-right font-mono">{num(tPO)}</td>
                 <td className="px-2.5 py-2 border border-line text-right font-mono">{num(tRec)}</td>
                 <td className="px-2.5 py-2 border border-line text-right font-mono">{num(tDep)}</td>
-                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(thu.cash)}</td>
-                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(thu.bankwire)}</td>
-                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(thu.zelle)}</td>
-                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(thu.check)}</td>
-                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(chi.cash)}</td>
-                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(chi.bankwire)}</td>
-                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(chi.zelle)}</td>
-                <td className="px-2.5 py-2 border border-line text-right font-mono">{num(chi.check)}</td>
+                {paymentMethods.map((method) => <td key={`art-${method.code}`} className="px-2.5 py-2 border border-line text-right font-mono">{num(thu[method.code] || 0)}</td>)}
+                {paymentMethods.map((method) => <td key={`apt-${method.code}`} className="px-2.5 py-2 border border-line text-right font-mono">{num(chi[method.code] || 0)}</td>)}
                 <td className="px-2.5 py-2 border border-line" />
               </tr></tfoot>
             </table>

@@ -3,20 +3,22 @@ import Link from "next/link";
 import { ArrowLeft, Bell, Check, Link2 } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import StatusBadge from "@/components/status-badge";
-import { getTransaction, findByJm } from "@/lib/data";
+import { findByJm, getTransaction, listPaymentMethods } from "@/lib/data";
 import { computeCondition, paidTotal, TYPE_LABEL, jmKind, STATUS_LABEL } from "@/lib/rules";
 import { money, ddmmyyyy, ddmm } from "@/lib/format";
 import { setStatus, updateRcJm } from "@/app/actions";
 import { SOURCES, SALES, SALES_ONLINE, BELL_CODES } from "@/lib/store";
+import { amountByPaymentMethod, paymentTotal } from "@/lib/payments";
 
 export default async function RcDetail({ params }: { params: { id: string } }) {
   const t = await getTransaction(params.id);
   if (!t) return notFound();
+  const paymentMethods = await listPaymentMethods();
   const c = computeCondition(t);
   const dep = t.oldReceiptNo ? await findByJm(t.oldReceiptNo) : undefined;
   const paid = paidTotal(t);
   const tongDon = t.orderTotal || t.lineItems.reduce((s, l) => s + l.soLuong * l.donGia, 0) || c.tongCong;
-  const apTotal = (t.apCash || 0) + (t.apBankwire || 0) + (t.apZelle || 0) + (t.apCheck || 0);
+  const apTotal = paymentTotal(t, "ap");
   const isPO = t.type === "po" || t.type === "return" || t.type === "exchange";
   const salesList = [
     { ten: t.sale1, pct: t.sale1Pct }, { ten: t.sale2, pct: t.sale2Pct }, { ten: t.sale3, pct: t.sale3Pct },
@@ -98,10 +100,9 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
           <div className="bg-card border border-line rounded-xl p-5 mb-3.5">
             <h2 className="font-serif text-base mb-3">Hình thức thanh toán — đơn mua vào (A/P)</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[13px]">
-              <Field label="Cash">{money(t.apCash || 0)}</Field>
-              <Field label="Bank wire">{money(t.apBankwire || 0)}</Field>
-              <Field label="Zelle">{money(t.apZelle || 0)}</Field>
-              <Field label="Check">{money(t.apCheck || 0)}</Field>
+              {paymentMethods.map((method) => (
+                <Field key={method.code} label={method.label}>{money(amountByPaymentMethod(t, method.code, "ap"))}</Field>
+              ))}
             </div>
             <div className="flex justify-end font-mono text-[13px] pt-2 border-t border-line mt-2">
               <span className="text-muted mr-3">Tổng chi ra</span><b className="text-danger">{money(apTotal || c.returnPo)}</b>

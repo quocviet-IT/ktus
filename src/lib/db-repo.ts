@@ -1,5 +1,6 @@
 import { sb } from "./supabase-server";
 import type { Account, BankLine, CompanyCode, Transaction, TransactionSale, TxStatus, LineItem, Payment } from "./types";
+import { addPaymentMethod as addMemoryPaymentMethod, listPaymentMethods as listMemoryPaymentMethods, normalizePaymentCode, type PaymentMethod } from "./payments";
 
 const N = (v: any) => (v == null ? 0 : Number(v));
 const PAGE_SIZE = 1000;
@@ -177,14 +178,15 @@ function rowToTx(r: any, rel?: TxEnrichment): Transaction {
     })),
     payments: (r.payments ?? []).map((p: any): Payment => ({
       id: p.id, ngay: p.ngay, soTien: N(p.so_tien), hinhThuc: p.hinh_thuc ?? undefined,
+      direction: p.direction ?? undefined,
       nguoiXacNhan: p.nguoi_xac_nhan ?? undefined, ghiChu: p.ghi_chu ?? undefined, isDau: p.is_dau ?? false,
       accountId: p.account_id ?? undefined,
     })),
   };
 }
 
-// Sổ/báo cáo: KHÔNG join line_items/payments (chỉ trang chi tiết cần) → tải nhanh hơn nhiều.
-const LIST_SELECT = "*";
+// Báo cáo cần payments để cộng các hình thức thanh toán do người dùng tự thêm.
+const LIST_SELECT = "*, payments(*)";
 const DETAIL_SELECT = "*, line_items(*), payments(*)";
 
 export async function listTransactions(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
@@ -360,7 +362,7 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
     })));
   if (t.payments.length)
     await s.from("payments").insert(t.payments.map((p) => ({
-      transaction_id: id, ngay: p.ngay, so_tien: p.soTien, hinh_thuc: p.hinhThuc, nguoi_xac_nhan: p.nguoiXacNhan, ghi_chu: p.ghiChu, is_dau: p.isDau ?? false,
+      transaction_id: id, ngay: p.ngay, so_tien: p.soTien, hinh_thuc: p.hinhThuc, direction: p.direction ?? "ar", nguoi_xac_nhan: p.nguoiXacNhan, ghi_chu: p.ghiChu, is_dau: p.isDau ?? false,
     })));
 
   return (await getTransaction(id))!;
@@ -427,6 +429,46 @@ export async function listAccounts(): Promise<Account[]> {
     console.warn("[accounts] bảng chưa có? chạy migration-accounts.sql —", (e as any)?.message);
     return [];
   }
+}
+
+export async function listPaymentMethods(): Promise<PaymentMethod[]> {
+  try {
+    const { data, error } = await sb()
+      .from("lookups")
+      .select("code, label, sort, active")
+      .eq("grp", "payment")
+      .order("sort", { ascending: true })
+      .order("label", { ascending: true });
+    if (error) throw error;
+    const dbMethods = (data ?? [])
+      .filter((r: any) => r.active !== false)
+      .map((r: any): PaymentMethod => ({
+        code: r.code,
+        label: r.label,
+        sort: r.sort ?? 0,
+        active: r.active !== false,
+      }));
+    const merged = new Map<string, PaymentMethod>();
+    for (const method of listMemoryPaymentMethods()) merged.set(method.code, method);
+    for (const method of dbMethods) merged.set(method.code, method);
+    return [...merged.values()].sort((a, b) => a.sort - b.sort || a.label.localeCompare(b.label));
+  } catch (e) {
+    warnOnce("payment-lookups", "[lookups] không đọc được danh mục payment —", e);
+    return listMemoryPaymentMethods();
+  }
+}
+
+export async function addPaymentMethod(label: string): Promise<PaymentMethod> {
+  const cleanLabel = label.trim();
+  const code = normalizePaymentCode(cleanLabel);
+  if (!cleanLabel || !code) throw new Error("Payment method label is required");
+
+  const method = addMemoryPaymentMethod(cleanLabel);
+  const { error } = await sb()
+    .from("lookups")
+    .upsert({ grp: "payment", code, label: cleanLabel, sort: method.sort, active: true }, { onConflict: "grp,code" });
+  if (error) throw error;
+  return method;
 }
 
 // ===== Sao kê ngân hàng =====

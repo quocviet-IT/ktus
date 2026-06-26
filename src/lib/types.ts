@@ -8,7 +8,7 @@ export type TxStatus =
   | "moi" | "dat_coc" | "dang_order" | "cho_giao" | "hoan_tat"
   | "cancel" | "return" | "exchange";
 
-export type PayMethod = "cash" | "bank_wire" | "zelle" | "check" | "card";
+export type PayMethod = string;
 
 export interface Lookup {
   id: string;
@@ -33,6 +33,7 @@ export interface Payment {
   ngay: string;
   soTien: number;
   hinhThuc?: PayMethod;
+  direction?: "ar" | "ap";
   nguoiXacNhan?: string;
   ghiChu?: string;
   isDau?: boolean;

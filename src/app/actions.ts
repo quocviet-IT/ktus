@@ -1,8 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, addBankLine, setBankMatched } from "@/lib/data";
-import type { TxStatus, TxType, CompanyCode, LineItem } from "@/lib/types";
+import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, addBankLine, setBankMatched, addPaymentMethod } from "@/lib/data";
+import type { TxStatus, TxType, CompanyCode, LineItem, Payment } from "@/lib/types";
 
 export interface RcInput {
   ngay: string;
@@ -22,7 +22,9 @@ export interface RcInput {
   apBankwire?: number;
   apZelle?: number;
   apCheck?: number;
-  pay: "cash" | "bank_wire" | "zelle" | "check" | "card";
+  pay: string;
+  arPayments?: Record<string, number>;
+  apPayments?: Record<string, number>;
   // dòng hàng (nhập riêng — gộp khi lưu)
   lines: { moTa: string; soLuong: number; donGia: number; giaNo?: string; sku?: string }[];
   // bước 2 (JM) — có thể bỏ trống
@@ -49,6 +51,51 @@ export interface RcInput {
   note?: string;
 }
 
+const LEGACY_AR_SETTERS = {
+  cash: "arCash",
+  bank_wire: "arBankwire",
+  zelle: "arZelle",
+  check: "arCheck",
+} as const;
+
+const LEGACY_AP_SETTERS = {
+  cash: "apCash",
+  bank_wire: "apBankwire",
+  zelle: "apZelle",
+  check: "apCheck",
+} as const;
+
+function cleanPaymentAmounts(input?: Record<string, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [method, value] of Object.entries(input ?? {})) {
+    const amount = Number(value) || 0;
+    if (amount > 0) out[method] = amount;
+  }
+  return out;
+}
+
+function applyLegacyAmounts<T extends Record<string, number>>(
+  target: T,
+  amounts: Record<string, number>,
+  fields: Record<string, keyof T>,
+) {
+  for (const [method, amount] of Object.entries(amounts)) {
+    const field = fields[method];
+    if (field) target[field] = amount as T[keyof T];
+  }
+}
+
+function paymentRows(ngay: string, amounts: Record<string, number>, direction: "ar" | "ap"): Payment[] {
+  return Object.entries(amounts).map(([method, amount], index) => ({
+    id: `${direction}${index}`,
+    ngay,
+    soTien: amount,
+    hinhThuc: method,
+    direction,
+    isDau: direction === "ar",
+  }));
+}
+
 // BR-07: gộp dòng & tự tính tổng → đổ vào A/R theo hình thức; BR-01 sẽ tự phân loại khi hiển thị
 export async function createRc(input: RcInput) {
   const lineItems: LineItem[] = input.lines
@@ -63,14 +110,12 @@ export async function createRc(input: RcInput) {
     arCheck: Number(input.arCheck) || 0,
   };
   const isPO = input.type === "po" || input.type === "return" || input.type === "exchange";
-  const hasManualReceivable = ar.arCash || ar.arBankwire || ar.arZelle || ar.arCheck;
+  const arPayments = cleanPaymentAmounts(input.arPayments);
+  const hasManualReceivable = Object.keys(arPayments).length > 0 || ar.arCash || ar.arBankwire || ar.arZelle || ar.arCheck;
   if (!isPO && !hasManualReceivable) {
-    if (input.pay === "cash") ar.arCash = tong;
-    else if (input.pay === "bank_wire") ar.arBankwire = tong;
-    else if (input.pay === "zelle") ar.arZelle = tong;
-    else if (input.pay === "check") ar.arCheck = tong;
-    else ar.arCash = tong; // card → tạm xếp như cash receivable
+    arPayments[input.pay || "cash"] = tong;
   }
+  applyLegacyAmounts(ar, arPayments, LEGACY_AR_SETTERS);
 
   // A/P (chi tiền ra) cho PO/mua vào/trả hàng
   const ap = {
@@ -79,8 +124,10 @@ export async function createRc(input: RcInput) {
     apZelle: Number(input.apZelle) || 0,
     apCheck: Number(input.apCheck) || 0,
   };
-  const hasManualAP = ap.apCash || ap.apBankwire || ap.apZelle || ap.apCheck;
-  if (isPO && !hasManualAP) ap.apCash = Number(input.expense) || tong; // mặc định chi bằng cash
+  const apPayments = cleanPaymentAmounts(input.apPayments);
+  const hasManualAP = Object.keys(apPayments).length > 0 || ap.apCash || ap.apBankwire || ap.apZelle || ap.apCheck;
+  if (isPO && !hasManualAP) apPayments.cash = Number(input.expense) || tong; // mặc định chi bằng cash
+  applyLegacyAmounts(ap, apPayments, LEGACY_AP_SETTERS);
   const companyAccount = input.companyAccount || `${input.company} cash`;
 
   const rec = await addTransaction({
@@ -102,10 +149,17 @@ export async function createRc(input: RcInput) {
     bellCode: input.bellCode, note: input.note || "",
     trangThai: input.type === "deposit" ? "dat_coc" : "hoan_tat",
     lineItems,
-    payments: isPO ? [] : [{ id: "p0", ngay: input.ngay, soTien: ar.arCash + ar.arBankwire + ar.arZelle + ar.arCheck, hinhThuc: input.pay, isDau: true }],
+    payments: [...paymentRows(input.ngay, arPayments, "ar"), ...paymentRows(input.ngay, apPayments, "ap")],
   });
   revalidatePath("/"); revalidatePath("/rc"); revalidatePath("/missing-source");
   redirect(`/rc/${rec.id}`);
+}
+
+export async function createPaymentMethod(fd: FormData) {
+  const label = String(fd.get("label") || "").trim();
+  if (label) await addPaymentMethod(label);
+  revalidatePath("/catalog");
+  revalidatePath("/rc/new");
 }
 
 export async function setStatus(id: string, s: TxStatus) {

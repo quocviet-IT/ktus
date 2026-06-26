@@ -1,6 +1,7 @@
 import { computeCondition, jmKind, TYPE_LABEL } from "./rules";
 import { ddmm } from "./format";
-import type { CompanyCode, PayMethod, Transaction } from "./types";
+import type { CompanyCode, Transaction } from "./types";
+import { currentAmountByPaymentMethod, listPaymentMethods, type PaymentMethod } from "./payments";
 
 export type ReportCell = string | number;
 
@@ -12,21 +13,13 @@ export interface ReportTable {
   totals?: ReportCell[];
 }
 
-function firstPaymentMethod(t: Transaction): PayMethod | undefined {
-  return t.payments[0]?.hinhThuc;
-}
-
-function receivableByMethod(t: Transaction, method: PayMethod): number {
-  const c = computeCondition(t);
-  const amount = c.receipt || c.deposit;
-  return firstPaymentMethod(t) === method ? amount : 0;
-}
-
 export function buildSalesDailyTable(params: {
   transactions: Transaction[];
   company: CompanyCode;
   date: string;
+  paymentMethods?: PaymentMethod[];
 }): ReportTable {
+  const paymentMethods = params.paymentMethods ?? listPaymentMethods();
   const rows = params.transactions.map((t, i) => {
     const c = computeCondition(t);
     return [
@@ -38,10 +31,8 @@ export function buildSalesDailyTable(params: {
       c.returnPo || "",
       c.receipt || "",
       c.deposit || "",
-      receivableByMethod(t, "cash") || "",
-      receivableByMethod(t, "bank_wire") || "",
-      receivableByMethod(t, "zelle") || "",
-      receivableByMethod(t, "check") || "",
+      ...paymentMethods.map((method) => currentAmountByPaymentMethod(t, method.code, "ar") || ""),
+      ...paymentMethods.map((method) => currentAmountByPaymentMethod(t, method.code, "ap") || ""),
       t.company,
     ];
   });
@@ -73,10 +64,8 @@ export function buildSalesDailyTable(params: {
       "PURCHASE/PO",
       receiptLabel,
       "DEPOSIT",
-      "CASH",
-      "BANKWIRE",
-      "ZELLE",
-      "CHECK",
+      ...paymentMethods.map((method) => `AR ${method.label}`),
+      ...paymentMethods.map((method) => `AP ${method.label}`),
       "COMPANY",
     ],
     rows,
@@ -89,10 +78,8 @@ export function buildSalesDailyTable(params: {
       totals.returnPo,
       totals.receipt,
       totals.deposit,
-      "",
-      "",
-      "",
-      "",
+      ...paymentMethods.map(() => ""),
+      ...paymentMethods.map(() => ""),
       "",
     ],
   };

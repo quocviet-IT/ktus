@@ -1,15 +1,16 @@
 import type { Transaction, Computed, TxType, TxStatus } from "./types";
+import { currentPaymentTotal, paymentTotal } from "./payments";
 
 // BR-01 / BR-02 — phân loại CONDITION & tổng cộng (tự tính)
 const RECEIPT_TYPES: TxType[] = ["receipt", "pick_up", "repair"];
 const DEPOSIT_TYPES: TxType[] = ["deposit", "extra_deposit"];
 const RETURN_TYPES: TxType[] = ["po", "return", "exchange"];
 
-export function computeCondition(t: Pick<Transaction, "type" | "expense" | "arCash" | "arBankwire" | "arZelle" | "arCheck">): Computed {
-  const ar = (t.arCash || 0) + (t.arBankwire || 0) + (t.arZelle || 0) + (t.arCheck || 0);
+export function computeCondition(t: Transaction): Computed {
+  const ar = currentPaymentTotal(t, "ar");
   const receipt = RECEIPT_TYPES.includes(t.type) ? ar : 0;
   const deposit = DEPOSIT_TYPES.includes(t.type) ? ar : 0;
-  const returnPo = RETURN_TYPES.includes(t.type) ? (t.expense || 0) : 0;
+  const returnPo = RETURN_TYPES.includes(t.type) ? (currentPaymentTotal(t, "ap") || t.expense || 0) : 0;
   return { receipt, deposit, returnPo, tongCong: receipt + deposit - returnPo };
 }
 
@@ -36,9 +37,7 @@ export function isBell(t: Transaction): boolean {
 
 // BR-06 — tổng đã thu / còn thiếu
 export function paidTotal(t: Transaction): number {
-  const dau = t.payments.find((p) => p.isDau)?.soTien || t.payments[0]?.soTien || 0;
-  const rest = t.payments.filter((p) => !p.isDau).reduce((s, p) => s + p.soTien, 0);
-  return (t.payments.length ? dau + rest : 0);
+  return paymentTotal(t, "ar");
 }
 
 export const TYPE_LABEL: Record<TxType, string> = {
