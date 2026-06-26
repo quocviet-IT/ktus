@@ -1,10 +1,11 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { Check, Plus, Settings, Pencil } from "lucide-react";
+import { Check, Filter, Plus, Settings, Pencil, RotateCcw } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
 import EditableCell from "@/components/editable-cell";
+import StickyScrollTable from "@/components/sticky-scroll-table";
 import { listTransactions, listTransactionsPaged, listBankLines, listAccounts } from "@/lib/data";
 import type { Account } from "@/lib/types";
 import { createBankLine, toggleBankMatched } from "@/app/actions";
@@ -14,8 +15,21 @@ import {
   USBC101_COMPANIES, LEDGER_COLUMNS, LEDGER_FIELDS, ledgerCells, isFx, arTotal, apTotal, ledgerAccountFilter,
 } from "@/lib/usbc101";
 
-const PAGE_SIZE = 50;
-type SP = { sheet?: string; acc?: string; asof?: string; period?: string; day?: string; week?: string; month?: string; year?: string; page?: string };
+const DEFAULT_PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
+
+type SP = {
+  sheet?: string;
+  acc?: string;
+  asof?: string;
+  period?: string;
+  day?: string;
+  week?: string;
+  month?: string;
+  year?: string;
+  page?: string;
+  pageSize?: string;
+};
 
 export default async function Usbc101({ searchParams }: { searchParams: SP }) {
   const sheet = searchParams.sheet || "balance";
@@ -24,15 +38,15 @@ export default async function Usbc101({ searchParams }: { searchParams: SP }) {
   return (
     <>
       <PageHeader crumb="USBC101 / Account Balance" title="USBC101 — ACCOUNT BALANCE 2026" />
-      <div className="p-6">
+      <div className="p-4 lg:p-6">
         {/* tabs sheet */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="mb-4 flex flex-wrap gap-2">
           {tabs.map((s) => {
             const label = s === "balance" ? "BALANCE ACCOUNT" : s;
             const active = sheet === s;
             return (
-              <Link key={s} href={`/usbc101?sheet=${s}`}
-                className={`px-3 py-1.5 rounded-md text-[12.5px] border ${active ? "bg-brand text-white border-brand" : "border-line hover:border-accent"}`}>
+              <Link key={s} href={`/usbc101?sheet=${s}&pageSize=${searchParams.pageSize || DEFAULT_PAGE_SIZE}`}
+                className={`h-9 rounded-md border px-3 text-[12px] font-medium leading-9 ${active ? "border-brand bg-brand text-white" : "border-line bg-card text-ink hover:border-accent hover:bg-accentSoft"}`}>
                 {label}
               </Link>
             );
@@ -66,62 +80,84 @@ async function BalanceView() {
   const grandBeg = accounts.reduce((s, a) => s + a.beginning, 0);
   const grandEnd = accounts.reduce((s, a) => s + a.ending, 0);
 
-  const th = "px-2.5 py-2 border border-line bg-[#3a6ea5] text-white font-mono text-[10px] uppercase text-left whitespace-nowrap";
-  const td = "px-2.5 py-1.5 border border-line";
+  const th = "sticky top-0 z-20 border-b border-r border-line bg-band px-2 py-1.5 text-left align-bottom font-mono text-[10px] font-semibold uppercase tracking-normal text-brand whitespace-nowrap";
+  const td = "border-b border-r border-line px-2 py-1.5 text-[12px] leading-5 whitespace-nowrap align-top";
 
   return (
-    <div className="bg-card border border-line rounded-xl p-4">
-      <div className="overflow-x-auto">
-        <table className="border-collapse text-[12.5px] min-w-[680px]">
-          <thead><tr>
-            <th className={th}>Stt</th><th className={th}>Account Name</th><th className={th}>Account Type</th>
-            <th className={th + " text-right"}>Beginning</th><th className={th + " text-right"}>Ending Balance</th>
-          </tr></thead>
-          <tbody>
-            <tr className="bg-[#dbe7f3] font-bold">
-              <td className={td} colSpan={3}>SUBTOTAL (MONTH)</td>
-              <td className={td + " text-right font-mono"}>{acct(grandBeg)}</td>
-              <td className={td + " text-right font-mono"}>{acct(grandEnd)}</td>
-            </tr>
-            {groups.map((g) => {
-              const beg = g.items.reduce((s, a) => s + a.beginning, 0);
-              const end = g.items.reduce((s, a) => s + a.ending, 0);
-              return (
-                <Fragment key={g.entity}>
-                  <tr className="bg-[#eaf1f8] font-bold text-accent">
-                    <td className={td}>{g.entity}</td><td className={td} /><td className={td} />
-                    <td className={td + " text-right font-mono"}>{acct(beg)}</td>
-                    <td className={td + " text-right font-mono"}>{acct(end)}</td>
-                  </tr>
-                  {g.items.map((a, i) => (
-                    <tr key={a.id} className="hover:bg-accentSoft">
-                      <td className={td + " text-right font-mono text-muted"}>{i + 1}</td>
-                      <td className={td + " text-brand"}>{a.name}</td>
-                      <td className={td}>{a.accountType || ""}</td>
-                      <td className={td + " text-right font-mono"}>{acct(a.beginning)}</td>
-                      <td className={td + " text-right font-mono"}>{acct(a.ending)}</td>
-                    </tr>
-                  ))}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+    <section className="rounded-lg border border-line bg-card">
+      <div className="grid grid-cols-2 gap-px border-b border-line bg-line md:grid-cols-4">
+        <div className="bg-band px-3 py-2">
+          <div className="font-mono text-[10px] font-semibold uppercase text-muted">Tài khoản</div>
+          <div className="mt-0.5 font-mono text-[15px] font-bold tabular-nums text-ink">{accounts.length.toLocaleString("en-US")}</div>
+        </div>
+        <div className="bg-band px-3 py-2">
+          <div className="font-mono text-[10px] font-semibold uppercase text-muted">Nhóm công ty</div>
+          <div className="mt-0.5 font-mono text-[15px] font-bold tabular-nums text-ink">{groups.length.toLocaleString("en-US")}</div>
+        </div>
+        <div className="bg-band px-3 py-2">
+          <div className="font-mono text-[10px] font-semibold uppercase text-muted">Beginning</div>
+          <div className="mt-0.5 font-mono text-[15px] font-bold tabular-nums text-ink">{acct(grandBeg)}</div>
+        </div>
+        <div className="bg-band px-3 py-2">
+          <div className="font-mono text-[10px] font-semibold uppercase text-muted">Ending Balance</div>
+          <div className="mt-0.5 font-mono text-[15px] font-bold tabular-nums text-ink">{acct(grandEnd)}</div>
+        </div>
       </div>
-    </div>
+      <div className="p-3">
+        <StickyScrollTable minWidth={780} bodyClassName="max-h-[calc(100vh-280px)] min-h-[320px]">
+          <table className="border-collapse text-[12px]" style={{ minWidth: 780 }}>
+            <thead><tr>
+              <th className={th}>Stt</th><th className={th}>Account Name</th><th className={th}>Account Type</th>
+              <th className={th + " text-right"}>Beginning</th><th className={th + " text-right"}>Ending Balance</th>
+            </tr></thead>
+            <tbody>
+              <tr className="bg-accentSoft font-bold">
+                <td className={td} colSpan={3}>SUBTOTAL (MONTH)</td>
+                <td className={td + " text-right font-mono"}>{acct(grandBeg)}</td>
+                <td className={td + " text-right font-mono"}>{acct(grandEnd)}</td>
+              </tr>
+              {groups.map((g) => {
+                const beg = g.items.reduce((s, a) => s + a.beginning, 0);
+                const end = g.items.reduce((s, a) => s + a.ending, 0);
+                return (
+                  <Fragment key={g.entity}>
+                    <tr className="bg-band font-bold text-accent">
+                      <td className={td}>{g.entity}</td><td className={td} /><td className={td} />
+                      <td className={td + " text-right font-mono"}>{acct(beg)}</td>
+                      <td className={td + " text-right font-mono"}>{acct(end)}</td>
+                    </tr>
+                    {g.items.map((a, i) => (
+                      <tr key={a.id} className="hover:bg-accentSoft">
+                        <td className={td + " text-right font-mono text-muted"}>{i + 1}</td>
+                        <td className={td + " text-brand"}>{a.name}</td>
+                        <td className={td}>{a.accountType || ""}</td>
+                        <td className={td + " text-right font-mono"}>{acct(a.beginning)}</td>
+                        <td className={td + " text-right font-mono"}>{acct(a.ending)}</td>
+                      </tr>
+                    ))}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </StickyScrollTable>
+      </div>
+    </section>
   );
 }
 
 async function LedgerView({ company, sp }: { company: string; sp: SP }) {
   const range = periodRange(sp);
   const acc = sp.acc === "cash" || sp.acc === "bank" ? sp.acc : "all";
+  const requestedPageSize = Number(sp.pageSize);
+  const pageSize = PAGE_SIZE_OPTIONS.includes(requestedPageSize) ? requestedPageSize : DEFAULT_PAGE_SIZE;
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
-  const startIdx = (page - 1) * PAGE_SIZE;
+  const startIdx = (page - 1) * pageSize;
 
   // acc = "all": phân trang TẠI SERVER (nhanh). cash/bank: lọc trong bộ nhớ nên kéo đủ rồi cắt trang.
   let rows, total: number;
   if (acc === "all") {
-    const paged = await listTransactionsPaged({ company, from: range.from, to: range.to }, page, PAGE_SIZE);
+    const paged = await listTransactionsPaged({ company, from: range.from, to: range.to }, page, pageSize);
     rows = paged.rows; total = paged.total;
   } else {
     const [fetched, accounts] = await Promise.all([
@@ -130,80 +166,159 @@ async function LedgerView({ company, sp }: { company: string; sp: SP }) {
     ]);
     const filtered = fetched.filter((t) => ledgerAccountFilter(t, acc, accounts));
     total = filtered.length;
-    rows = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+    rows = filtered.slice(startIdx, startIdx + pageSize);
   }
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const currentStartIdx = (currentPage - 1) * pageSize;
+  const pageFrom = total ? currentStartIdx + 1 : 0;
+  const pageTo = Math.min(total, currentStartIdx + rows.length);
+  const pageAr = rows.reduce((sum, t) => sum + arTotal(t), 0);
+  const pageAp = rows.reduce((sum, t) => sum + apTotal(t), 0);
 
-  const th = "px-2 py-2 border border-line bg-band font-mono text-[9.5px] uppercase text-brand text-left whitespace-nowrap align-bottom";
-  const td = "px-2 py-1.5 border border-line align-top";
+  const control =
+    "h-9 rounded-md border border-line bg-card px-2.5 text-[12px] text-ink outline-none hover:border-accent focus:border-brand focus:ring-1 focus:ring-brand";
+  const toolbarButton =
+    "inline-flex h-9 items-center gap-1.5 rounded-md border border-line px-3 text-[12px] font-medium text-ink hover:border-accent hover:bg-accentSoft";
+  const primaryButton =
+    "inline-flex h-9 items-center gap-1.5 rounded-md border border-brand bg-brand px-3 text-[12px] font-medium text-white hover:bg-[#244C39]";
+  const th = "sticky top-0 z-20 border-b border-r border-line bg-band px-2 py-1.5 text-left align-bottom font-mono text-[10px] font-semibold uppercase tracking-normal text-brand whitespace-nowrap";
+  const td = "border-b border-r border-line px-2 py-1.5 text-[12px] leading-5 whitespace-nowrap align-top";
+  const stickyEdge = "bg-card shadow-[2px_0_0_0_#D8E0D4]";
+  const stickyHead = "z-40 bg-band shadow-[2px_0_0_0_#D8E0D4]";
+  const stickyColumns = [
+    "sticky left-0 w-[48px] min-w-[48px] max-w-[48px]",
+    "sticky left-[48px] w-[82px] min-w-[82px] max-w-[82px]",
+    "sticky left-[130px] w-[124px] min-w-[124px] max-w-[124px]",
+    "sticky left-[254px] w-[240px] min-w-[240px] max-w-[240px]",
+  ];
+  const stickyClass = (index: number, head = false) => index < stickyColumns.length
+    ? `${stickyColumns[index]} ${head ? stickyHead : `${stickyEdge} z-10`}`
+    : "";
+  const colWidth = (index: number) => {
+    if (index < stickyColumns.length) return undefined;
+    const col = LEDGER_COLUMNS[index];
+    if (["Customer name", "Company account"].includes(col)) return 160;
+    if (["Contact", "Rung Chuông"].includes(col)) return 120;
+    if (isFx(col) || col.startsWith("A/")) return 118;
+    return 108;
+  };
+  const tableMinWidth = 2200;
 
   return (
-    <div className="bg-card border border-line rounded-xl p-4">
-      <div className="flex gap-1.5 mb-2 flex-wrap">
+    <section className="rounded-lg border border-line bg-card">
+      <div className="border-b border-line px-4 py-3">
+        <div className="mb-3 flex gap-2 flex-wrap">
         {([["all", "Tất cả"], ["cash", "Theo dõi Cash"], ["bank", "Theo dõi Bank"]] as const).map(([v, l]) => (
-          <Link key={v} href={`/usbc101?sheet=${company}&acc=${v}`}
-            className={`px-3 py-1.5 rounded-md text-[12px] border ${acc === v ? "bg-brand text-white border-brand" : "border-line hover:border-accent"}`}>{l}</Link>
+          <Link key={v} href={`/usbc101?sheet=${company}&acc=${v}&pageSize=${pageSize}`}
+            className={`h-9 rounded-md border px-3 text-[12px] font-medium leading-9 ${acc === v ? "border-brand bg-brand text-white" : "border-line text-ink hover:border-accent hover:bg-accentSoft"}`}>{l}</Link>
         ))}
-      </div>
-      <form action="/usbc101" className="flex items-center gap-2 mb-3 flex-wrap">
+        </div>
+        <form action="/usbc101" className="flex items-center gap-2 gap-y-3 flex-wrap">
         <input type="hidden" name="sheet" value={company} />
         <input type="hidden" name="acc" value={acc} />
         <PeriodFields period={sp.period} day={sp.day} week={sp.week} month={sp.month} year={sp.year} />
-        <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[13px] hover:border-accent">Lọc</button>
-        <span className="text-[12px] text-muted">Sổ {company} · {periodLabel(sp)} · {total} dòng</span>
+        <label className="flex items-center gap-1.5 text-[12px] text-muted">
+          Dòng/trang
+          <select name="pageSize" defaultValue={String(pageSize)} className={control}>
+            {PAGE_SIZE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
+        </label>
+        <button type="submit" className={primaryButton}>
+          <Filter size={14} />
+          Lọc
+        </button>
+        <Link href={`/usbc101?sheet=${company}&acc=${acc}&pageSize=${pageSize}`} className={toolbarButton}>
+          <RotateCcw size={14} />
+          Xóa lọc
+        </Link>
         <div className="flex-1" />
-        <Link href="/rc/new" className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-[12px] text-white hover:bg-accent">
+        <span className="text-[12px] text-muted">Sổ {company} · {periodLabel(sp)} · {pageFrom}-{pageTo}/{total} dòng</span>
+        <Link href="/rc/new" className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand px-3 text-[12px] font-medium text-white hover:bg-accent">
           <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Nhập RC
         </Link>
-      </form>
-      <div className="bg-accentSoft rounded-lg px-3 py-1.5 text-[11.5px] text-[#6c5320] mb-2 inline-flex items-center gap-1.5">
+        </form>
+      </div>
+
+      <div className="grid grid-cols-2 gap-px border-b border-line bg-line md:grid-cols-4">
+        <div className="bg-band px-3 py-2">
+          <div className="font-mono text-[10px] font-semibold uppercase text-muted">Sổ</div>
+          <div className="mt-0.5 text-[14px] font-semibold text-ink">{company} · {acc === "all" ? "Tất cả" : acc.toUpperCase()}</div>
+        </div>
+        <div className="bg-band px-3 py-2">
+          <div className="font-mono text-[10px] font-semibold uppercase text-muted">Dòng</div>
+          <div className="mt-0.5 font-mono text-[15px] font-bold tabular-nums text-ink">{total.toLocaleString("en-US")}</div>
+        </div>
+        <div className="bg-band px-3 py-2">
+          <div className="font-mono text-[10px] font-semibold uppercase text-muted">A/R trang này</div>
+          <div className="mt-0.5 font-mono text-[15px] font-bold tabular-nums text-ink">{money(pageAr)}</div>
+        </div>
+        <div className="bg-band px-3 py-2">
+          <div className="font-mono text-[10px] font-semibold uppercase text-muted">A/P trang này</div>
+          <div className="mt-0.5 font-mono text-[15px] font-bold tabular-nums text-ink">{money(pageAp)}</div>
+        </div>
+      </div>
+
+      <div className="p-3">
+      <div className="mb-2 inline-flex items-center gap-1.5 rounded-lg bg-accentSoft px-3 py-1.5 text-[11.5px] text-[#6c5320]">
         <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Bấm vào ô để sửa trực tiếp (Enter để lưu, Esc để hủy). Ô <span className="italic text-accent">ƒ</span> tự tính. Nút <b>Sửa</b> cuối dòng mở form đầy đủ.
       </div>
-      <div className="overflow-x-auto">
-        <table className="border-collapse text-[12px] min-w-[1320px]">
+      <StickyScrollTable minWidth={tableMinWidth} bodyClassName="max-h-[calc(100vh-360px)] min-h-[320px]">
+        <table className="border-collapse text-[12px]" style={{ minWidth: tableMinWidth }}>
           <thead><tr>
-            {LEDGER_COLUMNS.map((c) => <th key={c} className={th}>{c}{isFx(c) ? " ƒ" : ""}</th>)}
-            <th className={`${th} text-center sticky right-0 bg-band`}>SỬA</th>
+            {LEDGER_COLUMNS.map((c, index) => (
+              <th key={c} className={`${th} ${stickyClass(index, true)}`} style={{ minWidth: colWidth(index) }}>
+                {c}{isFx(c) ? " ƒ" : ""}
+              </th>
+            ))}
+            <th className={`${th} sticky right-0 z-40 min-w-[112px] bg-band text-center shadow-[-2px_0_0_0_#D8E0D4]`}>SỬA</th>
           </tr></thead>
           <tbody>
             {rows.length ? rows.map((t, i) => (
-              <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
-                {ledgerCells(t, startIdx + i).map((cell, k) => {
+              <tr key={t.id} className="hover:bg-accentSoft">
+                {ledgerCells(t, currentStartIdx + i).map((cell, k) => {
                   const meta = LEDGER_FIELDS[k];
                   const editable = !!meta?.field && meta.kind !== "ro";
                   const fx = isFx(LEDGER_COLUMNS[k]);
                   if (k === 0)
-                    return <td key={k} className={`${td} text-right font-mono`}><Link href={`/rc/${t.id}`} className="text-brand hover:text-accent">{cell}</Link></td>;
+                    return <td key={k} className={`${td} ${stickyClass(k)} text-right font-mono`}><Link href={`/rc/${t.id}`} className="text-brand hover:text-accent">{cell}</Link></td>;
                   if (editable) {
                     const raw = meta.field === "companyAccount" ? (t.accountName || t.companyAccount || "") : ((t as any)[meta.field!] ?? "");
-                    return <td key={k} className={`${td} p-0`}><EditableCell id={t.id} field={meta.field!} kind={meta.kind} value={raw} /></td>;
+                    return <td key={k} className={`${td} ${stickyClass(k)} p-0`} style={{ minWidth: colWidth(k) }}><EditableCell id={t.id} field={meta.field!} kind={meta.kind} value={raw} /></td>;
                   }
                   return (
-                    <td key={k} className={`${td} ${fx ? "bg-band text-muted text-right font-mono" : (/^[\d,.-]+$/.test(String(cell)) && cell !== "" ? "text-right font-mono" : "")}`}>{cell}</td>
+                    <td key={k} title={String(cell || "")} className={`${td} ${stickyClass(k)} ${fx ? "bg-band text-muted text-right font-mono" : (/^[\d,.-]+$/.test(String(cell)) && cell !== "" ? "text-right font-mono" : "")} ${k === 3 || k === 6 || k === 9 ? "overflow-hidden text-ellipsis" : ""}`} style={{ minWidth: colWidth(k) }}>{cell}</td>
                   );
                 })}
-                <td className={`${td} text-center sticky right-0 bg-card`}>
+                <td className={`${td} sticky right-0 z-20 bg-card text-center shadow-[-2px_0_0_0_#D8E0D4]`}>
                   <Link href={`/rc/${t.id}`} aria-label="Sửa đơn" title="Sửa đơn"
-                    className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11.5px] text-brand hover:border-accent hover:text-accent">
+                    className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2.5 text-[11.5px] text-brand hover:border-accent hover:bg-accentSoft hover:text-accent">
                     <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Sửa
                   </Link>
                 </td>
               </tr>
-            )) : <tr><td colSpan={LEDGER_COLUMNS.length + 1} className="border border-line px-3 py-6 text-center text-muted">Sổ {company} chưa có giao dịch.</td></tr>}
+            )) : <tr><td colSpan={LEDGER_COLUMNS.length + 1} className="border-b border-r border-line px-3 py-8 text-center text-[12px] text-muted">Sổ {company} chưa có giao dịch.</td></tr>}
           </tbody>
         </table>
+      </StickyScrollTable>
+      <Pagination
+        basePath="/usbc101"
+        sp={{ ...(sp as Record<string, string | undefined>), pageSize: String(pageSize) }}
+        page={currentPage}
+        totalPages={totalPages}
+        total={total}
+      />
       </div>
-      <Pagination basePath="/usbc101" sp={sp as Record<string, string | undefined>} page={page} totalPages={totalPages} total={total} />
-    </div>
+    </section>
   );
 }
 
 function AccTabs({ company, acc }: { company: string; acc: string }) {
   return (
-    <div className="flex gap-1.5 mb-2 flex-wrap">
+    <div className="mb-3 flex gap-2 flex-wrap">
       {([["all", "Tất cả"], ["cash", "Theo dõi Cash"], ["bank", "Theo dõi Bank (Sao kê)"]] as const).map(([v, l]) => (
         <Link key={v} href={`/usbc101?sheet=${company}&acc=${v}`}
-          className={`px-3 py-1.5 rounded-md text-[12px] border ${acc === v ? "bg-brand text-white border-brand" : "border-line hover:border-accent"}`}>{l}</Link>
+          className={`h-9 rounded-md border px-3 text-[12px] font-medium leading-9 ${acc === v ? "border-brand bg-brand text-white" : "border-line bg-card text-ink hover:border-accent hover:bg-accentSoft"}`}>{l}</Link>
       ))}
     </div>
   );
@@ -224,31 +339,34 @@ async function BankView({ company, sp }: { company: string; sp: SP }) {
   const diff = ledgerBank - stmtBalance;
   const matched = lines.filter((l) => l.matched).length;
 
-  const th = "px-2.5 py-2 border border-line bg-band font-mono text-[10px] uppercase text-brand text-left whitespace-nowrap";
-  const td = "px-2.5 py-1.5 border border-line";
+  const th = "sticky top-0 z-20 border-b border-r border-line bg-band px-2 py-1.5 text-left align-bottom font-mono text-[10px] font-semibold uppercase tracking-normal text-brand whitespace-nowrap";
+  const td = "border-b border-r border-line px-2 py-1.5 text-[12px] leading-5 whitespace-nowrap align-top";
   const inp = "rounded-md border border-line px-2 py-1.5 text-[12px] bg-white";
   const Card = ({ l, v, alert }: { l: string; v: string; alert?: boolean }) => (
-    <div className={`rounded-lg border p-3 ${alert ? "border-danger" : "border-line"}`}>
-      <div className="font-mono text-[10.5px] text-muted uppercase">{l}</div>
-      <div className={`font-serif text-lg mt-0.5 ${alert ? "text-danger" : ""}`}>{v}</div>
+    <div className="bg-band px-3 py-2">
+      <div className="font-mono text-[10px] font-semibold uppercase text-muted">{l}</div>
+      <div className={`mt-0.5 font-mono text-[15px] font-bold tabular-nums ${alert ? "text-danger" : "text-ink"}`}>{v}</div>
     </div>
   );
 
   return (
     <div>
       <AccTabs company={company} acc="bank" />
-      <div className="bg-card border border-line rounded-xl p-4">
-        <div className="bg-accentSoft rounded-lg px-3 py-2 text-[12px] text-[#6c5320] mb-3">
-          <span className="inline-flex items-start gap-1.5"><Settings className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span>THEO DÕI BANK — sao kê ngân hàng của {company}. <b>Đối chiếu</b>: Số dư sổ (bank) so với Số dư sao kê.</span></span>
+      <section className="rounded-lg border border-line bg-card">
+        <div className="border-b border-line px-4 py-3">
+          <div className="rounded-lg bg-accentSoft px-3 py-2 text-[12px] text-[#6c5320]">
+            <span className="inline-flex items-start gap-1.5"><Settings className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span>THEO DÕI BANK — sao kê ngân hàng của {company}. <b>Đối chiếu</b>: Số dư sổ (bank) so với Số dư sao kê.</span></span>
+          </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 gap-px border-b border-line bg-line md:grid-cols-4">
           <Card l="Số dư sao kê" v={money(stmtBalance)} />
           <Card l="Số dư sổ (bank)" v={money(ledgerBank)} />
           <Card l="Chênh lệch" v={money(diff)} alert={Math.abs(diff) > 0.01} />
           <Card l="Đã khớp" v={`${matched}/${lines.length}`} />
         </div>
 
-        <form action={createBankLine.bind(null, company)} className="flex flex-wrap gap-2 items-end mb-3">
+        <div className="p-3">
+        <form action={createBankLine.bind(null, company)} className="mb-3 flex flex-wrap gap-2 items-end">
           <input name="ngay" type="date" required aria-label="Ngày" className={inp} />
           <input name="description" required placeholder="Diễn giải (CHECK/ACH/BANKCARD DEPOSIT…)" aria-label="Diễn giải" className={inp + " min-w-[260px] flex-1"} />
           <input name="category" placeholder="Loại" aria-label="Loại" className={inp + " w-28"} />
@@ -259,8 +377,8 @@ async function BankView({ company, sp }: { company: string; sp: SP }) {
           </button>
         </form>
 
-        <div className="overflow-x-auto">
-          <table className="border-collapse text-[12.5px] min-w-[820px]">
+        <StickyScrollTable minWidth={900} bodyClassName="max-h-[calc(100vh-430px)] min-h-[260px]">
+          <table className="border-collapse text-[12px]" style={{ minWidth: 900 }}>
             <thead><tr>
               <th className={th}>Date</th><th className={th}>Decription</th><th className={th}>Category</th>
               <th className={th}>Số TK</th><th className={th}>Số tiền</th><th className={th}>Đối chiếu</th>
@@ -284,8 +402,9 @@ async function BankView({ company, sp }: { company: string; sp: SP }) {
               )) : <tr><td colSpan={6} className={td + " text-center text-muted py-4"}>Chưa có dòng sao kê. Thêm ở trên hoặc import từ bank.</td></tr>}
             </tbody>
           </table>
+        </StickyScrollTable>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
