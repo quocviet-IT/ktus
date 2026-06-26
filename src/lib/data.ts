@@ -1,26 +1,33 @@
 // Facade dữ liệu: chuyển giữa store (demo) và Supabase (thật) theo USE_DB.
 import * as store from "./store";
 import * as repo from "./db-repo";
+import * as rcrepo from "./rc-repo";
 import type { Transaction, TxStatus, BankLine, Account } from "./types";
 import type { PaymentMethod } from "./payments";
 import type { CatalogGroup, CatalogGroupKey, CatalogItem } from "./catalog";
 import type { ExcelWorkbook, ExcelRow } from "./db-repo";
 
 const USE_DB = process.env.USE_DB === "true";
+// Parallel-run: ĐỌC báo cáo từ mô hình mới (v_rc_entry). Ghi vẫn theo đường cũ.
+const USE_RC_READS = USE_DB && process.env.USE_RC_READS === "true";
 
 export async function listTransactions(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
+  if (USE_RC_READS) return rcrepo.listTransactions(opts);
   return USE_DB ? repo.listTransactions(opts) : store.listTransactions(opts);
 }
 export async function listTransactionsPaged(
   opts: { company?: string; status?: string; q?: string; from?: string; to?: string },
   page: number, pageSize: number,
 ): Promise<{ rows: Transaction[]; total: number }> {
+  if (USE_RC_READS) return rcrepo.listTransactionsPaged(opts, page, pageSize);
   return USE_DB ? repo.listTransactionsPaged(opts, page, pageSize) : store.listTransactionsPaged(opts, page, pageSize);
 }
 export async function getTransaction(id: string): Promise<Transaction | undefined> {
+  if (USE_RC_READS) return rcrepo.getTransaction(id);
   return USE_DB ? repo.getTransaction(id) : store.getTransaction(id);
 }
 export async function findByJm(rc?: string): Promise<Transaction | undefined> {
+  if (USE_RC_READS) return rcrepo.findByJm(rc);
   return USE_DB ? repo.findByJm(rc) : store.findByJm(rc);
 }
 export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
