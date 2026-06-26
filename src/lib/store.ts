@@ -1,5 +1,14 @@
 import type { Transaction, TxStatus } from "./types";
-import { addPaymentMethod as addMemoryPaymentMethod, listPaymentMethods, type PaymentMethod } from "./payments";
+import type { PaymentMethod } from "./payments";
+import {
+  buildCatalogGroups,
+  DEFAULT_CATALOG_ITEMS,
+  deleteCatalogItemInList,
+  upsertCatalogItemInList,
+  type CatalogGroup,
+  type CatalogGroupKey,
+  type CatalogItem,
+} from "./catalog";
 
 // ===== Danh mục dùng chung (FR-CAT) =====
 export const SOURCES = ["WI", "TEL", "FB", "IG-APPT", "RF-APPT", "RC", "VIP"];
@@ -7,8 +16,13 @@ export const COMPANIES = ["PC49", "Trans", "HPLLC", "3NVY", "Other", "TDW"] as c
 export const SALES = ["T.Vân", "B.Khanh", "S.Mai", "N.Ý", "T.Quỳnh"];
 export const SALES_ONLINE = ["Văn Vương US", "Mạnh Thắng US", "Trà My US", "Kim Thanh US"];
 export const BELL_CODES = ["RC1", "RC2", "RC3", "SBO1"];
-export const PAYMENT_METHODS = listPaymentMethods;
-export function addPaymentMethod(label: string): PaymentMethod { return addMemoryPaymentMethod(label); }
+export const PAYMENT_METHODS = () => listCatalogGroups()
+  .find((group) => group.key === "payment")!
+  .items.map((item): PaymentMethod => ({ code: item.code, label: item.label, sort: item.sort, active: item.active }));
+export function addPaymentMethod(label: string): PaymentMethod {
+  const item = upsertCatalogItem({ group: "payment", label });
+  return { code: item.code, label: item.label, sort: item.sort, active: item.active };
+}
 
 let _id = 100;
 const nid = () => "t" + ++_id;
@@ -114,6 +128,8 @@ function withAccount(t: Transaction): Transaction {
 const g = globalThis as any;
 if (!g.__KTUS_TX) g.__KTUS_TX = seed().map(withAccount);
 const TX: Transaction[] = g.__KTUS_TX;
+if (!g.__KTUS_CATALOG) g.__KTUS_CATALOG = DEFAULT_CATALOG_ITEMS.map((item) => ({ ...item, meta: item.meta ? { ...item.meta } : undefined }));
+const CATALOG: CatalogItem[] = g.__KTUS_CATALOG;
 
 // ===== API store =====
 export function listTransactions(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Transaction[] {
@@ -147,6 +163,14 @@ export function updateTransaction(id: string, patch: Partial<Transaction>) {
   return TX[i];
 }
 export function setStatus(id: string, s: TxStatus) { return updateTransaction(id, { trangThai: s }); }
+
+export function listCatalogGroups(): CatalogGroup[] { return buildCatalogGroups(CATALOG); }
+export function upsertCatalogItem(input: { group: CatalogGroupKey; code?: string; label: string; sort?: number; meta?: Record<string, string> }): CatalogItem {
+  return upsertCatalogItemInList(CATALOG, input);
+}
+export function deleteCatalogItem(group: CatalogGroupKey, code: string): void {
+  deleteCatalogItemInList(CATALOG, group, code);
+}
 
 // ===== Chart of accounts (BALANCE ACCOUNT) =====
 import type { Account } from "./types";

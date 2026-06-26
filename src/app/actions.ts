@@ -1,7 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, addBankLine, setBankMatched, addPaymentMethod } from "@/lib/data";
+import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, addBankLine, setBankMatched, addPaymentMethod, deleteCatalogItem, upsertCatalogItem } from "@/lib/data";
+import type { CatalogGroupKey } from "@/lib/catalog";
 import type { TxStatus, TxType, CompanyCode, LineItem, Payment } from "@/lib/types";
 
 export interface RcInput {
@@ -160,6 +161,39 @@ export async function createPaymentMethod(fd: FormData) {
   if (label) await addPaymentMethod(label);
   revalidatePath("/catalog");
   revalidatePath("/rc/new");
+}
+
+function revalidateCatalogConsumers() {
+  revalidatePath("/catalog");
+  revalidatePath("/rc/new");
+  revalidatePath("/rc");
+  revalidatePath("/missing-source");
+}
+
+export async function saveCatalogItem(fd: FormData) {
+  const group = String(fd.get("group") || "") as CatalogGroupKey;
+  const label = String(fd.get("label") || "").trim();
+  const code = String(fd.get("code") || "").trim() || undefined;
+  const sortRaw = String(fd.get("sort") || "").trim();
+  const unit = String(fd.get("unit") || "").trim();
+  const conversion = String(fd.get("conversion") || "").trim();
+  if (!group || !label) return;
+  await upsertCatalogItem({
+    group,
+    code,
+    label,
+    sort: sortRaw ? Number(sortRaw) || undefined : undefined,
+    meta: unit || conversion ? { unit, conversion } : undefined,
+  });
+  revalidateCatalogConsumers();
+}
+
+export async function removeCatalogItem(fd: FormData) {
+  const group = String(fd.get("group") || "") as CatalogGroupKey;
+  const code = String(fd.get("code") || "").trim();
+  if (!group || !code) return;
+  await deleteCatalogItem(group, code);
+  revalidateCatalogConsumers();
 }
 
 export async function setStatus(id: string, s: TxStatus) {

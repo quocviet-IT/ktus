@@ -3,6 +3,7 @@ import * as store from "./store";
 import * as repo from "./db-repo";
 import type { Transaction, TxStatus, BankLine, Account } from "./types";
 import type { PaymentMethod } from "./payments";
+import type { CatalogGroup, CatalogGroupKey, CatalogItem } from "./catalog";
 import type { ExcelWorkbook, ExcelRow } from "./db-repo";
 
 const USE_DB = process.env.USE_DB === "true";
@@ -45,6 +46,19 @@ export async function listPaymentMethods(): Promise<PaymentMethod[]> {
 
 export async function addPaymentMethod(label: string): Promise<PaymentMethod> {
   return USE_DB ? repo.addPaymentMethod(label) : store.addPaymentMethod(label);
+}
+
+export async function listCatalogGroups(): Promise<CatalogGroup[]> {
+  return USE_DB ? repo.listCatalogGroups() : store.listCatalogGroups();
+}
+
+export async function upsertCatalogItem(input: { group: CatalogGroupKey; code?: string; label: string; sort?: number; meta?: Record<string, string> }): Promise<CatalogItem> {
+  return USE_DB ? repo.upsertCatalogItem(input) : store.upsertCatalogItem(input);
+}
+
+export async function deleteCatalogItem(group: CatalogGroupKey, code: string): Promise<void> {
+  if (USE_DB) await repo.deleteCatalogItem(group, code);
+  else store.deleteCatalogItem(group, code);
 }
 
 // Sao kê ngân hàng

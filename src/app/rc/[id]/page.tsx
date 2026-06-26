@@ -3,17 +3,21 @@ import Link from "next/link";
 import { ArrowLeft, Bell, Check, Link2 } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import StatusBadge from "@/components/status-badge";
-import { findByJm, getTransaction, listPaymentMethods } from "@/lib/data";
+import { findByJm, getTransaction, listCatalogGroups, listPaymentMethods } from "@/lib/data";
 import { computeCondition, paidTotal, TYPE_LABEL, jmKind, STATUS_LABEL } from "@/lib/rules";
 import { money, ddmmyyyy, ddmm } from "@/lib/format";
 import { setStatus, updateRcJm } from "@/app/actions";
-import { SOURCES, SALES, SALES_ONLINE, BELL_CODES } from "@/lib/store";
 import { amountByPaymentMethod, paymentTotal } from "@/lib/payments";
 
 export default async function RcDetail({ params }: { params: { id: string } }) {
   const t = await getTransaction(params.id);
   if (!t) return notFound();
-  const paymentMethods = await listPaymentMethods();
+  const [paymentMethods, catalogGroups] = await Promise.all([listPaymentMethods(), listCatalogGroups()]);
+  const labels = (key: string) => catalogGroups.find((group) => group.key === key)?.items.map((item) => item.label) ?? [];
+  const sources = labels("source");
+  const sales = labels("sales_counter");
+  const salesOnline = labels("sales_online");
+  const bellCodes = labels("bell_code");
   const c = computeCondition(t);
   const dep = t.oldReceiptNo ? await findByJm(t.oldReceiptNo) : undefined;
   const paid = paidTotal(t);
@@ -163,10 +167,10 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
             </>); })()}
           </div>
           <button type="submit" className="mt-3 rounded-md bg-brand px-4 py-2 text-[13px] font-semibold text-white hover:bg-accent">Lưu cập nhật</button>
-          <datalist id="dl-sources">{SOURCES.map((s) => <option key={s} value={s} />)}</datalist>
-          <datalist id="dl-sales">{SALES.map((s) => <option key={s} value={s} />)}</datalist>
-          <datalist id="dl-online">{SALES_ONLINE.map((s) => <option key={s} value={s} />)}</datalist>
-          <datalist id="dl-bell">{BELL_CODES.map((b) => <option key={b} value={b} />)}</datalist>
+          <datalist id="dl-sources">{sources.map((s) => <option key={s} value={s} />)}</datalist>
+          <datalist id="dl-sales">{sales.map((s) => <option key={s} value={s} />)}</datalist>
+          <datalist id="dl-online">{salesOnline.map((s) => <option key={s} value={s} />)}</datalist>
+          <datalist id="dl-bell">{bellCodes.map((b) => <option key={b} value={b} />)}</datalist>
         </form>
       </div>
     </>

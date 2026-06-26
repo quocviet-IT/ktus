@@ -1,13 +1,14 @@
 import PageHeader from "@/components/page-header";
 import { ArrowRight, Check, CircleCheck, Send } from "lucide-react";
-import { listTransactions } from "@/lib/data";
+import { listCatalogGroups, listTransactions } from "@/lib/data";
 import { isMissingSource } from "@/lib/rules";
 import { ddmm } from "@/lib/format";
-import { SOURCES } from "@/lib/store";
 import { sendToUS, resolveSourceDetail } from "@/app/actions";
 
 export default async function MissingSource() {
   const rows = (await listTransactions()).filter(isMissingSource);
+  const catalogGroups = await listCatalogGroups();
+  const sources = catalogGroups.find((group) => group.key === "source")?.items.map((item) => item.label) ?? [];
   const inp = "border border-line rounded-lg px-2 py-1 text-[12px] bg-white";
 
   return (
@@ -46,7 +47,7 @@ export default async function MissingSource() {
             );
           }) : <div className="flex items-center justify-center gap-1.5 text-center text-muted py-6 text-[13px]"><CircleCheck className="h-4 w-4 text-ok" aria-hidden="true" /> Tất cả RC đã đủ thông tin nguồn</div>}
         </div>
-        <datalist id="dl-src-miss">{SOURCES.map((s) => <option key={s} value={s} />)}</datalist>
+        <datalist id="dl-src-miss">{sources.map((s) => <option key={s} value={s} />)}</datalist>
       </div>
     </>
   );

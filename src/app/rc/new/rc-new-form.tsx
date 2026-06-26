@@ -4,7 +4,7 @@ import { useMemo, useState, cloneElement, isValidElement } from "react";
 import { ArrowRight, Plus, Save, X } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { createRc, type RcInput } from "@/app/actions";
-import { COMPANIES, SOURCES, SALES, SALES_ONLINE, BELL_CODES } from "@/lib/store";
+import { COMPANIES } from "@/lib/store";
 import { TYPE_LABEL } from "@/lib/rules";
 import { money } from "@/lib/format";
 import type { PaymentMethod } from "@/lib/payments";
@@ -44,7 +44,13 @@ function pctInp(name: string, placeholder?: string) {
   return <input name={name} type="number" step="0.01" placeholder={placeholder} className={inp + " text-right font-mono"} />;
 }
 
-export default function NhapRCForm({ paymentMethods }: { paymentMethods: PaymentMethod[] }) {
+export default function NhapRCForm({
+  paymentMethods,
+  catalogOptions,
+}: {
+  paymentMethods: PaymentMethod[];
+  catalogOptions: { sources: string[]; sales: string[]; salesOnline: string[]; bellCodes: string[] };
+}) {
   const [company, setCompany] = useState<string>("PC49");
   const [type, setType] = useState<RcInput["type"]>("receipt");
   const [lines, setLines] = useState<Line[]>([{ moTa: "", soLuong: 1, donGia: 0 }]);
@@ -243,10 +249,10 @@ export default function NhapRCForm({ paymentMethods }: { paymentMethods: Payment
         </Section>
 
         {/* Danh mục gợi ý (combobox) — cho phép chọn hoặc gõ giá trị mới */}
-        <datalist id="dl-sources">{SOURCES.map((s) => <option key={s} value={s} />)}</datalist>
-        <datalist id="dl-sales">{SALES.map((s) => <option key={s} value={s} />)}</datalist>
-        <datalist id="dl-online">{SALES_ONLINE.map((s) => <option key={s} value={s} />)}</datalist>
-        <datalist id="dl-bell">{BELL_CODES.map((b) => <option key={b} value={b} />)}</datalist>
+        <datalist id="dl-sources">{catalogOptions.sources.map((s) => <option key={s} value={s} />)}</datalist>
+        <datalist id="dl-sales">{catalogOptions.sales.map((s) => <option key={s} value={s} />)}</datalist>
+        <datalist id="dl-online">{catalogOptions.salesOnline.map((s) => <option key={s} value={s} />)}</datalist>
+        <datalist id="dl-bell">{catalogOptions.bellCodes.map((b) => <option key={b} value={b} />)}</datalist>
 
         <div className="flex items-center gap-3">
           <button type="submit" disabled={busy} className="rounded-md bg-brand px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-accent disabled:opacity-60">

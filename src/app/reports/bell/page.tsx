@@ -1,8 +1,7 @@
 import PageHeader from "@/components/page-header";
-import { BellRing, Settings } from "lucide-react";
+import { BellRing } from "lucide-react";
 import PeriodFields from "@/components/period-fields";
-import { listTransactions } from "@/lib/data";
-import { BELL_CODES } from "@/lib/store";
+import { listCatalogGroups, listTransactions } from "@/lib/data";
 import { isBell, computeCondition, BELL_THRESHOLD } from "@/lib/rules";
 import { money, ddmm } from "@/lib/format";
 import { periodRange, periodLabel, byEntryAsc } from "@/lib/period";
@@ -13,7 +12,8 @@ type SP = { period?: string; day?: string; week?: string; month?: string; year?:
 // Rung chuông (BRD §12.3)
 export default async function Bell({ searchParams }: { searchParams: SP }) {
   const range = periodRange(searchParams);
-  const all = await listTransactions({ from: range.from, to: range.to });
+  const [all, catalogGroups] = await Promise.all([listTransactions({ from: range.from, to: range.to }), listCatalogGroups()]);
+  const bellCodes = catalogGroups.find((group) => group.key === "bell_code")?.items.map((item) => item.label) ?? [];
 
   // Gộp 1 đơn = 1 dòng (tránh ghi nhận trùng), rồi sắp xếp theo NGÀY tăng dần
   const byOrder = new Map<string, Transaction>();
@@ -24,7 +24,7 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
   const rows = [...byOrder.values()].sort(byEntryAsc);
 
   const counts: Record<string, number> = {};
-  BELL_CODES.forEach((c) => (counts[c] = 0));
+  bellCodes.forEach((c) => (counts[c] = 0));
   rows.forEach((t) => { if (t.bellCode && counts[t.bellCode] !== undefined) counts[t.bellCode]++; });
 
   const th = "px-2.5 py-2 border border-line bg-band font-mono text-[10px] uppercase text-brand text-left whitespace-nowrap";
@@ -35,7 +35,7 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
       <PageHeader crumb="Báo cáo / Rung chuông" title="Báo cáo rung chuông" />
       <div className="p-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3.5">
-          {BELL_CODES.map((c) => (
+          {bellCodes.map((c) => (
             <div key={c} className="bg-card border border-line border-l-4 border-l-accent rounded-r-xl p-3">
               <div className="font-mono text-[10.5px] text-muted uppercase">Mã {c}</div>
               <div className="font-serif text-xl mt-0.5">{counts[c]} đơn</div>

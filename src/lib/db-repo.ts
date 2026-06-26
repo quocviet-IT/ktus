@@ -1,6 +1,15 @@
 import { sb } from "./supabase-server";
 import type { Account, BankLine, CompanyCode, Transaction, TransactionSale, TxStatus, LineItem, Payment } from "./types";
 import { addPaymentMethod as addMemoryPaymentMethod, listPaymentMethods as listMemoryPaymentMethods, normalizePaymentCode, type PaymentMethod } from "./payments";
+import {
+  buildCatalogGroups,
+  CATALOG_GROUPS,
+  DEFAULT_CATALOG_ITEMS,
+  normalizeCatalogCode,
+  type CatalogGroup,
+  type CatalogGroupKey,
+  type CatalogItem,
+} from "./catalog";
 
 const N = (v: any) => (v == null ? 0 : Number(v));
 const PAGE_SIZE = 1000;
@@ -433,25 +442,10 @@ export async function listAccounts(): Promise<Account[]> {
 
 export async function listPaymentMethods(): Promise<PaymentMethod[]> {
   try {
-    const { data, error } = await sb()
-      .from("lookups")
-      .select("code, label, sort, active")
-      .eq("grp", "payment")
-      .order("sort", { ascending: true })
-      .order("label", { ascending: true });
-    if (error) throw error;
-    const dbMethods = (data ?? [])
-      .filter((r: any) => r.active !== false)
-      .map((r: any): PaymentMethod => ({
-        code: r.code,
-        label: r.label,
-        sort: r.sort ?? 0,
-        active: r.active !== false,
-      }));
-    const merged = new Map<string, PaymentMethod>();
-    for (const method of listMemoryPaymentMethods()) merged.set(method.code, method);
-    for (const method of dbMethods) merged.set(method.code, method);
-    return [...merged.values()].sort((a, b) => a.sort - b.sort || a.label.localeCompare(b.label));
+    const groups = await listCatalogGroups();
+    return groups
+      .find((group) => group.key === "payment")!
+      .items.map((item): PaymentMethod => ({ code: item.code, label: item.label, sort: item.sort, active: item.active }));
   } catch (e) {
     warnOnce("payment-lookups", "[lookups] không đọc được danh mục payment —", e);
     return listMemoryPaymentMethods();
@@ -469,6 +463,62 @@ export async function addPaymentMethod(label: string): Promise<PaymentMethod> {
     .upsert({ grp: "payment", code, label: cleanLabel, sort: method.sort, active: true }, { onConflict: "grp,code" });
   if (error) throw error;
   return method;
+}
+
+export async function listCatalogGroups(): Promise<CatalogGroup[]> {
+  try {
+    const keys = CATALOG_GROUPS.map((group) => group.key);
+    const { data, error } = await sb()
+      .from("lookups")
+      .select("grp, code, label, sort, active")
+      .in("grp", keys)
+      .order("sort", { ascending: true })
+      .order("label", { ascending: true });
+    if (error) throw error;
+
+    const merged = new Map<string, CatalogItem>();
+    for (const item of DEFAULT_CATALOG_ITEMS) merged.set(`${item.group}:${item.code}`, { ...item, meta: item.meta ? { ...item.meta } : undefined });
+    for (const row of data ?? []) {
+      const group = row.grp as CatalogGroupKey;
+      if (!keys.includes(group)) continue;
+      const fallback = merged.get(`${group}:${row.code}`);
+      merged.set(`${group}:${row.code}`, {
+        group,
+        code: row.code,
+        label: row.label,
+        sort: row.sort ?? fallback?.sort ?? 0,
+        active: row.active !== false,
+        meta: fallback?.meta,
+      });
+    }
+    return buildCatalogGroups([...merged.values()]);
+  } catch (e) {
+    warnOnce("catalog-lookups", "[lookups] không đọc được danh mục chung —", e);
+    return buildCatalogGroups(DEFAULT_CATALOG_ITEMS);
+  }
+}
+
+export async function upsertCatalogItem(input: { group: CatalogGroupKey; code?: string; label: string; sort?: number; meta?: Record<string, string> }): Promise<CatalogItem> {
+  const cleanLabel = input.label.trim();
+  const code = input.code?.trim() || normalizeCatalogCode(cleanLabel);
+  if (!cleanLabel || !code) throw new Error("Catalog label is required");
+
+  const groups = await listCatalogGroups();
+  const currentGroup = groups.find((group) => group.key === input.group);
+  const current = currentGroup?.items.find((item) => item.code === code);
+  const sort = input.sort ?? current?.sort ?? ((currentGroup?.items.length ?? 0) + 1) * 10;
+  const { error } = await sb()
+    .from("lookups")
+    .upsert({ grp: input.group, code, label: cleanLabel, sort, active: true }, { onConflict: "grp,code" });
+  if (error) throw error;
+  return { group: input.group, code, label: cleanLabel, sort, active: true, meta: input.meta };
+}
+
+export async function deleteCatalogItem(group: CatalogGroupKey, code: string): Promise<void> {
+  const { error } = await sb()
+    .from("lookups")
+    .upsert({ grp: group, code, label: code, active: false }, { onConflict: "grp,code" });
+  if (error) throw error;
 }
 
 // ===== Sao kê ngân hàng =====
