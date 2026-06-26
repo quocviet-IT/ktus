@@ -31,13 +31,16 @@ export async function findByJm(rc?: string): Promise<Transaction | undefined> {
   return USE_DB ? repo.findByJm(rc) : store.findByJm(rc);
 }
 export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
+  if (USE_RC_READS) return rcrepo.addTransaction(t);
   return USE_DB ? repo.addTransaction(t) : store.addTransaction(t);
 }
 export async function updateTransaction(id: string, patch: Partial<Transaction>): Promise<void> {
+  if (USE_RC_READS) { await rcrepo.updateTransaction(id, patch); return; }
   if (USE_DB) await repo.updateTransaction(id, patch);
   else store.updateTransaction(id, patch);
 }
 export async function setStatus(id: string, s: TxStatus): Promise<void> {
+  if (USE_RC_READS) { await rcrepo.setStatus(id, s); return; }
   if (USE_DB) await repo.setStatus(id, s);
   else store.setStatus(id, s);
 }

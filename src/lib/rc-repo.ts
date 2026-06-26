@@ -107,3 +107,152 @@ export async function findByJm(rc?: string): Promise<Transaction | undefined> {
   if (!data) return undefined;
   return rowToTx(data);
 }
+
+// ===== GHI (cutover) =====
+
+async function companyIdOf(code: string): Promise<number | null> {
+  const { data } = await sb().from("companies").select("id").eq("code", code).maybeSingle();
+  if (data?.id != null) return Number(data.id);
+  const other = await sb().from("companies").select("id").eq("code", "Other").maybeSingle();
+  return other.data?.id != null ? Number(other.data.id) : null;
+}
+
+async function resolveCustomerId(name?: string, contact?: string): Promise<string | null> {
+  const ten = (name || "").trim();
+  if (!ten) return null;
+  const found = await sb().from("customers").select("id").ilike("ten", ten).limit(1).maybeSingle();
+  if (found.data?.id) return found.data.id;
+  const phone = (contact || "").replace(/\D/g, "") || null;
+  const ins = await sb().from("customers").insert({ ten, phone_raw: contact || null, phone_normalized: phone }).select("id").single();
+  return ins.data?.id ?? null;
+}
+
+async function resolveSalesId(name?: string, kind = "counter"): Promise<string | null> {
+  const ten = (name || "").trim();
+  if (!ten) return null;
+  const found = await sb().from("sales_people").select("id").ilike("ten", ten).limit(1).maybeSingle();
+  if (found.data?.id) return found.data.id;
+  const ins = await sb().from("sales_people").insert({ ten, kind }).select("id").single();
+  return ins.data?.id ?? null;
+}
+
+// Đảm bảo code tồn tại để không vi phạm FK (cho phép người dùng thêm nguồn/mã mới)
+async function ensureSource(code?: string): Promise<string | null> {
+  const c = (code || "").trim();
+  if (!c) return null;
+  await sb().from("sources").insert({ code: c, label: c }).select("code").maybeSingle().then(() => {}, () => {});
+  return c;
+}
+async function ensureBell(code?: string): Promise<string | null> {
+  const c = (code || "").trim();
+  if (!c) return null;
+  await sb().from("bell_codes").insert({ code: c }).select("code").maybeSingle().then(() => {}, () => {});
+  return c;
+}
+
+const AR_METHODS: [string, string][] = [["arCash", "cash"], ["arBankwire", "bankwire"], ["arZelle", "zelle"], ["arCheck", "check"]];
+const AP_METHODS: [string, string][] = [["apCash", "cash"], ["apBankwire", "bankwire"], ["apZelle", "zelle"], ["apCheck", "check"]];
+
+async function upsertPayment(eid: string, direction: "ar" | "ap", method: string, amount: number) {
+  if (amount && amount !== 0) {
+    await sb().from("entry_payments").upsert(
+      { rc_entry_id: eid, direction, method_code: method, amount },
+      { onConflict: "rc_entry_id,direction,method_code" },
+    );
+  } else {
+    await sb().from("entry_payments").delete().eq("rc_entry_id", eid).eq("direction", direction).eq("method_code", method);
+  }
+}
+
+async function setSales(eid: string, channel: "counter" | "online", position: number, name?: string, pct?: number) {
+  const sid = await resolveSalesId(name, channel);
+  if (!sid) {
+    await sb().from("entry_sales").delete().eq("rc_entry_id", eid).eq("channel", channel).eq("position", position);
+    return;
+  }
+  await sb().from("entry_sales").upsert(
+    { rc_entry_id: eid, salesperson_id: sid, channel, position, pct: pct ?? null },
+    { onConflict: "rc_entry_id,channel,position" },
+  );
+}
+
+export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
+  const s = sb();
+  const companyId = await companyIdOf(t.company);
+  const customerId = await resolveCustomerId(t.khach, t.contact);
+  const { data, error } = await s.from("rc_entries").insert({
+    company_id: companyId, entry_date: t.ngay, type_code: t.type,
+    description: t.dienGiai || null, customer_id: customerId, contact_raw: t.contact || null,
+    sku_raw: t.maSku || null, bell_code: await ensureBell(t.bellCode),
+    expense: t.expense || 0,
+    source1_id: await ensureSource(t.source1), source2_id: await ensureSource(t.source2),
+    transaction_value: t.transactionValue || null, pct_support: t.pctSupport ?? null,
+    old_receipt_no: t.oldReceiptNo || null, status: t.trangThai, note: t.note || null,
+    jm_receipt_no: t.rcJmNo || null,
+  }).select("id").single();
+  if (error) throw error;
+  const id = data!.id as string;
+
+  for (const [k, m] of AR_METHODS) await upsertPayment(id, "ar", m, Number((t as any)[k]) || 0);
+  for (const [k, m] of AP_METHODS) await upsertPayment(id, "ap", m, Number((t as any)[k]) || 0);
+
+  if (t.lineItems?.length)
+    await s.from("rc_line_items").insert(t.lineItems.map((l, i) => ({
+      rc_entry_id: id, line_no: i + 1, description: l.moTa, sku: l.sku, gia_no: l.giaNo,
+      qty: l.soLuong, unit_price: l.donGia,
+    })));
+
+  await setSales(id, "counter", 1, t.sale1, t.sale1Pct);
+  await setSales(id, "counter", 2, t.sale2, t.sale2Pct);
+  await setSales(id, "counter", 3, t.sale3, t.sale3Pct);
+  await setSales(id, "online", 1, t.saleOnline, t.pctSupport);
+  await setSales(id, "online", 2, t.saleOnline2);
+  await setSales(id, "online", 3, t.saleOnline3);
+
+  // Deal: nối pickup→cọc theo old_receipt_no; tạo deal cho đơn cọc
+  if (t.oldReceiptNo) {
+    const dep = await s.from("rc_entries").select("deal_id").eq("jm_receipt_no", t.oldReceiptNo).maybeSingle();
+    if (dep.data?.deal_id) await s.from("rc_entries").update({ deal_id: dep.data.deal_id }).eq("id", id);
+  } else if (t.type === "deposit" || t.type === "extra_deposit") {
+    const d = await s.from("deals").insert({ company_id: companyId, customer_id: customerId, opened_date: t.ngay, anchor_entry_id: id, status: "open" }).select("id").single();
+    if (d.data?.id) await s.from("rc_entries").update({ deal_id: d.data.id }).eq("id", id);
+  }
+
+  return (await getTransaction(id))!;
+}
+
+export async function updateTransaction(id: string, patch: Partial<Transaction>) {
+  const s = sb();
+  const map: Record<string, any> = {};
+  const set = (k: string, v: any) => { if (v !== undefined) map[k] = v === "" ? null : v; };
+  set("entry_date", patch.ngay);
+  set("type_code", patch.type);
+  set("description", patch.dienGiai);
+  set("sku_raw", patch.maSku);
+  set("contact_raw", patch.contact);
+  set("transaction_value", patch.transactionValue);
+  set("pct_support", patch.pctSupport);
+  set("old_receipt_no", patch.oldReceiptNo);
+  set("status", patch.trangThai);
+  set("note", patch.note);
+  set("jm_receipt_no", patch.rcJmNo);
+  if (patch.bellCode !== undefined) map["bell_code"] = await ensureBell(patch.bellCode);
+  if (patch.source1 !== undefined) map["source1_id"] = await ensureSource(patch.source1);
+  if (patch.source2 !== undefined) map["source2_id"] = await ensureSource(patch.source2);
+  if (patch.khach !== undefined) map["customer_id"] = await resolveCustomerId(patch.khach, patch.contact);
+  if (Object.keys(map).length) await s.from("rc_entries").update(map).eq("id", id);
+
+  for (const [k, m] of AR_METHODS) if ((patch as any)[k] !== undefined) await upsertPayment(id, "ar", m, Number((patch as any)[k]) || 0);
+  for (const [k, m] of AP_METHODS) if ((patch as any)[k] !== undefined) await upsertPayment(id, "ap", m, Number((patch as any)[k]) || 0);
+
+  if (patch.sale1 !== undefined || patch.sale1Pct !== undefined) await setSales(id, "counter", 1, patch.sale1, patch.sale1Pct);
+  if (patch.sale2 !== undefined || patch.sale2Pct !== undefined) await setSales(id, "counter", 2, patch.sale2, patch.sale2Pct);
+  if (patch.sale3 !== undefined || patch.sale3Pct !== undefined) await setSales(id, "counter", 3, patch.sale3, patch.sale3Pct);
+  if (patch.saleOnline !== undefined) await setSales(id, "online", 1, patch.saleOnline, patch.pctSupport);
+  if (patch.saleOnline2 !== undefined) await setSales(id, "online", 2, patch.saleOnline2);
+  if (patch.saleOnline3 !== undefined) await setSales(id, "online", 3, patch.saleOnline3);
+}
+
+export async function setStatus(id: string, status: TxStatus) {
+  await sb().from("rc_entries").update({ status }).eq("id", id);
+}
