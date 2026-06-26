@@ -82,6 +82,11 @@ export async function setBankMatched(id: string, matched: boolean): Promise<void
   if (USE_DB) await repo.setBankMatched(id, matched); else store.setBankMatched(id, matched);
 }
 
+// Redesign: Deals / Bank / Reconciliation
+export async function listDeals(): Promise<any[]> { return USE_DB ? repo.listDeals() : []; }
+export async function listBankTransactions(opts?: { company?: string }): Promise<any[]> { return USE_DB ? repo.listBankTransactions(opts) : []; }
+export async function listReconciliations(): Promise<any[]> { return USE_DB ? repo.listReconciliations() : []; }
+
 export async function listExcelWorkbooks(): Promise<ExcelWorkbook[]> {
   return USE_DB ? repo.listExcelWorkbooks() : [];
 }

@@ -240,6 +240,49 @@ export async function listTransactionsPaged(
   return { rows: (data ?? []).map((r: any) => rowToTx(r)), total: count ?? 0 };
 }
 
+// ===== Redesign: Deals / Bank / Reconciliation (đọc cho màn hình mới) =====
+export async function listDeals(): Promise<any[]> {
+  try {
+    const { data, error } = await sb().from("deals")
+      .select("id, opened_date, status, deal_value, companies(code), customers(ten)")
+      .order("opened_date", { ascending: false }).limit(500);
+    if (error) throw error;
+    return (data ?? []).map((d: any) => ({
+      id: d.id, openedDate: d.opened_date, status: d.status, dealValue: N(d.deal_value),
+      company: (Array.isArray(d.companies) ? d.companies[0] : d.companies)?.code ?? "",
+      khach: (Array.isArray(d.customers) ? d.customers[0] : d.customers)?.ten ?? "",
+    }));
+  } catch { return []; }
+}
+export async function listBankTransactions(opts?: { company?: string }): Promise<any[]> {
+  try {
+    let q: any = sb().from("bank_transactions")
+      .select("id, txn_date, description, category, amount_in, amount_out, reconciled, companies(code)")
+      .order("txn_date", { ascending: false }).limit(1000);
+    if (opts?.company && opts.company !== "all") q = q.eq("company", opts.company);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []).map((b: any) => ({
+      id: b.id, ngay: b.txn_date, description: b.description ?? "", category: b.category ?? "",
+      amountIn: N(b.amount_in), amountOut: N(b.amount_out), reconciled: !!b.reconciled,
+      company: (Array.isArray(b.companies) ? b.companies[0] : b.companies)?.code ?? "",
+    }));
+  } catch { return []; }
+}
+export async function listReconciliations(): Promise<any[]> {
+  try {
+    const { data, error } = await sb().from("reconciliations")
+      .select("id, recon_date, kt_balance, us_balance, difference, status, reason, companies(code)")
+      .order("recon_date", { ascending: false }).limit(500);
+    if (error) throw error;
+    return (data ?? []).map((r: any) => ({
+      id: r.id, reconDate: r.recon_date, ktBalance: N(r.kt_balance), usBalance: N(r.us_balance),
+      difference: N(r.difference), status: r.status, reason: r.reason ?? "",
+      company: (Array.isArray(r.companies) ? r.companies[0] : r.companies)?.code ?? "",
+    }));
+  } catch { return []; }
+}
+
 export interface ExcelWorkbook {
   id: string;
   fileName: string;

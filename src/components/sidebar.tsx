@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  ArrowLeftRight,
+  Banknote,
   BarChart3,
   Bell,
   BookOpen,
@@ -11,25 +13,28 @@ import {
   FileSpreadsheet,
   Globe2,
   Landmark,
+  Layers,
   LayoutDashboard,
-  PackageSearch,
   PencilLine,
   Scale,
   type LucideIcon,
 } from "lucide-react";
 
+// Điều hướng theo nghiệp vụ (kiểu phần mềm kế toán)
 const NAV: { group?: string; href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/", label: "Bảng điều khiển", icon: LayoutDashboard },
-  { group: "USBC101", href: "/usbc101", label: "Sổ công ty & Balance", icon: Landmark },
-  { group: "Hằng ngày", href: "/rc/new", label: "Nhập RC", icon: PencilLine },
-  { href: "/rc", label: "Sổ giao dịch RC (JM)", icon: ClipboardList },
-  { group: "Báo cáo", href: "/reports/sales-daily", label: "Bán hàng theo ngày", icon: BarChart3 },
+  { href: "/", label: "Tổng quan", icon: LayoutDashboard },
+  { group: "RC Tracking", href: "/rc/new", label: "Nhập RC", icon: PencilLine },
+  { href: "/rc", label: "Sổ RC JM", icon: ClipboardList },
+  { href: "/missing-source", label: "RC thiếu nguồn", icon: Scale },
+  { group: "Deals", href: "/deals", label: "Quản lý Deal", icon: Layers },
+  { group: "Cash Book", href: "/usbc101", label: "Sổ công ty & Balance", icon: Landmark },
+  { group: "Bank", href: "/bank", label: "Sao kê ngân hàng", icon: Banknote },
+  { group: "Reconciliation", href: "/reconciliation", label: "Đối chiếu KT ↔ US", icon: ArrowLeftRight },
+  { group: "Reports", href: "/reports/sales-daily", label: "Bán hàng theo ngày", icon: BarChart3 },
   { href: "/reports/sales-online", label: "Sales online", icon: Globe2 },
   { href: "/reports/bell", label: "Rung chuông", icon: Bell },
-  { href: "/missing-source", label: "RC thiếu nguồn", icon: Scale },
+  { group: "Master Data", href: "/catalog", label: "Danh mục", icon: BookOpen },
   { href: "/excel", label: "Dữ liệu Excel", icon: FileSpreadsheet },
-  { group: "Kho & danh mục", href: "/inventory", label: "Tồn kho (KT↔US)", icon: PackageSearch },
-  { href: "/catalog", label: "Danh mục", icon: BookOpen },
 ];
 
 const STORAGE_KEY = "ktus.sidebar.collapsed";
