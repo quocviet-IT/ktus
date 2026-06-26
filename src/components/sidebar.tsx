@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   BarChart3,
   Bell,
@@ -11,6 +12,8 @@ import {
   Landmark,
   LayoutDashboard,
   PackageSearch,
+  PanelLeftClose,
+  PanelLeftOpen,
   PencilLine,
   Scale,
   type LucideIcon,
@@ -30,36 +33,79 @@ const NAV: { group?: string; href: string; label: string; icon: LucideIcon }[] =
   { href: "/catalog", label: "Danh mục", icon: BookOpen },
 ];
 
+const STORAGE_KEY = "ktus.sidebar.collapsed";
+
 export default function Sidebar() {
   const path = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Đọc trạng thái đã lưu sau khi mount (tránh lệch hydration)
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(STORAGE_KEY) === "1");
+  }, []);
+
+  function toggle() {
+    setCollapsed((c) => {
+      const next = !c;
+      try { localStorage.setItem(STORAGE_KEY, next ? "1" : "0"); } catch {}
+      return next;
+    });
+  }
+
   return (
-    <aside className="w-[240px] shrink-0 bg-ink text-[#C9D3CB] flex flex-col min-h-screen sticky top-0">
-      <div className="px-5 py-4 border-b border-[#2c3a32]">
-        <div className="font-mono text-[12px] tracking-widest text-accent">HPUS · KT210</div>
-        <div className="font-serif text-lg text-white">Sổ vàng KTUS</div>
-        <div className="text-[11px] text-[#7f8c84]">Theo dõi RC · 2026</div>
+    <aside
+      className={`${collapsed ? "w-[64px]" : "w-[240px]"} shrink-0 bg-ink text-[#C9D3CB] flex flex-col min-h-screen sticky top-0 transition-[width] duration-200 ease-in-out`}
+    >
+      <div className={`flex items-center gap-2 border-b border-[#2c3a32] ${collapsed ? "px-2 py-4 justify-center" : "px-5 py-4"}`}>
+        {!collapsed && (
+          <div className="min-w-0 flex-1">
+            <div className="font-mono text-[12px] tracking-widest text-accent">HPUS · KT210</div>
+            <div className="font-serif text-lg text-white truncate">Sổ vàng KTUS</div>
+            <div className="text-[11px] text-[#7f8c84]">Theo dõi RC · 2026</div>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
+          title={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-[#9fb0a6] hover:bg-ink2 hover:text-white"
+        >
+          {collapsed ? <PanelLeftOpen className="h-[18px] w-[18px]" aria-hidden="true" /> : <PanelLeftClose className="h-[18px] w-[18px]" aria-hidden="true" />}
+        </button>
       </div>
+
       <nav className="p-2.5 flex-1">
         {NAV.map((n) => {
           const Icon = n.icon;
+          const active = path === n.href;
           return (
-          <div key={n.href}>
-            {n.group && <div className="font-mono text-[9.5px] tracking-widest text-[#7d8a81] px-3 pt-3 pb-1 uppercase">{n.group}</div>}
-            <Link href={n.href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] relative ${
-                path === n.href ? "bg-ink2 text-white" : "hover:bg-ink2 hover:text-white"
-              }`}>
-              {path === n.href && <span className="absolute -left-2.5 top-2 bottom-2 w-[3px] bg-accent rounded-r" />}
-              <Icon className="h-[18px] w-[18px] shrink-0 text-accent" aria-hidden="true" strokeWidth={1.8} />
-              {n.label}
-            </Link>
-          </div>
+            <div key={n.href}>
+              {n.group && !collapsed && (
+                <div className="font-mono text-[9.5px] tracking-widest text-[#7d8a81] px-3 pt-3 pb-1 uppercase">{n.group}</div>
+              )}
+              {n.group && collapsed && <div className="my-2 border-t border-[#2c3a32]" />}
+              <Link
+                href={n.href}
+                title={collapsed ? n.label : undefined}
+                className={`flex items-center gap-2.5 rounded-lg text-[13px] relative ${collapsed ? "px-0 py-2 justify-center" : "px-3 py-2"} ${
+                  active ? "bg-ink2 text-white" : "hover:bg-ink2 hover:text-white"
+                }`}
+              >
+                {active && <span className={`absolute top-2 bottom-2 w-[3px] bg-accent rounded-r ${collapsed ? "left-0" : "-left-2.5"}`} />}
+                <Icon className="h-[18px] w-[18px] shrink-0 text-accent" aria-hidden="true" strokeWidth={1.8} />
+                {!collapsed && <span className="truncate">{n.label}</span>}
+              </Link>
+            </div>
           );
         })}
       </nav>
-      <div className="px-4 py-3 border-t border-[#2c3a32] text-[11px] text-[#7f8c84]">
-        intern1@ctyhp.vn · MVP
-      </div>
+
+      {!collapsed && (
+        <div className="px-4 py-3 border-t border-[#2c3a32] text-[11px] text-[#7f8c84]">
+          intern1@ctyhp.vn · MVP
+        </div>
+      )}
     </aside>
   );
 }
