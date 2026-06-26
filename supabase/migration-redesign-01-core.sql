@@ -157,26 +157,21 @@ create table if not exists rc_entries (
   contact_raw     text,
   sku_raw         text,
   bell_code       text references bell_codes(code),
-  -- tiền (mirror sheet, BR-MONEY)
+  -- tiền: hình thức TT ĐỘNG → chi tiết nằm ở bảng con entry_payments.
+  -- ar_total/ap_total do trigger cộng dồn để cột CONDITION vẫn generated được.
   expense     numeric(14,2) not null default 0,
-  ar_cash     numeric(14,2) not null default 0,
-  ar_bankwire numeric(14,2) not null default 0,
-  ar_zelle    numeric(14,2) not null default 0,
-  ar_check    numeric(14,2) not null default 0,
-  ar_received numeric(14,2) not null default 0,            -- cọc trước áp vào lúc pickup
-  ap_cash     numeric(14,2) not null default 0,
-  ap_bankwire numeric(14,2) not null default 0,
-  ap_zelle    numeric(14,2) not null default 0,
-  ap_check    numeric(14,2) not null default 0,
+  ar_received numeric(14,2) not null default 0,            -- cọc trước áp vào lúc pickup (memo)
+  ar_total    numeric(14,2) not null default 0,            -- = Σ entry_payments(direction='ar')
+  ap_total    numeric(14,2) not null default 0,            -- = Σ entry_payments(direction='ap')
   -- CONDITION generated (BR-01/02) — chỉ tham chiếu cột cùng dòng
   receipt   numeric(14,2) generated always as (
-    case when condition_bucket='receipt' then ar_cash+ar_bankwire+ar_zelle+ar_check else 0 end) stored,
+    case when condition_bucket='receipt' then ar_total else 0 end) stored,
   deposit   numeric(14,2) generated always as (
-    case when condition_bucket='deposit' then ar_cash+ar_bankwire+ar_zelle+ar_check else 0 end) stored,
+    case when condition_bucket='deposit' then ar_total else 0 end) stored,
   return_po numeric(14,2) generated always as (
     case when condition_bucket='return_po' then expense else 0 end) stored,
   total     numeric(14,2) generated always as (
-    (case when condition_bucket in ('receipt','deposit') then ar_cash+ar_bankwire+ar_zelle+ar_check else 0 end)
+    (case when condition_bucket in ('receipt','deposit') then ar_total else 0 end)
     - (case when condition_bucket='return_po' then expense else 0 end)) stored,
   -- JM bước 2
   jm_receipt_no     text,
@@ -261,6 +256,34 @@ create table if not exists entry_sales (
 create index if not exists idx_es_entry on entry_sales (rc_entry_id);
 create index if not exists idx_es_person on entry_sales (salesperson_id);
 
+-- entry_payments — số tiền theo TỪNG hình thức thanh toán (ĐỘNG)
+-- Thêm hình thức mới ở Danh mục (lookups grp='payment_method') → tự dùng được ở Nhập RC + báo cáo.
+create table if not exists entry_payments (
+  id          uuid primary key default gen_random_uuid(),
+  rc_entry_id uuid not null references rc_entries(id) on delete cascade,
+  direction   text not null,                  -- ar (thu vào) | ap (chi ra)
+  method_code text not null,                  -- cash|bankwire|zelle|check|venmo|... (theo lookups)
+  amount      numeric(14,2) not null default 0,
+  unique (rc_entry_id, direction, method_code)
+);
+create index if not exists idx_ep_entry on entry_payments (rc_entry_id);
+
+-- trigger: cộng dồn ar_total/ap_total lên rc_entries mỗi khi entry_payments đổi
+create or replace function fn_ep_rollup() returns trigger as $$
+declare _eid uuid;
+begin
+  _eid := coalesce(new.rc_entry_id, old.rc_entry_id);
+  update rc_entries set
+    ar_total = coalesce((select sum(amount) from entry_payments where rc_entry_id=_eid and direction='ar'),0),
+    ap_total = coalesce((select sum(amount) from entry_payments where rc_entry_id=_eid and direction='ap'),0)
+  where id = _eid;
+  return null;
+end $$ language plpgsql;
+
+drop trigger if exists trg_ep_rollup on entry_payments;
+create trigger trg_ep_rollup after insert or update or delete on entry_payments
+  for each row execute function fn_ep_rollup();
+
 -- ---------- MODULE 2 — CASH & BANK ----------
 
 create table if not exists bank_import_batches (
@@ -325,7 +348,7 @@ declare t text;
 begin
   foreach t in array array[
     'sources','transaction_types','bell_codes','commission_tiers','salesperson_aliases',
-    'deals','rc_entries','rc_line_items','entry_sales',
+    'deals','rc_entries','rc_line_items','entry_sales','entry_payments',
     'bank_import_batches','bank_transactions','account_daily_balance','reconciliations'
   ] loop
     execute format('alter table %I enable row level security', t);

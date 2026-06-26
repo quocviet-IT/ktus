@@ -225,23 +225,18 @@ export const rcEntries = pgTable("rc_entries", {
   skuRaw: text("sku_raw"),
   bellCode: text("bell_code").references(() => bellCodes.code),
   expense: numeric("expense", { precision: 14, scale: 2 }).notNull().default("0"),
-  arCash: numeric("ar_cash", { precision: 14, scale: 2 }).notNull().default("0"),
-  arBankwire: numeric("ar_bankwire", { precision: 14, scale: 2 }).notNull().default("0"),
-  arZelle: numeric("ar_zelle", { precision: 14, scale: 2 }).notNull().default("0"),
-  arCheck: numeric("ar_check", { precision: 14, scale: 2 }).notNull().default("0"),
   arReceived: numeric("ar_received", { precision: 14, scale: 2 }).notNull().default("0"),
-  apCash: numeric("ap_cash", { precision: 14, scale: 2 }).notNull().default("0"),
-  apBankwire: numeric("ap_bankwire", { precision: 14, scale: 2 }).notNull().default("0"),
-  apZelle: numeric("ap_zelle", { precision: 14, scale: 2 }).notNull().default("0"),
-  apCheck: numeric("ap_check", { precision: 14, scale: 2 }).notNull().default("0"),
+  // tiền theo từng hình thức nằm ở entry_payments; ar_total/ap_total do trigger cộng dồn
+  arTotal: numeric("ar_total", { precision: 14, scale: 2 }).notNull().default("0"),
+  apTotal: numeric("ap_total", { precision: 14, scale: 2 }).notNull().default("0"),
   receipt: numeric("receipt", { precision: 14, scale: 2 }).generatedAlwaysAs(
-    sql`case when condition_bucket='receipt' then ar_cash+ar_bankwire+ar_zelle+ar_check else 0 end`),
+    sql`case when condition_bucket='receipt' then ar_total else 0 end`),
   deposit: numeric("deposit", { precision: 14, scale: 2 }).generatedAlwaysAs(
-    sql`case when condition_bucket='deposit' then ar_cash+ar_bankwire+ar_zelle+ar_check else 0 end`),
+    sql`case when condition_bucket='deposit' then ar_total else 0 end`),
   returnPo: numeric("return_po", { precision: 14, scale: 2 }).generatedAlwaysAs(
     sql`case when condition_bucket='return_po' then expense else 0 end`),
   total: numeric("total", { precision: 14, scale: 2 }).generatedAlwaysAs(
-    sql`(case when condition_bucket in ('receipt','deposit') then ar_cash+ar_bankwire+ar_zelle+ar_check else 0 end) - (case when condition_bucket='return_po' then expense else 0 end)`),
+    sql`(case when condition_bucket in ('receipt','deposit') then ar_total else 0 end) - (case when condition_bucket='return_po' then expense else 0 end)`),
   jmReceiptNo: text("jm_receipt_no"),
   jmKind: text("jm_kind").generatedAlwaysAs(
     sql`case when jm_receipt_no is null then null when upper(jm_receipt_no) like 'OC NHAP%' then 'oc_nhap' when jm_receipt_no like '9000%' or jm_receipt_no like '900%' then 'deposit' when jm_receipt_no like '1000%' then 'sale_pickup' else 'other' end`),
@@ -282,6 +277,15 @@ export const entrySales = pgTable("entry_sales", {
   tierCode: text("tier_code").references(() => commissionTiers.code),
   pct: numeric("pct", { precision: 5, scale: 4 }),
 }, (t) => ({ uq: unique().on(t.rcEntryId, t.channel, t.position) }));
+
+// entry_payments — tiền theo TỪNG hình thức thanh toán (động). Tổng cộng dồn lên rc_entries.ar_total/ap_total qua trigger.
+export const entryPayments = pgTable("entry_payments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  rcEntryId: uuid("rc_entry_id").notNull().references(() => rcEntries.id, { onDelete: "cascade" }),
+  direction: text("direction").notNull(),     // ar | ap
+  methodCode: text("method_code").notNull(),  // cash|bankwire|zelle|check|venmo|...
+  amount: numeric("amount", { precision: 14, scale: 2 }).notNull().default("0"),
+}, (t) => ({ uq: unique().on(t.rcEntryId, t.direction, t.methodCode) }));
 
 // ----- Module 2: Cash & Bank -----
 export const bankImportBatches = pgTable("bank_import_batches", {
