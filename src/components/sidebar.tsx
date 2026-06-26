@@ -10,10 +10,9 @@ import {
   FileSpreadsheet,
   Globe2,
   Landmark,
+  ChevronLeft,
   LayoutDashboard,
   PackageSearch,
-  PanelLeftClose,
-  PanelLeftOpen,
   PencilLine,
   Scale,
   type LucideIcon,
@@ -54,25 +53,29 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`${collapsed ? "w-[64px]" : "w-[240px]"} shrink-0 bg-ink text-[#C9D3CB] flex flex-col min-h-screen sticky top-0 transition-[width] duration-200 ease-in-out`}
+      className={`${collapsed ? "w-[64px]" : "w-[240px]"} relative shrink-0 bg-ink text-[#C9D3CB] flex flex-col min-h-screen sticky top-0 transition-[width] duration-200 ease-in-out`}
     >
-      <div className={`flex items-center gap-2 border-b border-[#2c3a32] ${collapsed ? "px-2 py-4 justify-center" : "px-5 py-4"}`}>
-        {!collapsed && (
-          <div className="min-w-0 flex-1">
+      {/* Nút thu/mở: tròn, nổi trên cạnh phải */}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
+        title={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
+        className="absolute -right-3 top-[26px] z-20 grid h-6 w-6 place-items-center rounded-full border border-[#33433a] bg-ink2 text-[#9fb0a6] shadow-[0_2px_8px_rgba(0,0,0,0.35)] transition-colors hover:border-accent hover:text-white"
+      >
+        <ChevronLeft className={`h-4 w-4 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} aria-hidden="true" />
+      </button>
+
+      <div className={`flex items-center border-b border-[#2c3a32] ${collapsed ? "px-2 py-4 justify-center" : "px-5 py-4"}`}>
+        {collapsed ? (
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-ink2 font-serif text-[15px] text-accent">KT</div>
+        ) : (
+          <div className="min-w-0">
             <div className="font-mono text-[12px] tracking-widest text-accent">HPUS · KT210</div>
             <div className="font-serif text-lg text-white truncate">Sổ vàng KTUS</div>
             <div className="text-[11px] text-[#7f8c84]">Theo dõi RC · 2026</div>
           </div>
         )}
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
-          title={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-[#9fb0a6] hover:bg-ink2 hover:text-white"
-        >
-          {collapsed ? <PanelLeftOpen className="h-[18px] w-[18px]" aria-hidden="true" /> : <PanelLeftClose className="h-[18px] w-[18px]" aria-hidden="true" />}
-        </button>
       </div>
 
       <nav className="p-2.5 flex-1">
