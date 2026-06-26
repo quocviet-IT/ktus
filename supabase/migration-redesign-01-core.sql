@@ -200,6 +200,7 @@ create table if not exists rc_entries (
   transaction_value text,
   pct_support       numeric(7,4),                          -- chứa cả 0.8 lẫn 80/100 (dữ liệu cũ)
   old_receipt_no    text,
+  status            text,                                  -- trạng thái đơn (chuyển tiếp từ trang_thai cũ)
   note              text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),

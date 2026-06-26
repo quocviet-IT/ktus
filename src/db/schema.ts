@@ -245,6 +245,7 @@ export const rcEntries = pgTable("rc_entries", {
   transactionValue: text("transaction_value"),
   pctSupport: numeric("pct_support", { precision: 7, scale: 4 }),
   oldReceiptNo: text("old_receipt_no"),
+  status: text("status"),
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
