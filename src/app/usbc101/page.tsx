@@ -32,8 +32,9 @@ type SP = {
 };
 
 export default async function Usbc101({ searchParams }: { searchParams: SP }) {
-  const sheet = searchParams.sheet || "balance";
-  const tabs = ["balance", ...USBC101_COMPANIES];
+  // Ẩn tab BALANCE ACCOUNT (chưa làm) — mặc định vào sổ công ty đầu tiên
+  const tabs = [...USBC101_COMPANIES];
+  const sheet = searchParams.sheet && searchParams.sheet !== "balance" ? searchParams.sheet : tabs[0];
 
   return (
     <>
