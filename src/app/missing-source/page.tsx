@@ -1,10 +1,11 @@
 import PageHeader from "@/components/page-header";
 import Pagination from "@/components/pagination";
-import { Check, CircleCheck, Send } from "lucide-react";
+import { CircleCheck, Send } from "lucide-react";
 import { listCatalogGroups, listTransactions } from "@/lib/data";
 import { isMissingSource } from "@/lib/rules";
 import { ddmmyyyy } from "@/lib/format";
-import { resolveSourceDetail, sendToUS } from "@/app/actions";
+import { sendToUS } from "@/app/actions";
+import SourceForm from "./source-form";
 
 const PAGE_SIZE = 50;
 
@@ -22,7 +23,6 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
 
   const th = "px-2.5 py-2 border border-line bg-band font-mono text-[10px] uppercase text-brand text-left whitespace-nowrap";
   const td = "px-2.5 py-1.5 border border-line align-top";
-  const inp = "w-full border border-line rounded-md px-2 py-1 text-[12px] bg-white";
 
   return (
     <>
@@ -59,14 +59,7 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
                       <td className={td + " whitespace-nowrap"}>{t.contact || "—"}</td>
                       <td className={td + " whitespace-nowrap"}>{t.sale1 || "—"}</td>
                       <td className={td}>
-                        {/* Input nằm TRONG form để server action gom được */}
-                        <form action={resolveSourceDetail.bind(null, t.id)} className="flex items-center gap-1.5">
-                          <input name="source1" list="dl-src-miss" defaultValue={t.source1 || ""} placeholder="Source 1 *" autoComplete="off" aria-label="Source 1" className={inp + " min-w-[110px]"} />
-                          <input name="source2" list="dl-src-miss" defaultValue={t.source2 || ""} placeholder="Source 2" autoComplete="off" aria-label="Source 2" className={inp + " min-w-[100px]"} />
-                          <button type="submit" className="inline-flex items-center gap-1 bg-brand text-white rounded-md px-2.5 py-1 text-[12px] hover:bg-accent whitespace-nowrap">
-                            <Check className="h-3.5 w-3.5" aria-hidden="true" /> Cập nhật
-                          </button>
-                        </form>
+                        <SourceForm id={t.id} source1={t.source1 || ""} source2={t.source2 || ""} />
                       </td>
                       <td className={td + " text-center whitespace-nowrap"}>
                         <form action={sendToUS.bind(null, t.id)}>

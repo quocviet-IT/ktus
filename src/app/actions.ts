@@ -285,15 +285,20 @@ export async function resolveSource(id: string, source: string) {
 }
 
 // Cập nhật nguồn cho RC thiếu nguồn (FR-MISS-03)
-export async function resolveSourceDetail(id: string, fd: FormData) {
+export async function resolveSourceDetail(id: string, fd: FormData): Promise<{ ok: boolean; error?: string }> {
   const s = (k: string) => String(fd.get(k) ?? "").trim();
-  const t = await getTransaction(id);
-  const src1 = s("source1") || "WI";
-  await updateTransaction(id, {
-    source1: src1,
-    source2: s("source2") || undefined,
-    rcJmNo: s("rcJmNo") || t?.rcJmNo,
-    note: (t?.note || "").replace(/ · Đã gửi US.*$/, ""),
-  });
-  revalidatePath("/missing-source"); revalidatePath("/rc"); revalidatePath("/");
+  const src1 = s("source1");
+  if (!src1) return { ok: false, error: "Cần nhập Source 1" };
+  try {
+    const t = await getTransaction(id);
+    await updateTransaction(id, {
+      source1: src1,
+      source2: s("source2") || undefined,
+      note: (t?.note || "").replace(/ · Đã gửi US.*$/, ""),
+    });
+    revalidatePath("/missing-source"); revalidatePath("/rc"); revalidatePath("/");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as any)?.message || "Lỗi không xác định" };
+  }
 }
