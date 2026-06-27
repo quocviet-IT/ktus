@@ -65,7 +65,7 @@ export default function NhapRCForm({
   const lineTotal = useMemo(() => lines.reduce((s, l) => s + (Number(l.soLuong) || 0) * (Number(l.donGia) || 0), 0), [lines]);
   // Mã SKU + Diễn giải GỘP từ các dòng hàng (nhiều dòng → 1 ô)
   const skuJoined = useMemo(() => lines.map((l) => (l.sku || "").trim()).filter(Boolean).join(", "), [lines]);
-  const descJoined = useMemo(() => lines.map((l) => (l.moTa || "").trim()).filter(Boolean).join(" + "), [lines]);
+  const descJoined = useMemo(() => lines.map((l) => (l.moTa || "").trim()).filter(Boolean).join(", "), [lines]);
   const arTotal = Object.values(ar).reduce((sum, value) => sum + (Number(value) || 0), 0);
   const apTotal = Object.values(ap).reduce((sum, value) => sum + (Number(value) || 0), 0);
   const receipt = RECEIPT_T.includes(type) ? arTotal : 0;
@@ -137,9 +137,8 @@ export default function NhapRCForm({
             {fld("Type *", <select name="type" required value={type} onChange={(e) => setType(e.target.value as RcInput["type"])} className={inp}>{ACTIVE_TYPE_OPTIONS.map((k) => <option key={k} value={k}>{TYPE_LABEL[k]}</option>)}</select>)}
             {fld("Customer name *", <input name="khach" required placeholder="Tên khách" className={inp} />)}
             {fld("Contact", <input name="contact" placeholder="408-…" className={inp} />)}
-            {fld("Mã SKU (tự lấy từ dòng hàng)", <input name="maSku" value={skuJoined} readOnly placeholder="— nhập SKU ở mục Dòng hàng —" className={inp + " bg-band text-muted"} />)}
-            <div className="md:col-span-4">{fld("Diễn giải (tự gộp từ dòng hàng)", <input name="dienGiai" value={descJoined} readOnly placeholder="— nhập mô tả ở mục Dòng hàng —" className={inp + " bg-band text-muted"} />)}</div>
           </div>
+          {/* Mã SKU & Diễn giải tự gộp từ Dòng hàng (cách nhau bằng dấu phẩy) — ẩn khỏi form */}
         </Section>
 
         {/* 2. Dòng hàng */}
