@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, addBankLine, setBankMatched, addPaymentMethod, deleteCatalogItem, upsertCatalogItem } from "@/lib/data";
+import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, findByJm, addBankLine, setBankMatched, addPaymentMethod, deleteCatalogItem, upsertCatalogItem } from "@/lib/data";
 import type { CatalogGroupKey } from "@/lib/catalog";
 import type { TxStatus, TxType, CompanyCode, LineItem, Payment } from "@/lib/types";
 
@@ -95,6 +95,15 @@ function paymentRows(ngay: string, amounts: Record<string, number>, direction: "
     direction,
     isDau: direction === "ar",
   }));
+}
+
+// Tra ngày cọc theo Old Receipt # (thay công thức INDEX/MATCH trong Excel):
+// tìm đơn cọc có số JM = oldReceiptNo, trả về ngày + khách để form tự điền.
+export async function lookupDepositInfo(oldReceiptNo: string): Promise<{ date?: string; khach?: string }> {
+  const v = (oldReceiptNo || "").trim();
+  if (!v) return {};
+  const dep = await findByJm(v);
+  return dep ? { date: dep.ngay, khach: dep.khach } : {};
 }
 
 // BR-07: gộp dòng & tự tính tổng → đổ vào A/R theo hình thức; BR-01 sẽ tự phân loại khi hiển thị

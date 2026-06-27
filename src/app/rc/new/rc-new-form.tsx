@@ -3,7 +3,7 @@
 import { useMemo, useState, cloneElement, isValidElement } from "react";
 import { ArrowRight, Plus, Save, X } from "lucide-react";
 import PageHeader from "@/components/page-header";
-import { createRc, type RcInput } from "@/app/actions";
+import { createRc, lookupDepositInfo, type RcInput } from "@/app/actions";
 import { COMPANIES } from "@/lib/store";
 import { ACTIVE_TYPE_OPTIONS, TYPE_LABEL } from "@/lib/rules";
 import { money } from "@/lib/format";
@@ -57,7 +57,24 @@ export default function NhapRCForm({
   const [ar, setAr] = useState<Record<string, number>>({});
   const [ap, setAp] = useState<Record<string, number>>({});
   const [orderTotalRaw, setOrderTotalRaw] = useState<string>("");
+  const [oldReceiptNo, setOldReceiptNo] = useState("");
+  const [depositDate, setDepositDate] = useState("");
+  const [depLookup, setDepLookup] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Gõ Old Receipt # → tra đơn cọc khớp → tự điền Deposit Date (thay INDEX/MATCH của Excel)
+  async function onOldReceiptBlur() {
+    const v = oldReceiptNo.trim();
+    if (!v) { setDepLookup(""); return; }
+    setDepLookup("Đang tra…");
+    const info = await lookupDepositInfo(v);
+    if (info?.date) {
+      setDepositDate(info.date);
+      setDepLookup(`✓ Đơn cọc${info.khach ? " · " + info.khach : ""} ngày ${info.date.split("-").reverse().join("/")}`);
+    } else {
+      setDepLookup("Không tìm thấy đơn cọc khớp số này");
+    }
+  }
 
   // TRANS = 3 sale, PC49 (và còn lại) = 2 sale (theo file Excel thật)
   const salesCount = company === "Trans" ? 3 : 2;
@@ -215,9 +232,10 @@ export default function NhapRCForm({
             {fld("Source 1", combo("source1", "dl-sources", "WI / TEL / FB… (gõ mới được)"))}
             {fld("Source 2", combo("source2", "dl-sources", "— hoặc gõ mới —"))}
             {fld("Transaction value", <input name="transactionValue" placeholder="1 lượng / 1 oz…" className={inp} />)}
-            {fld("Old Receipt # (pickup)", <input name="oldReceiptNo" placeholder="9000…" className={inp} />)}
-            {fld("Deposit Date", <input name="depositDate" type="date" className={inp} />)}
+            {fld("Old Receipt # (pickup)", <input name="oldReceiptNo" value={oldReceiptNo} onChange={(e) => setOldReceiptNo(e.target.value)} onBlur={onOldReceiptBlur} placeholder="9000… (tự tra ngày cọc)" className={inp} />)}
+            {fld("Deposit Date (tự nhảy)", <input name="depositDate" type="date" value={depositDate} onChange={(e) => setDepositDate(e.target.value)} className={inp} />)}
           </div>
+          {depLookup && <p className="mt-2 text-[11.5px] text-muted">{depLookup}</p>}
         </Section>
 
         {/* 6. Sales & phân bổ */}
