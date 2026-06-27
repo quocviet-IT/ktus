@@ -168,10 +168,9 @@ export default function NhapRCForm({
         <Section n="2" title="Dòng hàng / sản phẩm">
           <div className="space-y-2">
             {lines.map((l, i) => (
-              <div key={i} className="grid grid-cols-[1fr_90px_110px_70px_100px_100px_auto] gap-2 items-center">
+              <div key={i} className="grid grid-cols-[1fr_90px_70px_100px_100px_auto] gap-2 items-center">
                 <input value={l.moTa} onChange={(e) => setLine(i, { moTa: e.target.value })} placeholder="Description" className={inp} />
                 <input value={l.sku || ""} onChange={(e) => setLine(i, { sku: e.target.value })} placeholder="SKU" className={inp} />
-                <input value={l.giaNo || ""} onChange={(e) => setLine(i, { giaNo: e.target.value })} placeholder="GIA#" className={inp} />
                 <input type="number" step="0.001" value={l.soLuong} onChange={(e) => setLine(i, { soLuong: +e.target.value })} placeholder="Quantity" className={inp + " text-right font-mono"} />
                 <input type="number" step="0.01" value={l.donGia} onChange={(e) => setLine(i, { donGia: +e.target.value })} placeholder="Unit Price" className={inp + " text-right font-mono"} />
                 <div className="text-right font-mono text-[13px]">{money(l.soLuong * l.donGia)}</div>
