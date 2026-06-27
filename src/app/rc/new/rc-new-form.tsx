@@ -247,7 +247,6 @@ export default function NhapRCForm({
             {fld("SO#", <input name="soNo" className={inp} />)}
             {fld("Source 1", combo("source1", "dl-sources", "WI / TEL / FB… (gõ mới được)"))}
             {fld("Source 2", combo("source2", "dl-sources", "— hoặc gõ mới —"))}
-            {fld("Transaction value", <input name="transactionValue" placeholder="1 lượng / 1 oz…" className={inp} />)}
             {fld("Old Receipt # (pickup)", <input name="oldReceiptNo" value={oldReceiptNo} onChange={(e) => setOldReceiptNo(e.target.value)} onBlur={onOldReceiptBlur} placeholder="9000… (tự tra ngày cọc)" className={inp} />)}
             {fld("Deposit Date (tự nhảy)", <input name="depositDate" type="date" value={depositDate} onChange={(e) => setDepositDate(e.target.value)} className={inp} />)}
           </div>
@@ -265,11 +264,12 @@ export default function NhapRCForm({
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 border-t border-line pt-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-3 border-t border-line pt-3">
             {fld("Sale Online #1", combo("saleOnline", "dl-online", "Team VN…"))}
             {fld("Sale Online #2", combo("saleOnline2", "dl-online", "—"))}
             {fld("Sale Online #3", combo("saleOnline3", "dl-online", "—"))}
             {fld("% Support (hỗ trợ online)", pctInp("pctSupport", "0.8"))}
+            {fld("Transaction value", <input name="transactionValue" placeholder="1 lượng / 1 oz…" className={inp} />)}
           </div>
           <p className="text-[11px] text-muted mt-2">Lưu ý: <b>% Support</b> là mức hỗ trợ đơn của sale online — khác với <b>Tỷ lệ %</b> phân bổ giữa các sale.</p>
         </Section>
