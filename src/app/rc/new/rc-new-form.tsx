@@ -223,18 +223,10 @@ export default function NhapRCForm({
         </div>
 
         {/* Tổng đơn / Đã thanh toán / Còn lại + CONDITION tự tính */}
-        <Section n="ƒ" title="Tổng đơn & CONDITION — tự tính">
-          {!isPO && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-              {fld("Tổng tiền đơn hàng (gồm thuế)", <input name="orderTotal" type="number" step="0.01" value={orderTotalRaw} onChange={(e) => setOrderTotalRaw(e.target.value)} placeholder={String(subtotalWithTax || 0)} className={inp + " text-right font-mono"} />)}
-              {fld("Số tiền thanh toán ƒ", <div className={fx}>{money(paid)}</div>)}
-              {fld("Số tiền còn lại ƒ", <div className={fx + (remaining > 0 ? " text-danger" : " text-ok")}>{money(remaining)}</div>)}
-            </div>
-          )}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {fld("Return/PO ƒ", <div className={fx}>{money(returnPo)}</div>)}
-            {fld("Receipt ƒ", <div className={fx}>{money(receipt)}</div>)}
-            {fld("Deposit ƒ", <div className={fx}>{money(deposit)}</div>)}
+        <Section n="ƒ" title="Tổng đơn — tự tính">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {!isPO && fld("Tổng tiền đơn hàng (gồm thuế)", <input name="orderTotal" type="number" step="0.01" value={orderTotalRaw} onChange={(e) => setOrderTotalRaw(e.target.value)} placeholder={String(subtotalWithTax || 0)} className={inp + " text-right font-mono"} />)}
+            {!isPO && fld("Số tiền còn lại ƒ", <div className={fx + (remaining > 0 ? " text-danger" : " text-ok")}>{money(remaining)}</div>)}
             {fld("TỔNG CỘNG ƒ", <div className={fx + " font-bold"}>{money(tongCong)}</div>)}
           </div>
         </Section>
