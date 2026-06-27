@@ -221,21 +221,26 @@ export async function setStatus(id: string, s: TxStatus) {
 }
 
 // Sửa RC — cập nhật cột JM/Source/Sale (bước 2, UC-04)
-export async function updateRcJm(id: string, fd: FormData) {
+export async function updateRcJm(id: string, fd: FormData): Promise<{ ok: boolean; error?: string }> {
   const s = (k: string) => String(fd.get(k) ?? "");
   const numOrU = (k: string) => { const n = parseFloat(s(k)); return isNaN(n) ? undefined : n; };
-  await updateTransaction(id, {
-    rcJmNo: s("rcJmNo"), soNo: s("soNo"),
-    source1: s("source1"), source2: s("source2"),
-    sale1: s("sale1"), sale2: s("sale2"), sale3: s("sale3"),
-    sale1Pct: numOrU("sale1Pct"), sale2Pct: numOrU("sale2Pct"), sale3Pct: numOrU("sale3Pct"),
-    saleOnline: s("saleOnline"), saleOnline2: s("saleOnline2"), saleOnline3: s("saleOnline3"),
-    transactionValue: s("transactionValue"), pctSupport: numOrU("pctSupport"),
-    orderTotal: numOrU("orderTotal"),
-    oldReceiptNo: s("oldReceiptNo"), depositDate: s("depositDate"),
-    bellCode: s("bellCode"), trangThai: (s("trangThai") || undefined) as any, note: s("note"),
-  });
-  revalidatePath(`/rc/${id}`); revalidatePath("/rc"); revalidatePath("/missing-source"); revalidatePath("/");
+  try {
+    await updateTransaction(id, {
+      rcJmNo: s("rcJmNo"), soNo: s("soNo"),
+      source1: s("source1"), source2: s("source2"),
+      sale1: s("sale1"), sale2: s("sale2"), sale3: s("sale3"),
+      sale1Pct: numOrU("sale1Pct"), sale2Pct: numOrU("sale2Pct"), sale3Pct: numOrU("sale3Pct"),
+      saleOnline: s("saleOnline"), saleOnline2: s("saleOnline2"), saleOnline3: s("saleOnline3"),
+      transactionValue: s("transactionValue"), pctSupport: numOrU("pctSupport"),
+      orderTotal: numOrU("orderTotal"),
+      oldReceiptNo: s("oldReceiptNo"), depositDate: s("depositDate"),
+      bellCode: s("bellCode"), trangThai: (s("trangThai") || undefined) as any, note: s("note"),
+    });
+    revalidatePath(`/rc/${id}`); revalidatePath("/rc"); revalidatePath("/missing-source"); revalidatePath("/");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as any)?.message || "Lỗi không xác định" };
+  }
 }
 
 // Sửa nhanh 1 ô ngay trên sổ (inline edit, như Excel)
