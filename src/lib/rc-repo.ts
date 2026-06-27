@@ -193,8 +193,19 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
   if (error) throw error;
   const id = data!.id as string;
 
-  for (const [k, m] of AR_METHODS) await upsertPayment(id, "ar", m, Number((t as any)[k]) || 0);
-  for (const [k, m] of AP_METHODS) await upsertPayment(id, "ap", m, Number((t as any)[k]) || 0);
+  // Hình thức TT ĐỘNG: lấy từ payments (mỗi method 1 dòng, kể cả hình thức mới).
+  // Fallback 4 cột chuẩn nếu không có payments.
+  const pmCode = (m?: string) => (m === "bank_wire" ? "bankwire" : (m || "cash"));
+  if (t.payments?.length) {
+    for (const p of t.payments) {
+      const dir = ((p as any).direction === "ap" ? "ap" : "ar") as "ar" | "ap";
+      const amt = Number(p.soTien) || 0;
+      if (amt) await upsertPayment(id, dir, pmCode(p.hinhThuc), amt);
+    }
+  } else {
+    for (const [k, m] of AR_METHODS) await upsertPayment(id, "ar", m, Number((t as any)[k]) || 0);
+    for (const [k, m] of AP_METHODS) await upsertPayment(id, "ap", m, Number((t as any)[k]) || 0);
+  }
 
   if (t.lineItems?.length)
     await s.from("rc_line_items").insert(t.lineItems.map((l, i) => ({

@@ -260,17 +260,16 @@ export async function resolveSource(id: string, source: string) {
   revalidatePath("/missing-source"); revalidatePath("/rc"); revalidatePath("/");
 }
 
-// Cập nhật CHI TIẾT nguồn cho RC thiếu nguồn (FR-MISS-03)
+// Cập nhật nguồn cho RC thiếu nguồn (FR-MISS-03)
 export async function resolveSourceDetail(id: string, fd: FormData) {
   const s = (k: string) => String(fd.get(k) ?? "").trim();
   const t = await getTransaction(id);
   const src1 = s("source1") || "WI";
-  const extra = s("detail");
   await updateTransaction(id, {
     source1: src1,
     source2: s("source2") || undefined,
     rcJmNo: s("rcJmNo") || t?.rcJmNo,
-    note: ((t?.note || "").replace(/ · Đã gửi US.*$/, "")) + ` · Nguồn đã cập nhật: ${src1}${extra ? " — " + extra : ""}`,
+    note: (t?.note || "").replace(/ · Đã gửi US.*$/, ""),
   });
   revalidatePath("/missing-source"); revalidatePath("/rc"); revalidatePath("/");
 }
