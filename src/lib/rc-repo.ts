@@ -251,17 +251,25 @@ export async function updateTransaction(id: string, patch: Partial<Transaction>)
   if (patch.source1 !== undefined) map["source1_id"] = await ensureSource(patch.source1);
   if (patch.source2 !== undefined) map["source2_id"] = await ensureSource(patch.source2);
   if (patch.khach !== undefined) map["customer_id"] = await resolveCustomerId(patch.khach, patch.contact);
-  if (Object.keys(map).length) await s.from("rc_entries").update(map).eq("id", id);
+  // GHI CHÍNH: phải báo lỗi nếu thất bại (trước đây nuốt lỗi → "lưu" im lặng không tác dụng)
+  if (Object.keys(map).length) {
+    const { error } = await s.from("rc_entries").update(map).eq("id", id);
+    if (error) throw new Error("Cập nhật RC thất bại: " + error.message);
+  }
 
-  for (const [k, m] of AR_METHODS) if ((patch as any)[k] !== undefined) await upsertPayment(id, "ar", m, Number((patch as any)[k]) || 0);
-  for (const [k, m] of AP_METHODS) if ((patch as any)[k] !== undefined) await upsertPayment(id, "ap", m, Number((patch as any)[k]) || 0);
-
-  if (patch.sale1 !== undefined || patch.sale1Pct !== undefined) await setSales(id, "counter", 1, patch.sale1, patch.sale1Pct);
-  if (patch.sale2 !== undefined || patch.sale2Pct !== undefined) await setSales(id, "counter", 2, patch.sale2, patch.sale2Pct);
-  if (patch.sale3 !== undefined || patch.sale3Pct !== undefined) await setSales(id, "counter", 3, patch.sale3, patch.sale3Pct);
-  if (patch.saleOnline !== undefined) await setSales(id, "online", 1, patch.saleOnline, patch.pctSupport);
-  if (patch.saleOnline2 !== undefined) await setSales(id, "online", 2, patch.saleOnline2);
-  if (patch.saleOnline3 !== undefined) await setSales(id, "online", 3, patch.saleOnline3);
+  // Bước phụ (tiền/sales): lỗi 1 phần KHÔNG làm hỏng phần ghi chính
+  try {
+    for (const [k, m] of AR_METHODS) if ((patch as any)[k] !== undefined) await upsertPayment(id, "ar", m, Number((patch as any)[k]) || 0);
+    for (const [k, m] of AP_METHODS) if ((patch as any)[k] !== undefined) await upsertPayment(id, "ap", m, Number((patch as any)[k]) || 0);
+    if (patch.sale1 !== undefined || patch.sale1Pct !== undefined) await setSales(id, "counter", 1, patch.sale1, patch.sale1Pct);
+    if (patch.sale2 !== undefined || patch.sale2Pct !== undefined) await setSales(id, "counter", 2, patch.sale2, patch.sale2Pct);
+    if (patch.sale3 !== undefined || patch.sale3Pct !== undefined) await setSales(id, "counter", 3, patch.sale3, patch.sale3Pct);
+    if (patch.saleOnline !== undefined) await setSales(id, "online", 1, patch.saleOnline, patch.pctSupport);
+    if (patch.saleOnline2 !== undefined) await setSales(id, "online", 2, patch.saleOnline2);
+    if (patch.saleOnline3 !== undefined) await setSales(id, "online", 3, patch.saleOnline3);
+  } catch (e) {
+    console.warn("[rc-repo] update sub-step lỗi (đã lưu phần chính):", (e as any)?.message);
+  }
 }
 
 export async function setStatus(id: string, status: TxStatus) {
