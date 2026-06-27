@@ -144,8 +144,8 @@ export function listTransactions(opts?: { company?: string; status?: string; q?:
   }
   return rows;
 }
-export function listTransactionsPaged(opts: { company?: string; status?: string; q?: string; from?: string; to?: string }, page: number, pageSize: number) {
-  const all = listTransactions(opts);
+export function listTransactionsPaged(opts: { company?: string; status?: string; q?: string; from?: string; to?: string; sort?: "newest" | "oldest" }, page: number, pageSize: number) {
+  const all = listTransactions(opts).sort((a, b) => opts.sort === "oldest" ? a.ngay.localeCompare(b.ngay) : b.ngay.localeCompare(a.ngay));
   const start = (Math.max(1, page) - 1) * pageSize;
   return { rows: all.slice(start, start + pageSize), total: all.length };
 }

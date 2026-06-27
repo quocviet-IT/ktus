@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Filter, Pencil, Plus, RotateCcw, Search } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
@@ -9,6 +9,7 @@ import { COMPANIES } from "@/lib/store";
 import { STATUS_LABEL } from "@/lib/rules";
 import { rcJmCells, rcJmHeaders } from "@/lib/excel-ledger";
 import { periodRange, periodLabel } from "@/lib/period";
+import { normalizeSortDir } from "@/lib/list-controls";
 import type { CompanyCode } from "@/lib/types";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -25,18 +26,20 @@ type SP = {
   year?: string;
   page?: string;
   pageSize?: string;
+  sort?: string;
 };
 
 export default async function SoGiaoDich({ searchParams }: { searchParams: SP }) {
   const selectedCompany = (searchParams.company || "PC49") as CompanyCode | "all";
   const status = searchParams.status || "all";
   const range = periodRange(searchParams);
+  const sort = normalizeSortDir(searchParams.sort);
   const requestedPageSize = Number(searchParams.pageSize);
   const pageSize = PAGE_SIZE_OPTIONS.includes(requestedPageSize) ? requestedPageSize : DEFAULT_PAGE_SIZE;
 
   const page = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
   const { rows, total } = await listTransactionsPaged(
-    { company: selectedCompany, status, q: searchParams.q, from: range.from, to: range.to },
+    { company: selectedCompany, status, q: searchParams.q, from: range.from, to: range.to, sort },
     page, pageSize,
   );
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -80,9 +83,9 @@ export default async function SoGiaoDich({ searchParams }: { searchParams: SP })
 
   return (
     <>
-      <PageHeader crumb="Hàng ngày / Sổ giao dịch" title={selectedCompany === "Trans" ? "TRANS RC JM (FINAL)" : selectedCompany === "all" ? "Sổ RC JM (tất cả)" : "PC49 RC JM (FINAL)"}>
+      <PageHeader crumb="HÃ ng ngÃ y / Sá»• giao dá»‹ch" title={selectedCompany === "Trans" ? "TRANS RC JM (FINAL)" : selectedCompany === "all" ? "Sá»• RC JM (táº¥t cáº£)" : "PC49 RC JM (FINAL)"}>
         <Link href="/rc/new" className="inline-flex h-10 items-center gap-1.5 rounded-md bg-brand px-3.5 text-[13px] font-medium text-white hover:bg-accent">
-          <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Nhập RC
+          <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Nháº­p RC
         </Link>
       </PageHeader>
 
@@ -95,51 +98,55 @@ export default async function SoGiaoDich({ searchParams }: { searchParams: SP })
                 <input
                   name="q"
                   defaultValue={searchParams.q}
-                  placeholder="Tìm RC#, khách, diễn giải..."
+                  placeholder="TÃ¬m RC#, khÃ¡ch, diá»…n giáº£i..."
                   className={`${control} w-full pl-9`}
                 />
               </label>
-              <select name="company" aria-label="Công ty" defaultValue={selectedCompany} className={control}>
+              <select name="company" aria-label="CÃ´ng ty" defaultValue={selectedCompany} className={control}>
                 <option value="PC49">PC49 RC JM</option>
                 <option value="Trans">TRANS RC JM</option>
-                <option value="all">Tất cả</option>
+                <option value="all">Táº¥t cáº£</option>
                 {COMPANIES.filter((c) => c !== "PC49" && c !== "Trans").map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <select name="status" aria-label="Trạng thái" defaultValue={status} className={control}>
-                <option value="all">Mọi trạng thái</option>
+              <select name="status" aria-label="Tráº¡ng thÃ¡i" defaultValue={status} className={control}>
+                <option value="all">Má»i tráº¡ng thÃ¡i</option>
                 {Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+              <select name="sort" aria-label="Sap xep" defaultValue={sort} className={control}>
+                <option value="newest">Ngay moi nhat</option>
+                <option value="oldest">Ngay cu nhat</option>
               </select>
               <PeriodFields period={searchParams.period} day={searchParams.day} week={searchParams.week} month={searchParams.month} year={searchParams.year} />
               <label className="flex items-center gap-1.5 text-[12px] text-muted">
-                Dòng/trang
+                DÃ²ng/trang
                 <select name="pageSize" defaultValue={String(pageSize)} className={control}>
                   {PAGE_SIZE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
               </label>
               <button type="submit" className={primaryButton}>
                 <Filter size={14} />
-                Lọc
+                Lá»c
               </button>
               <Link href={`/rc?pageSize=${pageSize}`} className={toolbarButton}>
                 <RotateCcw size={14} />
-                Xóa lọc
+                XÃ³a lá»c
               </Link>
               <div className="flex-1" />
-              <span className="text-[12px] text-muted">{periodLabel(searchParams)} · {pageFrom}-{pageTo}/{total} dòng</span>
+              <span className="text-[12px] text-muted">{periodLabel(searchParams)} Â· {pageFrom}-{pageTo}/{total} dÃ²ng</span>
             </form>
           </div>
 
           <div className="grid grid-cols-2 gap-px border-b border-line bg-line md:grid-cols-4">
             <div className="bg-band px-3 py-2">
-              <div className="font-mono text-[10px] font-semibold uppercase text-muted">Công ty</div>
-              <div className="mt-0.5 text-[14px] font-semibold text-ink">{selectedCompany === "all" ? "Tất cả" : selectedCompany}</div>
+              <div className="font-mono text-[10px] font-semibold uppercase text-muted">CÃ´ng ty</div>
+              <div className="mt-0.5 text-[14px] font-semibold text-ink">{selectedCompany === "all" ? "Táº¥t cáº£" : selectedCompany}</div>
             </div>
             <div className="bg-band px-3 py-2">
-              <div className="font-mono text-[10px] font-semibold uppercase text-muted">Trạng thái</div>
-              <div className="mt-0.5 text-[14px] font-semibold text-ink">{status === "all" ? "Mọi trạng thái" : STATUS_LABEL[status as keyof typeof STATUS_LABEL]}</div>
+              <div className="font-mono text-[10px] font-semibold uppercase text-muted">Tráº¡ng thÃ¡i</div>
+              <div className="mt-0.5 text-[14px] font-semibold text-ink">{status === "all" ? "Má»i tráº¡ng thÃ¡i" : STATUS_LABEL[status as keyof typeof STATUS_LABEL]}</div>
             </div>
             <div className="bg-band px-3 py-2">
-              <div className="font-mono text-[10px] font-semibold uppercase text-muted">Dòng</div>
+              <div className="font-mono text-[10px] font-semibold uppercase text-muted">DÃ²ng</div>
               <div className="mt-0.5 font-mono text-[15px] font-bold tabular-nums text-ink">{total.toLocaleString("en-US")}</div>
             </div>
             <div className="bg-band px-3 py-2">
@@ -162,7 +169,7 @@ export default async function SoGiaoDich({ searchParams }: { searchParams: SP })
                         {h}
                       </th>
                     ))}
-                    <th className={`${th} sticky right-0 z-40 min-w-[112px] bg-band text-center shadow-[-2px_0_0_0_#D8E0D4]`}>SỬA</th>
+                    <th className={`${th} sticky right-0 z-40 min-w-[112px] bg-band text-center shadow-[-2px_0_0_0_#D8E0D4]`}>Sá»¬A</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -183,14 +190,14 @@ export default async function SoGiaoDich({ searchParams }: { searchParams: SP })
                         );
                       })}
                       <td className={`${td} sticky right-0 z-20 bg-card text-center shadow-[-2px_0_0_0_#D8E0D4]`}>
-                        <Link href={`/rc/${t.id}`} aria-label="Sửa đơn" title="Sửa đơn"
+                        <Link href={`/rc/${t.id}`} aria-label="Sá»­a Ä‘Æ¡n" title="Sá»­a Ä‘Æ¡n"
                           className="inline-flex h-8 items-center gap-1 rounded-md border border-line px-2.5 text-[11.5px] text-brand hover:border-accent hover:bg-accentSoft hover:text-accent">
-                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Sửa
+                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Sá»­a
                         </Link>
                       </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={headers.length + 1} className="border-b border-r border-line px-3 py-8 text-center text-[12px] text-muted">Không có giao dịch phù hợp.</td></tr>
+                    <tr><td colSpan={headers.length + 1} className="border-b border-r border-line px-3 py-8 text-center text-[12px] text-muted">KhÃ´ng cÃ³ giao dá»‹ch phÃ¹ há»£p.</td></tr>
                   )}
                 </tbody>
               </table>

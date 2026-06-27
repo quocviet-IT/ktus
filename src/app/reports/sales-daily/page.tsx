@@ -8,6 +8,7 @@ import { listPaymentMethods, listTransactions } from "@/lib/data";
 import { computeCondition, TYPE_LABEL } from "@/lib/rules";
 import { num } from "@/lib/format";
 import { periodRange, periodLabel, byEntryAsc } from "@/lib/period";
+import { normalizeSortDir } from "@/lib/list-controls";
 import { currentAmountByPaymentMethod } from "@/lib/payments";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -22,11 +23,13 @@ type SP = {
   year?: string;
   page?: string;
   pageSize?: string;
+  sort?: string;
 };
 
 export default async function SalesDaily({ searchParams }: { searchParams: SP }) {
   const company = searchParams.company === "Trans" ? "Trans" : "PC49";
   const range = periodRange(searchParams);
+  const sort = normalizeSortDir(searchParams.sort);
   const requestedPageSize = Number(searchParams.pageSize);
   const pageSize = PAGE_SIZE_OPTIONS.includes(requestedPageSize) ? requestedPageSize : DEFAULT_PAGE_SIZE;
 
@@ -35,7 +38,7 @@ export default async function SalesDaily({ searchParams }: { searchParams: SP })
     listPaymentMethods(),
   ]);
 
-  const rows = [...all].sort(byEntryAsc);
+  const rows = [...all].sort((a, b) => sort === "oldest" ? byEntryAsc(a, b) : byEntryAsc(b, a));
   const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const requestedPage = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
@@ -154,6 +157,10 @@ export default async function SalesDaily({ searchParams }: { searchParams: SP })
               <span className="mx-1 h-6 border-l border-line" />
               <input type="hidden" name="company" value={company} />
               <PeriodFields period={searchParams.period} day={searchParams.day} week={searchParams.week} month={searchParams.month} year={searchParams.year} />
+              <select name="sort" defaultValue={sort} className={control}>
+                <option value="newest">Ngay moi nhat</option>
+                <option value="oldest">Ngay cu nhat</option>
+              </select>
 
               <label className="flex items-center gap-1.5 text-[12px] text-muted">
                 Dòng/trang
@@ -260,7 +267,7 @@ export default async function SalesDaily({ searchParams }: { searchParams: SP })
 
             <Pagination
               basePath="/reports/sales-daily"
-              sp={{ ...(searchParams as Record<string, string | undefined>), pageSize: String(pageSize) }}
+              sp={{ ...(searchParams as Record<string, string | undefined>), pageSize: String(pageSize), sort }}
               page={page}
               totalPages={totalPages}
               total={total}

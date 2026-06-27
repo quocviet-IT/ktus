@@ -8,6 +8,7 @@ import { listCatalogGroups, listTransactions } from "@/lib/data";
 import { isBell, computeCondition } from "@/lib/rules";
 import { money, ddmm } from "@/lib/format";
 import { periodRange, periodLabel, byEntryAsc } from "@/lib/period";
+import { normalizeSortDir } from "@/lib/list-controls";
 import type { Transaction } from "@/lib/types";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -21,10 +22,12 @@ type SP = {
   year?: string;
   page?: string;
   pageSize?: string;
+  sort?: string;
 };
 
 export default async function Bell({ searchParams }: { searchParams: SP }) {
   const range = periodRange(searchParams);
+  const sort = normalizeSortDir(searchParams.sort);
   const requestedPageSize = Number(searchParams.pageSize);
   const pageSize = PAGE_SIZE_OPTIONS.includes(requestedPageSize) ? requestedPageSize : DEFAULT_PAGE_SIZE;
   const [all, catalogGroups] = await Promise.all([listTransactions({ from: range.from, to: range.to }), listCatalogGroups()]);
@@ -35,7 +38,7 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
     const key = t.oldReceiptNo || t.rcJmNo || t.id;
     if (!byOrder.has(key)) byOrder.set(key, t);
   }
-  const rowsAll = [...byOrder.values()].sort(byEntryAsc);
+  const rowsAll = [...byOrder.values()].sort((a, b) => sort === "oldest" ? byEntryAsc(a, b) : byEntryAsc(b, a));
 
   const counts: Record<string, number> = {};
   bellCodes.forEach((c) => (counts[c] = 0));
@@ -88,6 +91,10 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
           <div className="border-b border-line px-4 py-3">
             <form action="/reports/bell" className="flex items-center gap-2 gap-y-3 flex-wrap">
               <PeriodFields period={searchParams.period} day={searchParams.day} week={searchParams.week} month={searchParams.month} year={searchParams.year} />
+              <select name="sort" defaultValue={sort} className={control}>
+                <option value="newest">Ngay moi nhat</option>
+                <option value="oldest">Ngay cu nhat</option>
+              </select>
               <label className="flex items-center gap-1.5 text-[12px] text-muted">
                 Dòng/trang
                 <select name="pageSize" defaultValue={String(pageSize)} className={control}>
@@ -169,7 +176,7 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
 
             <Pagination
               basePath="/reports/bell"
-              sp={{ ...(searchParams as Record<string, string | undefined>), pageSize: String(pageSize) }}
+              sp={{ ...(searchParams as Record<string, string | undefined>), pageSize: String(pageSize), sort }}
               page={currentPage}
               totalPages={totalPages}
               total={total}

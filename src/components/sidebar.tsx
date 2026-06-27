@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -12,7 +12,6 @@ import {
   ClipboardList,
   FileSpreadsheet,
   Globe2,
-  Landmark,
   Layers,
   LayoutDashboard,
   PencilLine,
@@ -20,21 +19,20 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-// Điều hướng theo nghiệp vụ (kiểu phần mềm kế toán)
+// Äiá»u hÆ°á»›ng theo nghiá»‡p vá»¥ (kiá»ƒu pháº§n má»m káº¿ toÃ¡n)
 const NAV: { group?: string; href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/", label: "Tổng quan", icon: LayoutDashboard },
-  { group: "RC Tracking", href: "/rc/new", label: "Nhập RC", icon: PencilLine },
-  { href: "/rc", label: "Sổ RC JM", icon: ClipboardList },
-  { href: "/missing-source", label: "RC thiếu nguồn", icon: Scale },
-  { group: "Deals", href: "/deals", label: "Quản lý Deal", icon: Layers },
-  { group: "Cash Book", href: "/usbc101", label: "Sổ công ty & Balance", icon: Landmark },
-  { group: "Bank", href: "/bank", label: "Sao kê ngân hàng", icon: Banknote },
-  { group: "Reconciliation", href: "/reconciliation", label: "Đối chiếu KT ↔ US", icon: ArrowLeftRight },
-  { group: "Reports", href: "/reports/sales-daily", label: "Bán hàng theo ngày", icon: BarChart3 },
+  { href: "/", label: "Tá»•ng quan", icon: LayoutDashboard },
+  { group: "RC Tracking", href: "/rc/new", label: "Nháº­p RC", icon: PencilLine },
+  { href: "/rc", label: "Sá»• RC JM", icon: ClipboardList },
+  { href: "/missing-source", label: "RC thiáº¿u nguá»“n", icon: Scale },
+  { group: "Deals", href: "/deals", label: "Quáº£n lÃ½ Deal", icon: Layers },
+  { group: "Bank", href: "/bank", label: "Sao kÃª ngÃ¢n hÃ ng", icon: Banknote },
+  { group: "Reconciliation", href: "/reconciliation", label: "Äá»‘i chiáº¿u KT â†” US", icon: ArrowLeftRight },
+  { group: "Reports", href: "/reports/sales-daily", label: "BÃ¡n hÃ ng theo ngÃ y", icon: BarChart3 },
   { href: "/reports/sales-online", label: "Sales online", icon: Globe2 },
-  { href: "/reports/bell", label: "Rung chuông", icon: Bell },
-  { group: "Master Data", href: "/catalog", label: "Danh mục", icon: BookOpen },
-  { href: "/excel", label: "Dữ liệu Excel", icon: FileSpreadsheet },
+  { href: "/reports/bell", label: "Rung chuÃ´ng", icon: Bell },
+  { group: "Master Data", href: "/catalog", label: "Danh má»¥c", icon: BookOpen },
+  { href: "/excel", label: "Dá»¯ liá»‡u Excel", icon: FileSpreadsheet },
 ];
 
 const STORAGE_KEY = "ktus.sidebar.collapsed";
@@ -43,7 +41,7 @@ export default function Sidebar() {
   const path = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
-  // Đọc trạng thái đã lưu sau khi mount (tránh lệch hydration)
+  // Äá»c tráº¡ng thÃ¡i Ä‘Ã£ lÆ°u sau khi mount (trÃ¡nh lá»‡ch hydration)
   useEffect(() => {
     setCollapsed(localStorage.getItem(STORAGE_KEY) === "1");
   }, []);
@@ -60,34 +58,34 @@ export default function Sidebar() {
     <aside
       className={`${collapsed ? "w-[68px]" : "w-[240px]"} shrink-0 flex flex-col min-h-screen sticky top-0 bg-[#24463A] text-[#E7E1D2] transition-[width] duration-200 ease-in-out`}
     >
-      {/* Thương hiệu */}
+      {/* ThÆ°Æ¡ng hiá»‡u */}
       <div className={`flex items-center border-b border-white/10 ${collapsed ? "px-2 py-4 justify-center" : "px-5 py-4"}`}>
         {collapsed ? (
           <div className="grid h-9 w-9 place-items-center rounded-lg border border-[#C9A24B]/50 font-serif text-[15px] text-[#E6C77A]">KT</div>
         ) : (
           <div className="min-w-0">
-            <div className="font-mono text-[11px] tracking-widest text-[#C9A24B]">HPUS · KT210</div>
-            <div className="font-serif text-lg text-[#F2ECDD] truncate">Sổ vàng KTUS</div>
-            <div className="text-[11px] text-[#9DB0A2]">Theo dõi RC · 2026</div>
+            <div className="font-mono text-[11px] tracking-widest text-[#C9A24B]">HPUS Â· KT210</div>
+            <div className="font-serif text-lg text-[#F2ECDD] truncate">Sá»• vÃ ng KTUS</div>
+            <div className="text-[11px] text-[#9DB0A2]">Theo dÃµi RC Â· 2026</div>
           </div>
         )}
       </div>
 
-      {/* Nút thu gọn (phía trên, có nhãn) */}
+      {/* NÃºt thu gá»n (phÃ­a trÃªn, cÃ³ nhÃ£n) */}
       <div className="px-2.5 pt-2.5">
         <button
           type="button"
           onClick={toggle}
-          aria-label={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
-          title={collapsed ? "Mở rộng menu" : "Thu gọn menu"}
+          aria-label={collapsed ? "Má»Ÿ rá»™ng menu" : "Thu gá»n menu"}
+          title={collapsed ? "Má»Ÿ rá»™ng menu" : "Thu gá»n menu"}
           className={`flex items-center gap-2.5 w-full rounded-lg text-[12.5px] text-[#CFE0D5] hover:bg-white/[0.06] hover:text-white ${collapsed ? "px-0 py-2.5 justify-center" : "px-3 py-2"}`}
         >
           <ChevronLeft className={`h-[18px] w-[18px] shrink-0 transition-transform duration-200 ${collapsed ? "rotate-180" : ""}`} aria-hidden="true" strokeWidth={1.8} />
-          {!collapsed && <span>Thu gọn menu</span>}
+          {!collapsed && <span>Thu gá»n menu</span>}
         </button>
       </div>
 
-      {/* Điều hướng */}
+      {/* Äiá»u hÆ°á»›ng */}
       <nav className="px-2.5 pb-2.5 flex-1 overflow-y-auto">
         {NAV.map((n) => {
           const Icon = n.icon;
@@ -114,9 +112,9 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Chân menu */}
+      {/* ChÃ¢n menu */}
       {!collapsed && (
-        <div className="px-5 py-3 border-t border-white/10 text-[11px] text-[#7E9387]">intern1@ctyhp.vn · MVP</div>
+        <div className="px-5 py-3 border-t border-white/10 text-[11px] text-[#7E9387]">intern1@ctyhp.vn Â· MVP</div>
       )}
     </aside>
   );

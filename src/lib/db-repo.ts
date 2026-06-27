@@ -173,6 +173,7 @@ function rowToTx(r: any, rel?: TxEnrichment): Transaction {
     createdAt: r.created_at ?? undefined,
     oldReceiptNo: r.old_receipt_no ?? undefined, depositDate: r.deposit_date ?? undefined,
     bellCode: bell?.code ?? r.bell_code ?? undefined, trangThai: r.trang_thai as TxStatus, note: r.note ?? undefined,
+    cancelReason: r.cancel_reason ?? undefined, canceledAt: r.canceled_at ?? undefined, cancelMode: r.cancel_mode ?? undefined,
     companyId: r.company_id ?? undefined, companyName: company?.name,
     customerId: r.customer_id ?? undefined,
     accountId: r.account_id ?? undefined, accountName: account?.name, accountType: account?.accountType,
@@ -224,14 +225,35 @@ export async function listTransactions(opts?: { company?: string; status?: strin
 
 // Phân trang TẠI SERVER (chỉ kéo 1 trang) — dùng cho sổ chỉ phân trang, không tổng hợp toàn kỳ
 export async function listTransactionsPaged(
-  opts: { company?: string; status?: string; q?: string; from?: string; to?: string },
+  opts: { company?: string; status?: string; q?: string; from?: string; to?: string; sort?: "newest" | "oldest" },
   page: number, pageSize: number,
 ): Promise<{ rows: Transaction[]; total: number }> {
   const fromIdx = (Math.max(1, page) - 1) * pageSize;
   let query: any = sb().from("transactions").select(LIST_SELECT, { count: "exact" })
-    .order("ngay", { ascending: false }).range(fromIdx, fromIdx + pageSize - 1);
+    .order("ngay", { ascending: opts.sort === "oldest" }).range(fromIdx, fromIdx + pageSize - 1);
   if (opts.company && opts.company !== "all") query = query.eq("company", opts.company);
   if (opts.status && opts.status !== "all") query = query.eq("trang_thai", opts.status);
+  if (opts.from) query = query.gte("ngay", opts.from);
+  if (opts.to) query = query.lte("ngay", opts.to);
+  if (opts.q) query = query.or(`rc_jm_no.ilike.%${opts.q}%,khach.ilike.%${opts.q}%,dien_giai.ilike.%${opts.q}%`);
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return { rows: (data ?? []).map((r: any) => rowToTx(r)), total: count ?? 0 };
+}
+
+export async function listMissingSourcePaged(
+  opts: { company?: string; q?: string; from?: string; to?: string; sort?: "newest" | "oldest" },
+  page: number,
+  pageSize: number,
+): Promise<{ rows: Transaction[]; total: number }> {
+  const fromIdx = (Math.max(1, page) - 1) * pageSize;
+  const ascending = opts.sort === "oldest";
+  let query: any = sb().from("transactions").select(LIST_SELECT, { count: "exact" })
+    .neq("trang_thai", "cancel")
+    .or("source_1.is.null,source_1.eq.,source_1.eq.Không có source")
+    .order("ngay", { ascending })
+    .range(fromIdx, fromIdx + pageSize - 1);
+  if (opts.company && opts.company !== "all") query = query.eq("company", opts.company);
   if (opts.from) query = query.gte("ngay", opts.from);
   if (opts.to) query = query.lte("ngay", opts.to);
   if (opts.q) query = query.or(`rc_jm_no.ilike.%${opts.q}%,khach.ilike.%${opts.q}%,dien_giai.ilike.%${opts.q}%`);
@@ -254,33 +276,154 @@ export async function listDeals(): Promise<any[]> {
     }));
   } catch { return []; }
 }
-export async function listBankTransactions(opts?: { company?: string }): Promise<any[]> {
+
+async function companyIdByCode(code?: string): Promise<number | null> {
+  const clean = String(code || "").trim();
+  if (!clean || clean === "all") return null;
+  const { data, error } = await sb().from("companies").select("id").eq("code", clean).maybeSingle();
+  if (error) throw error;
+  return data?.id != null ? Number(data.id) : null;
+}
+
+function mapBankTransaction(b: any) {
+  return {
+    id: b.id, ngay: b.txn_date, description: b.description ?? "", category: b.category ?? "",
+    amountIn: N(b.amount_in), amountOut: N(b.amount_out), reconciled: !!b.reconciled,
+    rawAccountNo: b.raw_account_no ?? "", note: b.note ?? "",
+    company: (Array.isArray(b.companies) ? b.companies[0] : b.companies)?.code ?? "",
+  };
+}
+
+export async function listBankTransactions(opts?: { company?: string; from?: string; to?: string; q?: string; sort?: "newest" | "oldest" }): Promise<any[]> {
   try {
+    const companyId = await companyIdByCode(opts?.company);
     let q: any = sb().from("bank_transactions")
-      .select("id, txn_date, description, category, amount_in, amount_out, reconciled, companies(code)")
-      .order("txn_date", { ascending: false }).limit(1000);
-    if (opts?.company && opts.company !== "all") q = q.eq("company", opts.company);
+      .select("id, txn_date, description, category, amount_in, amount_out, raw_account_no, reconciled, note, companies(code)")
+      .order("txn_date", { ascending: opts?.sort === "oldest" }).limit(1000);
+    if (companyId) q = q.eq("company_id", companyId);
+    if (opts?.from) q = q.gte("txn_date", opts.from);
+    if (opts?.to) q = q.lte("txn_date", opts.to);
+    if (opts?.q) q = q.or(`description.ilike.%${opts.q}%,category.ilike.%${opts.q}%,payee.ilike.%${opts.q}%,conf_no.ilike.%${opts.q}%`);
     const { data, error } = await q;
     if (error) throw error;
-    return (data ?? []).map((b: any) => ({
-      id: b.id, ngay: b.txn_date, description: b.description ?? "", category: b.category ?? "",
-      amountIn: N(b.amount_in), amountOut: N(b.amount_out), reconciled: !!b.reconciled,
-      company: (Array.isArray(b.companies) ? b.companies[0] : b.companies)?.code ?? "",
-    }));
+    return (data ?? []).map(mapBankTransaction);
   } catch { return []; }
 }
-export async function listReconciliations(): Promise<any[]> {
+
+export async function listBankTransactionsPaged(
+  opts: { company?: string; from?: string; to?: string; q?: string; sort?: "newest" | "oldest" },
+  page: number,
+  pageSize: number,
+): Promise<{ rows: any[]; total: number }> {
   try {
-    const { data, error } = await sb().from("reconciliations")
-      .select("id, recon_date, kt_balance, us_balance, difference, status, reason, companies(code)")
-      .order("recon_date", { ascending: false }).limit(500);
+    const companyId = await companyIdByCode(opts.company);
+    const fromIdx = (Math.max(1, page) - 1) * pageSize;
+    let q: any = sb().from("bank_transactions")
+      .select("id, txn_date, description, category, amount_in, amount_out, raw_account_no, reconciled, note, companies(code)", { count: "exact" })
+      .order("txn_date", { ascending: opts.sort === "oldest" })
+      .range(fromIdx, fromIdx + pageSize - 1);
+    if (companyId) q = q.eq("company_id", companyId);
+    if (opts.from) q = q.gte("txn_date", opts.from);
+    if (opts.to) q = q.lte("txn_date", opts.to);
+    if (opts.q) q = q.or(`description.ilike.%${opts.q}%,category.ilike.%${opts.q}%,payee.ilike.%${opts.q}%,conf_no.ilike.%${opts.q}%`);
+    const { data, error, count } = await q;
     if (error) throw error;
-    return (data ?? []).map((r: any) => ({
-      id: r.id, reconDate: r.recon_date, ktBalance: N(r.kt_balance), usBalance: N(r.us_balance),
-      difference: N(r.difference), status: r.status, reason: r.reason ?? "",
-      company: (Array.isArray(r.companies) ? r.companies[0] : r.companies)?.code ?? "",
-    }));
+    return { rows: (data ?? []).map(mapBankTransaction), total: count ?? 0 };
+  } catch { return { rows: [], total: 0 }; }
+}
+
+export async function addBankTransaction(input: {
+  company: CompanyCode;
+  txnDate: string;
+  description: string;
+  category?: string;
+  amountIn?: number;
+  amountOut?: number;
+  rawAccountNo?: string;
+  note?: string;
+}): Promise<void> {
+  const companyId = await companyIdByCode(input.company);
+  const { error } = await sb().from("bank_transactions").insert({
+    company_id: companyId,
+    txn_date: input.txnDate,
+    description: input.description,
+    category: input.category || null,
+    amount_in: Number(input.amountIn) || 0,
+    amount_out: Number(input.amountOut) || 0,
+    raw_account_no: input.rawAccountNo || null,
+    note: input.note || null,
+  });
+  if (error) throw error;
+}
+
+export async function setBankTransactionReconciled(id: string, reconciled: boolean): Promise<void> {
+  const { error } = await sb().from("bank_transactions").update({ reconciled }).eq("id", id);
+  if (error) throw error;
+}
+
+function mapReconciliation(r: any) {
+  return {
+    id: r.id, reconDate: r.recon_date, ktBalance: N(r.kt_balance), usBalance: N(r.us_balance),
+    difference: N(r.difference), status: r.status, reason: r.reason ?? "",
+    company: (Array.isArray(r.companies) ? r.companies[0] : r.companies)?.code ?? "",
+  };
+}
+
+export async function listReconciliations(opts?: { company?: string; from?: string; to?: string; sort?: "newest" | "oldest" }): Promise<any[]> {
+  try {
+    const companyId = await companyIdByCode(opts?.company);
+    let q: any = sb().from("reconciliations")
+      .select("id, recon_date, kt_balance, us_balance, difference, status, reason, companies(code)")
+      .order("recon_date", { ascending: opts?.sort === "oldest" }).limit(500);
+    if (companyId) q = q.eq("company_id", companyId);
+    if (opts?.from) q = q.gte("recon_date", opts.from);
+    if (opts?.to) q = q.lte("recon_date", opts.to);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []).map(mapReconciliation);
   } catch { return []; }
+}
+
+export async function listReconciliationsPaged(
+  opts: { company?: string; from?: string; to?: string; sort?: "newest" | "oldest" },
+  page: number,
+  pageSize: number,
+): Promise<{ rows: any[]; total: number }> {
+  try {
+    const companyId = await companyIdByCode(opts.company);
+    const fromIdx = (Math.max(1, page) - 1) * pageSize;
+    let q: any = sb().from("reconciliations")
+      .select("id, recon_date, kt_balance, us_balance, difference, status, reason, companies(code)", { count: "exact" })
+      .order("recon_date", { ascending: opts.sort === "oldest" })
+      .range(fromIdx, fromIdx + pageSize - 1);
+    if (companyId) q = q.eq("company_id", companyId);
+    if (opts.from) q = q.gte("recon_date", opts.from);
+    if (opts.to) q = q.lte("recon_date", opts.to);
+    const { data, error, count } = await q;
+    if (error) throw error;
+    return { rows: (data ?? []).map(mapReconciliation), total: count ?? 0 };
+  } catch { return { rows: [], total: 0 }; }
+}
+
+export async function addReconciliation(input: {
+  company: CompanyCode;
+  reconDate: string;
+  ktBalance: number;
+  usBalance: number;
+  reason?: string;
+  status?: string;
+}): Promise<void> {
+  const companyId = await companyIdByCode(input.company);
+  const difference = (Number(input.ktBalance) || 0) - (Number(input.usBalance) || 0);
+  const { error } = await sb().from("reconciliations").insert({
+    company_id: companyId,
+    recon_date: input.reconDate,
+    kt_balance: Number(input.ktBalance) || 0,
+    us_balance: Number(input.usBalance) || 0,
+    reason: input.reason || null,
+    status: input.status || (difference === 0 ? "matched" : input.reason ? "explained" : "pending"),
+  });
+  if (error) throw error;
 }
 
 export interface ExcelWorkbook {
@@ -344,14 +487,14 @@ export async function listExcelWorkbooks(): Promise<ExcelWorkbook[]> {
   }));
 }
 
-export async function listExcelRows(opts?: { workbookId?: string; sheetId?: string; q?: string; page?: number; pageSize?: number }): Promise<{ rows: ExcelRow[]; count: number }> {
+export async function listExcelRows(opts?: { workbookId?: string; sheetId?: string; q?: string; page?: number; pageSize?: number; sort?: "newest" | "oldest" }): Promise<{ rows: ExcelRow[]; count: number }> {
   const pageSize = opts?.pageSize ?? 100;
   const page = Math.max(1, opts?.page ?? 1);
   const from = (page - 1) * pageSize;
   let query = sb()
     .from("excel_rows")
     .select("id, workbook_id, sheet_id, row_index, cells, row_text", { count: "exact" })
-    .order("row_index", { ascending: true })
+    .order("row_index", { ascending: opts?.sort !== "newest" })
     .range(from, from + pageSize - 1);
 
   if (opts?.sheetId) query = query.eq("sheet_id", opts.sheetId);
@@ -403,7 +546,8 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
     transaction_value: t.transactionValue || null,
     pct_support: t.pctSupport ?? null, order_total: t.orderTotal ?? null, old_receipt_no: t.oldReceiptNo || null,
     deposit_date: t.depositDate || null, bell_code: t.bellCode || null,
-    note: t.note || null, trang_thai: t.trangThai,
+    note: t.note || null, cancel_reason: t.cancelReason || null, canceled_at: t.canceledAt || null,
+    cancel_mode: t.cancelMode || null, trang_thai: t.trangThai,
   }).select("id").single();
   if (error) throw error;
   const id = data!.id as string;
@@ -462,6 +606,9 @@ export async function updateTransaction(id: string, patch: Partial<Transaction>)
   set("bell_code", patch.bellCode);
   set("trang_thai", patch.trangThai);
   set("note", patch.note);
+  set("cancel_reason", patch.cancelReason);
+  set("canceled_at", patch.canceledAt);
+  set("cancel_mode", patch.cancelMode);
   if (Object.keys(map).length) await sb().from("transactions").update(map).eq("id", id);
 }
 

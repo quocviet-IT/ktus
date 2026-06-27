@@ -2,7 +2,7 @@
 import * as store from "./store";
 import * as repo from "./db-repo";
 import * as rcrepo from "./rc-repo";
-import type { Transaction, TxStatus, BankLine, Account } from "./types";
+import type { Transaction, TxStatus, BankLine, Account, CompanyCode } from "./types";
 import type { PaymentMethod } from "./payments";
 import type { CatalogGroup, CatalogGroupKey, CatalogItem } from "./catalog";
 import type { ExcelWorkbook, ExcelRow } from "./db-repo";
@@ -16,11 +16,26 @@ export async function listTransactions(opts?: { company?: string; status?: strin
   return USE_DB ? repo.listTransactions(opts) : store.listTransactions(opts);
 }
 export async function listTransactionsPaged(
-  opts: { company?: string; status?: string; q?: string; from?: string; to?: string },
+  opts: { company?: string; status?: string; q?: string; from?: string; to?: string; sort?: "newest" | "oldest" },
   page: number, pageSize: number,
 ): Promise<{ rows: Transaction[]; total: number }> {
   if (USE_RC_READS) return rcrepo.listTransactionsPaged(opts, page, pageSize);
   return USE_DB ? repo.listTransactionsPaged(opts, page, pageSize) : store.listTransactionsPaged(opts, page, pageSize);
+}
+export async function listMissingSourcePaged(
+  opts: { company?: string; q?: string; from?: string; to?: string; sort?: "newest" | "oldest" },
+  page: number, pageSize: number,
+): Promise<{ rows: Transaction[]; total: number }> {
+  if (USE_RC_READS) return rcrepo.listMissingSourcePaged(opts, page, pageSize);
+  if (USE_DB) return repo.listMissingSourcePaged(opts, page, pageSize);
+  const all = store.listTransactions({ company: opts.company, q: opts.q, from: opts.from, to: opts.to })
+    .filter((t) => {
+      const source = (t.source1 || "").trim();
+      return (!source || source === "Không có source") && t.trangThai !== "cancel";
+    })
+    .sort((a, b) => opts.sort === "oldest" ? a.ngay.localeCompare(b.ngay) : b.ngay.localeCompare(a.ngay));
+  const start = (Math.max(1, page) - 1) * pageSize;
+  return { rows: all.slice(start, start + pageSize), total: all.length };
 }
 export async function getTransaction(id: string): Promise<Transaction | undefined> {
   if (USE_RC_READS) return rcrepo.getTransaction(id);
@@ -92,13 +107,54 @@ export async function setBankMatched(id: string, matched: boolean): Promise<void
 
 // Redesign: Deals / Bank / Reconciliation
 export async function listDeals(): Promise<any[]> { return USE_DB ? repo.listDeals() : []; }
-export async function listBankTransactions(opts?: { company?: string }): Promise<any[]> { return USE_DB ? repo.listBankTransactions(opts) : []; }
-export async function listReconciliations(): Promise<any[]> { return USE_DB ? repo.listReconciliations() : []; }
+export async function listBankTransactions(opts?: { company?: string; from?: string; to?: string; q?: string; sort?: "newest" | "oldest" }): Promise<any[]> {
+  return USE_DB ? repo.listBankTransactions(opts) : [];
+}
+export async function listBankTransactionsPaged(
+  opts: { company?: string; from?: string; to?: string; q?: string; sort?: "newest" | "oldest" },
+  page: number, pageSize: number,
+): Promise<{ rows: any[]; total: number }> {
+  return USE_DB ? repo.listBankTransactionsPaged(opts, page, pageSize) : { rows: [], total: 0 };
+}
+export async function addBankTransaction(input: {
+  company: CompanyCode;
+  txnDate: string;
+  description: string;
+  category?: string;
+  amountIn?: number;
+  amountOut?: number;
+  rawAccountNo?: string;
+  note?: string;
+}): Promise<void> {
+  if (USE_DB) await repo.addBankTransaction(input);
+}
+export async function setBankTransactionReconciled(id: string, reconciled: boolean): Promise<void> {
+  if (USE_DB) await repo.setBankTransactionReconciled(id, reconciled);
+}
+export async function listReconciliations(opts?: { company?: string; from?: string; to?: string; sort?: "newest" | "oldest" }): Promise<any[]> {
+  return USE_DB ? repo.listReconciliations(opts) : [];
+}
+export async function listReconciliationsPaged(
+  opts: { company?: string; from?: string; to?: string; sort?: "newest" | "oldest" },
+  page: number, pageSize: number,
+): Promise<{ rows: any[]; total: number }> {
+  return USE_DB ? repo.listReconciliationsPaged(opts, page, pageSize) : { rows: [], total: 0 };
+}
+export async function addReconciliation(input: {
+  company: CompanyCode;
+  reconDate: string;
+  ktBalance: number;
+  usBalance: number;
+  reason?: string;
+  status?: string;
+}): Promise<void> {
+  if (USE_DB) await repo.addReconciliation(input);
+}
 
 export async function listExcelWorkbooks(): Promise<ExcelWorkbook[]> {
   return USE_DB ? repo.listExcelWorkbooks() : [];
 }
 
-export async function listExcelRows(opts?: { workbookId?: string; sheetId?: string; q?: string; page?: number; pageSize?: number }): Promise<{ rows: ExcelRow[]; count: number }> {
+export async function listExcelRows(opts?: { workbookId?: string; sheetId?: string; q?: string; page?: number; pageSize?: number; sort?: "newest" | "oldest" }): Promise<{ rows: ExcelRow[]; count: number }> {
   return USE_DB ? repo.listExcelRows(opts) : { rows: [], count: 0 };
 }

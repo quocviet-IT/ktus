@@ -1,8 +1,8 @@
-import Link from "next/link";
 import PageHeader from "@/components/page-header";
+import Pagination from "@/components/pagination";
+import StickyScrollTable from "@/components/sticky-scroll-table";
 import { listExcelRows, listExcelWorkbooks } from "@/lib/data";
-
-const PAGE_SIZE = 100;
+import { PAGE_SIZE_OPTIONS, normalizePage, normalizePageSize, normalizeSortDir } from "@/lib/list-controls";
 
 function cellText(value: unknown) {
   if (value == null) return "";
@@ -10,30 +10,23 @@ function cellText(value: unknown) {
   return String(value);
 }
 
-export default async function ExcelArchive({ searchParams }: { searchParams: { workbook?: string; sheet?: string; q?: string; page?: string } }) {
+export default async function ExcelArchive({ searchParams }: { searchParams: { workbook?: string; sheet?: string; q?: string; page?: string; pageSize?: string; sort?: string } }) {
   const workbooks = await listExcelWorkbooks();
   const selectedWorkbook = workbooks.find((w) => w.id === searchParams.workbook) ?? workbooks[0];
   const selectedSheet = selectedWorkbook?.sheets.find((s) => s.id === searchParams.sheet);
-  const page = Math.max(1, Number(searchParams.page || 1));
+  const page = normalizePage(searchParams.page);
+  const pageSize = normalizePageSize(searchParams.pageSize || 100);
+  const sort = normalizeSortDir(searchParams.sort);
   const { rows, count } = await listExcelRows({
     workbookId: selectedWorkbook?.id,
     sheetId: selectedSheet?.id,
     q: searchParams.q,
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
+    sort,
   });
-  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(count / pageSize));
   const sheetLookup = new Map(selectedWorkbook?.sheets.map((s) => [s.id, s.sheetName]) ?? []);
-  const baseParams = new URLSearchParams();
-  if (selectedWorkbook) baseParams.set("workbook", selectedWorkbook.id);
-  if (selectedSheet) baseParams.set("sheet", selectedSheet.id);
-  if (searchParams.q) baseParams.set("q", searchParams.q);
-
-  const hrefForPage = (nextPage: number) => {
-    const params = new URLSearchParams(baseParams);
-    params.set("page", String(nextPage));
-    return `/excel?${params.toString()}`;
-  };
 
   return (
     <>
@@ -43,7 +36,7 @@ export default async function ExcelArchive({ searchParams }: { searchParams: { w
           Day la du lieu raw da import nguyen dong tu 33 file Excel. So giao dich RC van nam o man hinh /rc.
         </div>
 
-        <form className="mb-3 grid gap-2 lg:grid-cols-[minmax(260px,1fr)_minmax(220px,360px)_minmax(180px,280px)_auto]" action="/excel">
+        <form className="mb-3 grid gap-2 lg:grid-cols-[minmax(260px,1fr)_minmax(220px,320px)_minmax(180px,240px)_140px_120px_auto]" action="/excel">
           <select name="workbook" defaultValue={selectedWorkbook?.id} className="rounded-md border border-line px-2 py-1.5 text-[13px]">
             {workbooks.map((workbook) => (
               <option key={workbook.id} value={workbook.id}>{workbook.fileName}</option>
@@ -57,6 +50,13 @@ export default async function ExcelArchive({ searchParams }: { searchParams: { w
           </select>
           <input name="q" defaultValue={searchParams.q} placeholder="Tim trong dong Excel..."
             className="rounded-md border border-line px-3 py-1.5 text-[13px]" />
+          <select name="sort" defaultValue={sort} className="rounded-md border border-line px-2 py-1.5 text-[13px]">
+            <option value="newest">Dong moi nhat</option>
+            <option value="oldest">Dong cu nhat</option>
+          </select>
+          <select name="pageSize" defaultValue={String(pageSize)} className="rounded-md border border-line px-2 py-1.5 text-[13px]">
+            {PAGE_SIZE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
           <button type="submit" className="rounded-md border border-line px-3 py-1.5 text-[13px] hover:border-accent">Loc</button>
         </form>
 
@@ -70,12 +70,12 @@ export default async function ExcelArchive({ searchParams }: { searchParams: { w
           <span>Trang {page} / {totalPages}</span>
         </div>
 
-        <div className="overflow-x-auto rounded-md border border-line bg-card">
+        <StickyScrollTable minWidth={1180} bodyClassName="max-h-[calc(100vh-310px)] min-h-[320px] rounded-md border border-line bg-card">
           <table className="min-w-[1180px] border-collapse text-[12.5px]">
             <thead>
               <tr>
                 {["Sheet", "Dong", "Noi dung"].map((h) => (
-                  <th key={h} className="border border-line bg-band px-2.5 py-2 text-left font-mono text-[10px] uppercase text-brand">{h}</th>
+                  <th key={h} className="sticky top-0 z-20 border border-line bg-band px-2.5 py-2 text-left font-mono text-[10px] uppercase text-brand">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -99,12 +99,9 @@ export default async function ExcelArchive({ searchParams }: { searchParams: { w
               )}
             </tbody>
           </table>
-        </div>
+        </StickyScrollTable>
 
-        <div className="mt-3 flex items-center justify-between text-[13px]">
-          {page > 1 ? <Link href={hrefForPage(page - 1)} className="rounded-md border border-line px-3 py-1.5 hover:border-accent">Trang truoc</Link> : <span />}
-          {page < totalPages ? <Link href={hrefForPage(page + 1)} className="rounded-md border border-line px-3 py-1.5 hover:border-accent">Trang sau</Link> : <span />}
-        </div>
+        <Pagination basePath="/excel" sp={{ ...(searchParams as Record<string, string | undefined>), pageSize: String(pageSize), sort }} page={page} totalPages={totalPages} total={count} />
       </div>
     </>
   );

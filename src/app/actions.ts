@@ -1,9 +1,10 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, findByJm, addBankLine, setBankMatched, addPaymentMethod, deleteCatalogItem, upsertCatalogItem, setCatalogActive } from "@/lib/data";
+import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, findByJm, addBankLine, setBankMatched, addPaymentMethod, deleteCatalogItem, upsertCatalogItem, setCatalogActive, addBankTransaction, setBankTransactionReconciled, addReconciliation } from "@/lib/data";
 import type { CatalogGroupKey } from "@/lib/catalog";
 import type { TxStatus, TxType, CompanyCode, LineItem, Payment } from "@/lib/types";
+import { buildCancelNote, type CancelMode } from "@/lib/cancel-order";
 
 export interface RcInput {
   ngay: string;
@@ -274,6 +275,76 @@ export async function createBankLine(company: string, fd: FormData) {
 export async function toggleBankMatched(id: string, matched: boolean) {
   await setBankMatched(id, matched);
   revalidatePath("/usbc101");
+}
+
+export async function createBankTransaction(fd: FormData) {
+  const s = (k: string) => String(fd.get(k) ?? "").trim();
+  const amountIn = Number(s("amountIn")) || 0;
+  const amountOut = Number(s("amountOut")) || 0;
+  if (!s("txnDate") || !s("description")) return;
+  await addBankTransaction({
+    company: (s("company") || "PC49") as CompanyCode,
+    txnDate: s("txnDate"),
+    description: s("description"),
+    category: s("category") || undefined,
+    amountIn,
+    amountOut,
+    rawAccountNo: s("rawAccountNo") || undefined,
+    note: s("note") || undefined,
+  });
+  revalidatePath("/bank");
+  revalidatePath("/reconciliation");
+}
+
+export async function toggleBankTransactionReconciled(id: string, fd: FormData) {
+  await setBankTransactionReconciled(id, String(fd.get("reconciled") || "") !== "true");
+  revalidatePath("/bank");
+  revalidatePath("/reconciliation");
+}
+
+export async function createReconciliation(fd: FormData) {
+  const s = (k: string) => String(fd.get(k) ?? "").trim();
+  if (!s("reconDate")) return;
+  await addReconciliation({
+    company: (s("company") || "PC49") as CompanyCode,
+    reconDate: s("reconDate"),
+    ktBalance: Number(s("ktBalance")) || 0,
+    usBalance: Number(s("usBalance")) || 0,
+    reason: s("reason") || undefined,
+    status: s("status") || undefined,
+  });
+  revalidatePath("/reconciliation");
+}
+
+export async function cancelOrder(id: string, fd: FormData): Promise<{ ok: boolean; error?: string }> {
+  const reason = String(fd.get("reason") || "").trim();
+  const cancelDate = String(fd.get("cancelDate") || "").trim() || new Date().toISOString().slice(0, 10);
+  const mode = (String(fd.get("mode") || "cancel") === "void" ? "void" : "cancel") as CancelMode;
+  if (!reason) return { ok: false, error: "Cần nhập lý do hủy đơn" };
+  try {
+    const t = await getTransaction(id);
+    if (!t) return { ok: false, error: "Không tìm thấy đơn" };
+    await updateTransaction(id, {
+      trangThai: "cancel",
+      cancelReason: reason,
+      canceledAt: cancelDate,
+      cancelMode: mode,
+      note: buildCancelNote({
+        existingNote: t.note,
+        orderDate: t.ngay,
+        cancelDate,
+        reason,
+        mode,
+      }),
+    });
+    revalidatePath(`/rc/${id}`);
+    revalidatePath("/rc");
+    revalidatePath("/missing-source");
+    revalidatePath("/");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as any)?.message || "Lỗi không xác định" };
+  }
 }
 
 // Vòng xử lý RC thiếu nguồn (FR-MISS-02)

@@ -95,6 +95,9 @@ export const transactions = pgTable("transactions", {
   bellCode: text("bell_code"),             // RC1/RC2/RC3/SBO1
   trangThai: transactionStatus("trang_thai").notNull().default("moi"),
   note: text("note"),
+  cancelReason: text("cancel_reason"),
+  canceledAt: date("canceled_at"),
+  cancelMode: text("cancel_mode"),
 
   // Thanh toán đợt đầu (BR-06)
   ttDauNgay: date("tt_dau_ngay"),
@@ -250,6 +253,9 @@ export const rcEntries = pgTable("rc_entries", {
   oldReceiptNo: text("old_receipt_no"),
   status: text("status"),
   note: text("note"),
+  cancelReason: text("cancel_reason"),
+  canceledAt: date("canceled_at"),
+  cancelMode: text("cancel_mode"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   createdBy: uuid("created_by"),

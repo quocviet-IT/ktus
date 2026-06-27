@@ -102,6 +102,9 @@ export interface Transaction {
   bellCode?: string;
   trangThai: TxStatus;
   note?: string;
+  cancelReason?: string;
+  canceledAt?: string;
+  cancelMode?: "cancel" | "void";
 
   // Khoá ngoại (Phase 1) — DB tự nối qua trigger; đọc để dùng sau
   companyId?: number;

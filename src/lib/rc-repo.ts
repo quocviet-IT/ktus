@@ -42,6 +42,9 @@ function rowToTx(r: any): Transaction {
     bellCode: r.bell_code ?? undefined,
     trangThai: (r.trang_thai ?? "hoan_tat") as TxStatus,
     note: r.note ?? undefined,
+    cancelReason: r.cancel_reason ?? undefined,
+    canceledAt: r.canceled_at ?? undefined,
+    cancelMode: r.cancel_mode ?? undefined,
     companyId: r.company_id ?? undefined,
     customerId: r.customer_id ?? undefined,
     parentId: r.deal_id ?? undefined,
@@ -77,12 +80,29 @@ export async function listTransactions(opts?: { company?: string; status?: strin
 }
 
 export async function listTransactionsPaged(
-  opts: { company?: string; status?: string; q?: string; from?: string; to?: string },
+  opts: { company?: string; status?: string; q?: string; from?: string; to?: string; sort?: "newest" | "oldest" },
   page: number, pageSize: number,
 ): Promise<{ rows: Transaction[]; total: number }> {
   const fromIdx = (Math.max(1, page) - 1) * pageSize;
-  let q: any = sb().from("v_rc_entry").select("*", { count: "exact" }).order("ngay", { ascending: false }).range(fromIdx, fromIdx + pageSize - 1);
+  let q: any = sb().from("v_rc_entry").select("*", { count: "exact" }).order("ngay", { ascending: opts.sort === "oldest" }).range(fromIdx, fromIdx + pageSize - 1);
   q = applyFilters(q, opts);
+  const { data, error, count } = await q;
+  if (error) throw error;
+  return { rows: (data ?? []).map(rowToTx), total: count ?? 0 };
+}
+
+export async function listMissingSourcePaged(
+  opts: { company?: string; q?: string; from?: string; to?: string; sort?: "newest" | "oldest" },
+  page: number,
+  pageSize: number,
+): Promise<{ rows: Transaction[]; total: number }> {
+  const fromIdx = (Math.max(1, page) - 1) * pageSize;
+  let q: any = sb().from("v_rc_entry").select("*", { count: "exact" })
+    .neq("trang_thai", "cancel")
+    .or("source_1.is.null,source_1.eq.,source_1.eq.Không có source")
+    .order("ngay", { ascending: opts.sort === "oldest" })
+    .range(fromIdx, fromIdx + pageSize - 1);
+  q = applyFilters(q, { company: opts.company, q: opts.q, from: opts.from, to: opts.to });
   const { data, error, count } = await q;
   if (error) throw error;
   return { rows: (data ?? []).map(rowToTx), total: count ?? 0 };
@@ -100,7 +120,8 @@ async function withLineItems(t: Transaction): Promise<Transaction> {
 export async function getTransaction(id: string): Promise<Transaction | undefined> {
   const { data } = await sb().from("v_rc_entry").select("*").eq("id", id).maybeSingle();
   if (!data) return undefined;
-  return withLineItems(rowToTx(data));
+  const extra = await sb().from("rc_entries").select("cancel_reason, canceled_at, cancel_mode").eq("id", id).maybeSingle();
+  return withLineItems(rowToTx({ ...data, ...(extra.data ?? {}) }));
 }
 
 export async function findByJm(rc?: string): Promise<Transaction | undefined> {
@@ -191,6 +212,7 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
     transaction_value: t.transactionValue || null, pct_support: t.pctSupport ?? null,
     order_total: t.orderTotal ?? null, tax_rate: t.taxRate ?? null, tax_amount: t.taxAmount ?? null,
     old_receipt_no: t.oldReceiptNo || null, status: t.trangThai, note: t.note || null,
+    cancel_reason: t.cancelReason || null, canceled_at: t.canceledAt || null, cancel_mode: t.cancelMode || null,
     jm_receipt_no: t.rcJmNo || null,
   }).select("id").single();
   if (error) throw error;
@@ -245,6 +267,9 @@ export async function updateTransaction(id: string, patch: Partial<Transaction>)
   set("old_receipt_no", patch.oldReceiptNo);
   set("status", patch.trangThai);
   set("note", patch.note);
+  set("cancel_reason", patch.cancelReason);
+  set("canceled_at", patch.canceledAt);
+  set("cancel_mode", patch.cancelMode);
   set("jm_receipt_no", patch.rcJmNo);
   if (patch.bellCode !== undefined) map["bell_code"] = await ensureBell(patch.bellCode);
   if (patch.source1 !== undefined) map["source1_id"] = await ensureSource(patch.source1);
