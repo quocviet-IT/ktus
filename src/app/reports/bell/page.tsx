@@ -34,7 +34,8 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
   const bellCodes = catalogGroups.find((group) => group.key === "bell_code")?.items.map((item) => item.label) ?? [];
 
   const byOrder = new Map<string, Transaction>();
-  for (const t of all.filter(isBell)) {
+  // Hiện đơn được GẮN mã rung chuông (ưu tiên) + đơn đạt mốc giá trị
+  for (const t of all.filter((t) => !!t.bellCode || isBell(t))) {
     const key = t.oldReceiptNo || t.rcJmNo || t.id;
     if (!byOrder.has(key)) byOrder.set(key, t);
   }

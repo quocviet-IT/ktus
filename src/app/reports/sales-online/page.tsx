@@ -156,7 +156,7 @@ export default async function SalesOnline({ searchParams }: { searchParams: SP }
                         <td title={t.dienGiai} className={`${td} max-w-[300px] overflow-hidden text-ellipsis`}>{t.dienGiai}</td>
                         <td className={`${td} font-mono text-brand`}>{depNo}</td>
                         <td className={`${td} font-mono text-brand`}>{recNo}</td>
-                        <td title={t.sale1 || ""} className={`${td} max-w-[150px] overflow-hidden text-ellipsis`}>{t.sale1 || "—"}</td>
+                        <td title={t.sale1 || ""} className={`${td} max-w-[150px] overflow-hidden text-ellipsis`}>{(t.sale1 || "").split(";")[0].trim() || "—"}</td>
                         <td title={t.saleOnline || ""} className={`${td} max-w-[150px] overflow-hidden text-ellipsis`}>{t.saleOnline || "—"}</td>
                         <td title={t.saleOnline2 || ""} className={`${td} max-w-[150px] overflow-hidden text-ellipsis`}>{t.saleOnline2 || "—"}</td>
                         <td title={t.saleOnline3 || ""} className={`${td} max-w-[150px] overflow-hidden text-ellipsis`}>{t.saleOnline3 || "—"}</td>

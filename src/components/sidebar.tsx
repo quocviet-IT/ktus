@@ -10,7 +10,6 @@ import {
   BookOpen,
   ChevronLeft,
   ClipboardList,
-  FileSpreadsheet,
   Globe2,
   Layers,
   LayoutDashboard,
@@ -32,7 +31,6 @@ const NAV: { group?: string; href: string; label: string; icon: LucideIcon }[] =
   { href: "/reports/sales-online", label: "Sales online", icon: Globe2 },
   { href: "/reports/bell", label: "Rung chuông", icon: Bell },
   { group: "Master Data", href: "/catalog", label: "Danh mục", icon: BookOpen },
-  { href: "/excel", label: "Dữ liệu Excel", icon: FileSpreadsheet },
 ];
 
 const STORAGE_KEY = "ktus.sidebar.collapsed";

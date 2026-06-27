@@ -96,8 +96,8 @@ export default function NhapRCForm({
   // Mã SKU + Diễn giải GỘP từ các dòng hàng (nhiều dòng → 1 ô)
   const skuJoined = useMemo(() => lines.map((l) => (l.sku || "").trim()).filter(Boolean).join(", "), [lines]);
   const descJoined = useMemo(() => lines.map((l) => (l.moTa || "").trim()).filter(Boolean).join(", "), [lines]);
-  // Thuế theo loại đơn: cọc 9.375% / bán 10% / khác 0% — tự tính, sửa được
-  const taxRate = DEPOSIT_T.includes(type) ? 9.375 : RECEIPT_T.includes(type) ? 10 : 0;
+  // Thuế 10% cho mọi đơn thu/cọc; đơn mua vào/PO không thuế — tự tính, sửa được
+  const taxRate = RETURN_T.includes(type) ? 0 : 10;
   const taxAuto = lineTotal * taxRate / 100;
   const tax = taxRaw === "" ? taxAuto : Number(taxRaw) || 0;
   const subtotalWithTax = lineTotal + tax;
