@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState, cloneElement, isValidElement } from "react";
-import { ArrowRight, Plus, Save, X } from "lucide-react";
+import { useMemo, useRef, useState, cloneElement, isValidElement } from "react";
+import { ChevronDown, ChevronRight, Plus, RotateCcw, Save, X } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { createRc, lookupDepositInfo, type RcInput } from "@/app/actions";
 import { COMPANIES } from "@/lib/store";
@@ -15,7 +15,7 @@ const DEPOSIT_T = ["deposit", "extra_deposit"];
 const RETURN_T = ["po", "return", "exchange"];
 
 // Đặt NGOÀI component để không bị tạo lại mỗi lần render (tránh input mất focus)
-const lbl = "font-mono text-[11px] text-muted mb-0.5";
+const lbl = "text-[11.5px] text-muted mb-0.5";
 const inp = "w-full rounded-md border border-line px-2.5 py-1.5 text-[13px] bg-white";
 const fx = "rounded-md border border-line bg-band px-2.5 py-1.5 text-right font-mono text-[13px]";
 function Section({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
@@ -62,6 +62,18 @@ export default function NhapRCForm({
   const [depositDate, setDepositDate] = useState("");
   const [depLookup, setDepLookup] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showStep2, setShowStep2] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function resetForm() {
+    formRef.current?.reset();
+    setCompany("PC49"); setType("receipt");
+    setLines([{ moTa: "", soLuong: 1, donGia: 0 }]);
+    setAr({}); setAp({});
+    setOrderTotalRaw(""); setTaxRaw("");
+    setOldReceiptNo(""); setDepositDate(""); setDepLookup("");
+    setShowStep2(false);
+  }
 
   // Gõ Old Receipt # → tra đơn cọc khớp → tự điền Deposit Date (thay INDEX/MATCH của Excel)
   async function onOldReceiptBlur() {
@@ -152,7 +164,7 @@ export default function NhapRCForm({
   return (
     <>
       <PageHeader crumb="Hàng ngày / Nhập RC" title="Nhập RC (USBC101)" />
-      <form onSubmit={onSubmit} className="p-6 max-w-[920px]">
+      <form ref={formRef} onSubmit={onSubmit} className="p-6 max-w-[920px]">
         {/* 1. Thông tin chung */}
         <Section n="1" title="Thông tin chung">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -240,6 +252,15 @@ export default function NhapRCForm({
           </div>
         </Section>
 
+        {/* Bước 2 — thu gọn (JM / Nguồn / Sales / Rung chuông) */}
+        <button type="button" onClick={() => setShowStep2((s) => !s)}
+          className="mb-3.5 w-full flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-3 font-serif text-[15px] hover:border-accent">
+          {showStep2 ? <ChevronDown className="h-4 w-4 text-accent" aria-hidden="true" /> : <ChevronRight className="h-4 w-4 text-accent" aria-hidden="true" />}
+          Bước 2 — JM / Nguồn / Sales / Rung chuông
+          <span className="text-muted text-[12px] font-sans">(có thể nhập sau)</span>
+        </button>
+
+        {showStep2 && (<>
         {/* 5. JM / Pickup / Nguồn */}
         <Section n="5" title="Thông tin JM / Nguồn (bước 2 — có thể nhập sau)">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -281,6 +302,7 @@ export default function NhapRCForm({
           </div>
           <div className="mt-3">{fld("Ghi chú / các đợt thanh toán sau", <textarea name="note" rows={2} placeholder="ngày – số tiền – hình thức – xác nhận…" className={inp} />)}</div>
         </Section>
+        </>)}
 
         {/* Danh mục gợi ý (combobox) — cho phép chọn hoặc gõ giá trị mới */}
         <datalist id="dl-sources">{catalogOptions.sources.map((s) => <option key={s} value={s} />)}</datalist>
@@ -288,11 +310,16 @@ export default function NhapRCForm({
         <datalist id="dl-online">{catalogOptions.salesOnline.map((s) => <option key={s} value={s} />)}</datalist>
         <datalist id="dl-bell">{catalogOptions.bellCodes.map((b) => <option key={b} value={b} />)}</datalist>
 
-        <div className="flex items-center gap-3">
-          <button type="submit" disabled={busy} className="rounded-md bg-brand px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-accent disabled:opacity-60">
-            {busy ? "Đang lưu…" : <span className="inline-flex items-center gap-2"><Save className="h-4 w-4" aria-hidden="true" />Lưu vào USBC101 & sổ RC</span>}
+        {/* Thanh hành động cố định */}
+        <div className="sticky bottom-0 -mx-6 mt-4 flex items-center gap-3 border-t border-line bg-card/95 px-6 py-3 backdrop-blur">
+          <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-brand px-5 py-2.5 text-[14px] font-semibold text-white hover:bg-accent disabled:opacity-60">
+            <Save className="h-4 w-4" aria-hidden="true" /> {busy ? "Đang lưu…" : "Lưu RC"}
           </button>
-          <span className="inline-flex items-center gap-1.5 text-[12px] text-muted">Bỏ trống Source 1 <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /> RC vào danh sách thiếu nguồn.</span>
+          <button type="button" onClick={resetForm} disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-[13px] text-muted hover:border-danger hover:text-danger disabled:opacity-60">
+            <RotateCcw className="h-4 w-4" aria-hidden="true" /> Reset
+          </button>
+          <div className="flex-1" />
+          <span className="text-[12px] text-muted">Bỏ trống Source 1 → RC vào danh sách thiếu nguồn.</span>
         </div>
       </form>
     </>
