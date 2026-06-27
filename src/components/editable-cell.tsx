@@ -32,7 +32,8 @@ export default function EditableCell({
     setBusy(false);
   }
 
-  const cls = `block w-full px-2.5 py-1.5 ${numeric ? "text-right font-mono" : ""}`;
+  // Ô chữ: cho xuống dòng trong bề rộng cột (tránh tràn đè cột bên); ô số giữ 1 dòng
+  const cls = `block w-full px-2.5 py-1.5 ${numeric ? "text-right font-mono" : "whitespace-normal break-words"}`;
 
   if (!editing) {
     return (
