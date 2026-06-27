@@ -1,10 +1,10 @@
 import PageHeader from "@/components/page-header";
 import Pagination from "@/components/pagination";
-import { Check, CircleCheck } from "lucide-react";
+import { Check, CircleCheck, Send } from "lucide-react";
 import { listCatalogGroups, listTransactions } from "@/lib/data";
 import { isMissingSource } from "@/lib/rules";
 import { ddmm } from "@/lib/format";
-import { resolveSourceDetail } from "@/app/actions";
+import { resolveSourceDetail, sendToUS } from "@/app/actions";
 
 const PAGE_SIZE = 50;
 
@@ -27,13 +27,20 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
       <div className="p-6">
         <div className="mb-3 text-[12px] text-muted">{total} đơn thiếu nguồn · cập nhật Source trực tiếp tại đây (điền Source 1 → đơn rời danh sách).</div>
         <div className="bg-card border border-line rounded-xl px-3">
-          {rows.length ? rows.map((t) => (
+          {rows.length ? rows.map((t) => {
+            const sent = (t.note || "").includes("Đã gửi US");
+            return (
             <div key={t.id} className="py-2.5 border-b border-line text-[13px]">
               <div className="flex items-center gap-3">
                 <span className="font-mono text-muted min-w-[52px]">{ddmm(t.ngay)}</span>
                 <span className="font-mono text-brand min-w-[110px]">{t.rcJmNo || "—"}</span>
                 <span className="flex-1 truncate">{t.dienGiai} <span className="text-muted">· {t.khach}</span></span>
-                <span className="badge bg-dangerSoft text-danger">Thiếu nguồn</span>
+                <span className={`badge ${sent ? "bg-[#FBEFD6] text-[#8a6512]" : "bg-dangerSoft text-danger"}`}>{sent ? "Đã gửi US (mô phỏng)" : "Thiếu nguồn"}</span>
+                <form action={sendToUS.bind(null, t.id)}>
+                  <button type="submit" title="Mô phỏng — chưa kết nối hệ thống US thật" className="inline-flex items-center gap-1.5 border border-line rounded-lg px-3 py-1.5 text-[12px] hover:border-accent">
+                    <Send className="h-3.5 w-3.5" aria-hidden="true" /> Gửi US
+                  </button>
+                </form>
               </div>
               {/* Cập nhật nguồn ngay tại đây */}
               <form action={resolveSourceDetail.bind(null, t.id)} className="flex flex-wrap gap-1.5 items-center mt-2 pl-[52px]">
@@ -46,7 +53,8 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
                 </button>
               </form>
             </div>
-          )) : <div className="flex items-center justify-center gap-1.5 text-center text-muted py-6 text-[13px]"><CircleCheck className="h-4 w-4 text-ok" aria-hidden="true" /> Tất cả RC đã đủ thông tin nguồn</div>}
+            );
+          }) : <div className="flex items-center justify-center gap-1.5 text-center text-muted py-6 text-[13px]"><CircleCheck className="h-4 w-4 text-ok" aria-hidden="true" /> Tất cả RC đã đủ thông tin nguồn</div>}
         </div>
         <Pagination basePath="/missing-source" sp={searchParams as Record<string, string | undefined>} page={page} totalPages={totalPages} total={total} />
         <datalist id="dl-src-miss">{sources.map((s) => <option key={s} value={s} />)}</datalist>
