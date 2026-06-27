@@ -63,6 +63,9 @@ export default function NhapRCForm({
   const salesCount = company === "Trans" ? 3 : 2;
 
   const lineTotal = useMemo(() => lines.reduce((s, l) => s + (Number(l.soLuong) || 0) * (Number(l.donGia) || 0), 0), [lines]);
+  // Mã SKU + Diễn giải GỘP từ các dòng hàng (nhiều dòng → 1 ô)
+  const skuJoined = useMemo(() => lines.map((l) => (l.sku || "").trim()).filter(Boolean).join(", "), [lines]);
+  const descJoined = useMemo(() => lines.map((l) => (l.moTa || "").trim()).filter(Boolean).join(" + "), [lines]);
   const arTotal = Object.values(ar).reduce((sum, value) => sum + (Number(value) || 0), 0);
   const apTotal = Object.values(ap).reduce((sum, value) => sum + (Number(value) || 0), 0);
   const receipt = RECEIPT_T.includes(type) ? arTotal : 0;
@@ -88,8 +91,8 @@ export default function NhapRCForm({
       type: f.get("type") as RcInput["type"],
       khach: String(f.get("khach")),
       contact: String(f.get("contact") || ""),
-      maSku: String(f.get("maSku") || ""),
-      dienGiai: String(f.get("dienGiai") || ""),
+      maSku: skuJoined,
+      dienGiai: descJoined,
       companyAccount: String(f.get("companyAccount") || ""),
       arCash: ar.cash || 0, arBankwire: ar.bank_wire || 0, arZelle: ar.zelle || 0, arCheck: ar.check || 0,
       apCash: ap.cash || 0, apBankwire: ap.bank_wire || 0, apZelle: ap.zelle || 0, apCheck: ap.check || 0,
@@ -135,8 +138,8 @@ export default function NhapRCForm({
             {fld("Type *", <select name="type" required value={type} onChange={(e) => setType(e.target.value as RcInput["type"])} className={inp}>{ACTIVE_TYPE_OPTIONS.map((k) => <option key={k} value={k}>{TYPE_LABEL[k]}</option>)}</select>)}
             {fld("Customer name *", <input name="khach" required placeholder="Tên khách" className={inp} />)}
             {fld("Contact", <input name="contact" placeholder="408-…" className={inp} />)}
-            {fld("Mã SKU", <input name="maSku" placeholder="24KRI / VRP…" className={inp} />)}
-            <div className="md:col-span-4">{fld("Diễn giải", <input name="dienGiai" placeholder="Khách mua 1L VRP / Mua vào 3.9gr vàng 18K…" className={inp} />)}</div>
+            {fld("Mã SKU (tự lấy từ dòng hàng)", <input name="maSku" value={skuJoined} readOnly placeholder="— nhập SKU ở mục Dòng hàng —" className={inp + " bg-band text-muted"} />)}
+            <div className="md:col-span-4">{fld("Diễn giải (tự gộp từ dòng hàng)", <input name="dienGiai" value={descJoined} readOnly placeholder="— nhập mô tả ở mục Dòng hàng —" className={inp + " bg-band text-muted"} />)}</div>
           </div>
         </Section>
 
