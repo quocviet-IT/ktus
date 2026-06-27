@@ -57,6 +57,7 @@ export default function NhapRCForm({
   const [ar, setAr] = useState<Record<string, number>>({});
   const [ap, setAp] = useState<Record<string, number>>({});
   const [orderTotalRaw, setOrderTotalRaw] = useState<string>("");
+  const [taxRaw, setTaxRaw] = useState<string>("");
   const [oldReceiptNo, setOldReceiptNo] = useState("");
   const [depositDate, setDepositDate] = useState("");
   const [depLookup, setDepLookup] = useState("");
@@ -83,6 +84,11 @@ export default function NhapRCForm({
   // Mã SKU + Diễn giải GỘP từ các dòng hàng (nhiều dòng → 1 ô)
   const skuJoined = useMemo(() => lines.map((l) => (l.sku || "").trim()).filter(Boolean).join(", "), [lines]);
   const descJoined = useMemo(() => lines.map((l) => (l.moTa || "").trim()).filter(Boolean).join(", "), [lines]);
+  // Thuế theo loại đơn: cọc 9.375% / bán 10% / khác 0% — tự tính, sửa được
+  const taxRate = DEPOSIT_T.includes(type) ? 9.375 : RECEIPT_T.includes(type) ? 10 : 0;
+  const taxAuto = lineTotal * taxRate / 100;
+  const tax = taxRaw === "" ? taxAuto : Number(taxRaw) || 0;
+  const subtotalWithTax = lineTotal + tax;
   const arTotal = Object.values(ar).reduce((sum, value) => sum + (Number(value) || 0), 0);
   const apTotal = Object.values(ap).reduce((sum, value) => sum + (Number(value) || 0), 0);
   const receipt = RECEIPT_T.includes(type) ? arTotal : 0;
@@ -91,7 +97,7 @@ export default function NhapRCForm({
   const tongCong = receipt + deposit - returnPo;
 
   // Tổng đơn / đã thanh toán / còn lại (đơn bán & cọc)
-  const orderTotal = orderTotalRaw === "" ? lineTotal : Number(orderTotalRaw) || 0;
+  const orderTotal = orderTotalRaw === "" ? subtotalWithTax : Number(orderTotalRaw) || 0;
   const paid = arTotal;
   const remaining = orderTotal - paid;
   const isPO = RETURN_T.includes(type);
@@ -175,12 +181,22 @@ export default function NhapRCForm({
               </div>
             ))}
           </div>
-          <div className="mt-3 flex items-center">
+          <div className="mt-3 flex items-start gap-3">
             <button type="button" onClick={() => setLines((ls) => [...ls, { moTa: "", soLuong: 1, donGia: 0 }])} className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-[12px] hover:border-accent">
               <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Thêm dòng
             </button>
             <div className="flex-1" />
-            <span className="font-mono text-[13px]"><span className="text-muted mr-2">Tổng dòng hàng</span><b>{money(lineTotal)}</b></span>
+            <div className="min-w-[280px] text-[13px] space-y-1">
+              <div className="flex items-center justify-between"><span className="text-muted">Tổng dòng hàng</span><b className="font-mono">{money(lineTotal)}</b></div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted">Thuế ({taxRate}%) <span className="text-accent italic">ƒ</span></span>
+                <input type="number" step="0.01" aria-label="Thuế"
+                  value={taxRaw === "" ? (taxAuto ? taxAuto.toFixed(2) : "") : taxRaw}
+                  onChange={(e) => setTaxRaw(e.target.value)}
+                  className="w-[120px] rounded-md border border-line px-2 py-1 text-right font-mono text-[13px]" />
+              </div>
+              <div className="flex items-center justify-between border-t border-line pt-1"><span className="text-muted">Tổng cộng (gồm thuế)</span><b className="font-mono">{money(subtotalWithTax)}</b></div>
+            </div>
           </div>
         </Section>
 
@@ -210,7 +226,7 @@ export default function NhapRCForm({
         <Section n="ƒ" title="Tổng đơn & CONDITION — tự tính">
           {!isPO && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-              {fld("Tổng tiền đơn hàng", <input name="orderTotal" type="number" step="0.01" value={orderTotalRaw} onChange={(e) => setOrderTotalRaw(e.target.value)} placeholder={String(lineTotal || 0)} className={inp + " text-right font-mono"} />)}
+              {fld("Tổng tiền đơn hàng (gồm thuế)", <input name="orderTotal" type="number" step="0.01" value={orderTotalRaw} onChange={(e) => setOrderTotalRaw(e.target.value)} placeholder={String(subtotalWithTax || 0)} className={inp + " text-right font-mono"} />)}
               {fld("Số tiền thanh toán ƒ", <div className={fx}>{money(paid)}</div>)}
               {fld("Số tiền còn lại ƒ", <div className={fx + (remaining > 0 ? " text-danger" : " text-ok")}>{money(remaining)}</div>)}
             </div>
