@@ -57,7 +57,7 @@ export const transactions = pgTable("transactions", {
   ngay: date("ngay").notNull(),                                   // DATE
   companyId: smallint("company_id").notNull().references(() => companies.id),
   type: transactionType("type").notNull(),                        // TYPE
-  maSku: text("ma_sku"),                                          // MÃ SKU
+  maSku: text("ma_sku"),                                          // Mã SKU
   dienGiai: text("dien_giai"),                                    // DECRIPTION
   customerId: uuid("customer_id").references(() => customers.id), // Cust. Name
   contact: text("contact"),
