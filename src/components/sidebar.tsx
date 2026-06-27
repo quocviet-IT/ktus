@@ -3,8 +3,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeftRight,
-  Banknote,
   BarChart3,
   Bell,
   BookOpen,
@@ -27,8 +25,6 @@ const NAV: { group?: string; href: string; label: string; icon: LucideIcon }[] =
   { href: "/missing-source", label: "RC thiếu nguồn", icon: Scale },
   { group: "Deals", href: "/deals", label: "Quản lý Deal", icon: Layers },
   { group: "Cash Book", href: "/usbc101", label: "Sổ công ty & Balance", icon: Landmark },
-  { group: "Bank", href: "/bank", label: "Sao kê ngân hàng", icon: Banknote },
-  { group: "Reconciliation", href: "/reconciliation", label: "Đối chiếu KT ↔ US", icon: ArrowLeftRight },
   { group: "Reports", href: "/reports/sales-daily", label: "Bán hàng theo ngày", icon: BarChart3 },
   { href: "/reports/sales-online", label: "Sales online", icon: Globe2 },
   { href: "/reports/bell", label: "Rung chuông", icon: Bell },

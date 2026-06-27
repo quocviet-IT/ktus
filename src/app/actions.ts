@@ -165,7 +165,7 @@ export async function createRc(input: RcInput) {
     lineItems,
     payments: [...paymentRows(input.ngay, arPayments, "ar"), ...paymentRows(input.ngay, apPayments, "ap")],
   });
-  revalidatePath("/"); revalidatePath("/rc"); revalidatePath("/missing-source");
+  revalidatePath("/"); revalidatePath("/rc"); revalidatePath("/missing-source"); revalidateReports();
   redirect(`/rc/${rec.id}`);
 }
 
@@ -181,6 +181,16 @@ function revalidateCatalogConsumers() {
   revalidatePath("/rc/new");
   revalidatePath("/rc");
   revalidatePath("/missing-source");
+}
+
+// Làm mới các trang báo cáo/sổ (đọc qua view) sau khi thay đổi đơn
+function revalidateReports() {
+  revalidatePath("/reports/bell");
+  revalidatePath("/reports/sales-online");
+  revalidatePath("/reports/sales-daily");
+  revalidatePath("/usbc101");
+  revalidatePath("/deals");
+  revalidatePath("/");
 }
 
 export async function saveCatalogItem(fd: FormData) {
@@ -240,7 +250,7 @@ export async function updateRcJm(id: string, fd: FormData): Promise<{ ok: boolea
       oldReceiptNo: s("oldReceiptNo"), depositDate: s("depositDate"),
       bellCode: s("bellCode"), trangThai: (s("trangThai") || undefined) as any, note: s("note"),
     });
-    revalidatePath(`/rc/${id}`); revalidatePath("/rc"); revalidatePath("/missing-source"); revalidatePath("/");
+    revalidatePath(`/rc/${id}`); revalidatePath("/rc"); revalidatePath("/missing-source"); revalidateReports();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as any)?.message || "Lỗi không xác định" };
@@ -255,7 +265,7 @@ export async function updateRcField(id: string, field: string, value: string | n
   const patch: Record<string, any> = {};
   patch[field] = RC_NUM_FIELDS.has(field) ? (Number(value) || 0) : String(value ?? "");
   await updateTransaction(id, patch as any);
-  revalidatePath("/usbc101"); revalidatePath("/rc"); revalidatePath(`/rc/${id}`); revalidatePath("/");
+  revalidatePath("/rc"); revalidatePath(`/rc/${id}`); revalidateReports();
 }
 
 // ===== Sao kê ngân hàng =====
@@ -370,7 +380,7 @@ export async function resolveSourceDetail(id: string, fd: FormData): Promise<{ o
       source2: s("source2") || undefined,
       note: (t?.note || "").replace(/ · Đã gửi US.*$/, ""),
     });
-    revalidatePath("/missing-source"); revalidatePath("/rc"); revalidatePath("/");
+    revalidatePath("/missing-source"); revalidatePath("/rc"); revalidateReports();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: (e as any)?.message || "Lỗi không xác định" };
