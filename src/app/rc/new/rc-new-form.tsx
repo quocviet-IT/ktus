@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, Plus, RotateCcw, Save, X } from "lucide-reac
 import PageHeader from "@/components/page-header";
 import { createRc, lookupDepositInfo, type RcInput } from "@/app/actions";
 import { COMPANIES } from "@/lib/store";
-import { ACTIVE_TYPE_OPTIONS, TYPE_LABEL } from "@/lib/rules";
+import { ACTIVE_TYPE_OPTIONS, TYPE_LABEL, bellThreshold } from "@/lib/rules";
 import { money } from "@/lib/format";
 import type { PaymentMethod } from "@/lib/payments";
 
@@ -63,6 +63,7 @@ export default function NhapRCForm({
   const [depLookup, setDepLookup] = useState("");
   const [busy, setBusy] = useState(false);
   const [showStep2, setShowStep2] = useState(false);
+  const [bellCode, setBellCode] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   function resetForm() {
@@ -71,7 +72,7 @@ export default function NhapRCForm({
     setLines([{ moTa: "", soLuong: 1, donGia: 0 }]);
     setAr({}); setAp({});
     setOrderTotalRaw(""); setTaxRaw("");
-    setOldReceiptNo(""); setDepositDate(""); setDepLookup("");
+    setOldReceiptNo(""); setDepositDate(""); setDepLookup(""); setBellCode("");
     setShowStep2(false);
   }
 
@@ -113,6 +114,11 @@ export default function NhapRCForm({
   const paid = arTotal;
   const remaining = orderTotal - paid;
   const isPO = RETURN_T.includes(type);
+
+  // Rung chuông: giá trị tính = tiền cọc (đơn cọc) / tổng đơn (đơn bán). Cảnh báo nếu chưa đạt mốc của mã đã chọn.
+  const bellValue = DEPOSIT_T.includes(type) ? arTotal : subtotalWithTax;
+  const bellNeed = bellThreshold(bellCode);
+  const bellWarn = bellNeed != null && bellValue < bellNeed;
 
   const setLine = (i: number, p: Partial<Line>) => setLines((ls) => ls.map((l, k) => (k === i ? { ...l, ...p } : l)));
 
@@ -298,8 +304,13 @@ export default function NhapRCForm({
         {/* 7. Rung chuông & ghi chú */}
         <Section n="7" title="Rung chuông & ghi chú">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {fld("Mã rung chuông", combo("bellCode", "dl-bell", "RC1 / RC2… (gõ mới được)"))}
+            {fld("Mã rung chuông", <input name="bellCode" list="dl-bell" value={bellCode} onChange={(e) => setBellCode(e.target.value)} placeholder="RC1 / RC2… (gõ mới được)" autoComplete="off" className={inp} />)}
           </div>
+          {bellWarn && (
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-dangerSoft px-2.5 py-1.5 text-[12px] text-danger">
+              ⚠ Đơn {money(bellValue)} chưa đạt mốc <b>{bellCode.toUpperCase()}</b> (cần ≥ {money(bellNeed!)}). Vẫn lưu được nếu bạn xác nhận.
+            </p>
+          )}
           <div className="mt-3">{fld("Ghi chú / các đợt thanh toán sau", <textarea name="note" rows={2} placeholder="ngày – số tiền – hình thức – xác nhận…" className={inp} />)}</div>
         </Section>
         </>)}

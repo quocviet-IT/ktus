@@ -35,6 +35,18 @@ export function isBell(t: Transaction): boolean {
   return !!t.bellCode || c.receipt >= BELL_THRESHOLD;
 }
 
+// Ngưỡng TỐI THIỂU để đạt từng mã rung chuông (theo quy định 6.2)
+export const BELL_THRESHOLDS: Record<string, number> = {
+  RC1: 5000, RC2: 10000, RC3: 50000,
+  SBS1: 1000, SBS2: 10000, SBS3: 20000, SBS4: 30000, SBS5: 50000,
+  SBO1: 1000, SBO2: 10000, SBO3: 20000, SBO4: 30000, SBO5: 50000,
+};
+export function bellThreshold(code?: string): number | null {
+  if (!code) return null;
+  const v = BELL_THRESHOLDS[code.trim().toUpperCase()];
+  return v ?? null;
+}
+
 // BR-06 — tổng đã thu / còn thiếu
 export function paidTotal(t: Transaction): number {
   return paymentTotal(t, "ar");
