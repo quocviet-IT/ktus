@@ -3,11 +3,12 @@ import Pagination from "@/components/pagination";
 import { Check, CircleCheck, Send } from "lucide-react";
 import { listCatalogGroups, listTransactions } from "@/lib/data";
 import { isMissingSource } from "@/lib/rules";
-import { ddmm } from "@/lib/format";
+import { ddmmyyyy } from "@/lib/format";
 import { resolveSourceDetail, sendToUS } from "@/app/actions";
 
 const PAGE_SIZE = 50;
 
+// Thống kê các RC thiếu thông tin nguồn KH — dạng bảng giống sheet HPUS-KT210
 export default async function MissingSource({ searchParams }: { searchParams: { page?: string } }) {
   const all = (await listTransactions()).filter(isMissingSource);
   const catalogGroups = await listCatalogGroups();
@@ -19,42 +20,79 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
   const start = (page - 1) * PAGE_SIZE;
   const rows = all.slice(start, start + PAGE_SIZE);
 
-  const inp = "border border-line rounded-lg px-2 py-1.5 text-[12px] bg-white";
+  const th = "px-2.5 py-2 border border-line bg-band font-mono text-[10px] uppercase text-brand text-left whitespace-nowrap";
+  const td = "px-2.5 py-1.5 border border-line align-top";
+  const inp = "w-full border border-line rounded-md px-2 py-1 text-[12px] bg-white";
 
   return (
     <>
-      <PageHeader crumb="Báo cáo / RC thiếu nguồn" title="RC thiếu thông tin nguồn" />
+      <PageHeader crumb="Báo cáo / RC thiếu nguồn" title="Thống kê các RC thiếu thông tin nguồn KH 2026" />
       <div className="p-6">
-        <div className="mb-3 text-[12px] text-muted">{total} đơn thiếu nguồn · cập nhật Source trực tiếp tại đây (điền Source 1 → đơn rời danh sách).</div>
-        <div className="bg-card border border-line rounded-xl px-3">
-          {rows.length ? rows.map((t) => {
-            const sent = (t.note || "").includes("Đã gửi US");
-            return (
-            <div key={t.id} className="py-2.5 border-b border-line text-[13px]">
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-muted min-w-[52px]">{ddmm(t.ngay)}</span>
-                <span className="font-mono text-brand min-w-[110px]">{t.rcJmNo || "—"}</span>
-                <span className="flex-1 truncate">{t.dienGiai} <span className="text-muted">· {t.khach}</span></span>
-                <span className={`badge ${sent ? "bg-[#FBEFD6] text-[#8a6512]" : "bg-dangerSoft text-danger"}`}>{sent ? "Đã gửi US (mô phỏng)" : "Thiếu nguồn"}</span>
-                <form action={sendToUS.bind(null, t.id)}>
-                  <button type="submit" title="Mô phỏng — chưa kết nối hệ thống US thật" className="inline-flex items-center gap-1.5 border border-line rounded-lg px-3 py-1.5 text-[12px] hover:border-accent">
-                    <Send className="h-3.5 w-3.5" aria-hidden="true" /> Gửi US
-                  </button>
-                </form>
-              </div>
-              {/* Cập nhật nguồn ngay tại đây */}
-              <form action={resolveSourceDetail.bind(null, t.id)} className="flex flex-wrap gap-1.5 items-center mt-2 pl-[52px]">
-                <input name="source1" list="dl-src-miss" defaultValue={t.source1 || ""} placeholder="Source 1 *" autoComplete="off" aria-label="Source 1" className={inp + " min-w-[150px]"} />
-                <input name="source2" list="dl-src-miss" defaultValue={t.source2 || ""} placeholder="Source 2" autoComplete="off" aria-label="Source 2" className={inp + " min-w-[120px]"} />
-                <div className="flex-1" />
-                <button type="submit" className="inline-flex items-center gap-1.5 bg-brand text-white rounded-lg px-3 py-1.5 text-[12px] hover:bg-accent">
-                  Cập nhật <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                </button>
-              </form>
-            </div>
-            );
-          }) : <div className="flex items-center justify-center gap-1.5 text-center text-muted py-6 text-[13px]"><CircleCheck className="h-4 w-4 text-ok" aria-hidden="true" /> Tất cả RC đã đủ thông tin nguồn</div>}
-        </div>
+        <div className="mb-3 text-[12px] text-muted">{total} đơn thiếu nguồn · điền <b>Source 1</b> rồi bấm Cập nhật → đơn rời danh sách. "Gửi US" là mô phỏng (chưa kết nối hệ thống US).</div>
+
+        {rows.length ? (
+          <div className="overflow-x-auto rounded-md border border-line bg-card">
+            <table className="min-w-[1180px] w-full border-collapse text-[12.5px]">
+              <thead><tr>
+                <th className={th}>NO</th>
+                <th className={th}>DATE</th>
+                <th className={th}>COMPANY</th>
+                <th className={th}>JM US RECEIPT N#</th>
+                <th className={th}>DECRIPTION</th>
+                <th className={th}>CUSTOMER</th>
+                <th className={th}>CONTACT</th>
+                <th className={th}>SALE</th>
+                <th className={th}>SOURCE 1 *</th>
+                <th className={th}>SOURCE 2</th>
+                <th className={`${th} text-center`}>THAO TÁC</th>
+              </tr></thead>
+              <tbody>
+                {rows.map((t, i) => {
+                  const sent = (t.note || "").includes("Đã gửi US");
+                  const fid = `src-${t.id}`;
+                  return (
+                    <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
+                      <td className={td + " text-right font-mono text-muted"}>{start + i + 1}</td>
+                      <td className={td + " whitespace-nowrap"}>{ddmmyyyy(t.ngay)}</td>
+                      <td className={td}><span className="badge bg-[#eceee9] text-[#445]">{t.company}</span></td>
+                      <td className={td + " font-mono text-brand whitespace-nowrap"}>{t.rcJmNo || "—"}</td>
+                      <td className={td + " max-w-[280px] whitespace-normal break-words"}>{t.dienGiai}</td>
+                      <td className={td + " whitespace-nowrap"}>{t.khach}</td>
+                      <td className={td + " whitespace-nowrap"}>{t.contact || "—"}</td>
+                      <td className={td + " whitespace-nowrap"}>{t.sale1 || "—"}</td>
+                      <td className={td + " min-w-[130px]"}>
+                        <input form={fid} name="source1" list="dl-src-miss" defaultValue={t.source1 || ""} placeholder="WI / TEL…" autoComplete="off" aria-label="Source 1" className={inp} />
+                      </td>
+                      <td className={td + " min-w-[120px]"}>
+                        <input form={fid} name="source2" list="dl-src-miss" defaultValue={t.source2 || ""} placeholder="—" autoComplete="off" aria-label="Source 2" className={inp} />
+                      </td>
+                      <td className={td + " whitespace-nowrap"}>
+                        {/* form rỗng mang action; input/button các cột khác tham chiếu qua thuộc tính form */}
+                        <form id={fid} action={resolveSourceDetail.bind(null, t.id)} />
+                        <div className="flex items-center gap-1.5">
+                          <button form={fid} type="submit" className="inline-flex items-center gap-1 bg-brand text-white rounded-md px-2.5 py-1 text-[12px] hover:bg-accent">
+                            <Check className="h-3.5 w-3.5" aria-hidden="true" /> Cập nhật
+                          </button>
+                          <form action={sendToUS.bind(null, t.id)}>
+                            <button type="submit" title="Mô phỏng — chưa kết nối hệ thống US thật"
+                              className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[12px] ${sent ? "border-[#caa24b] text-[#8a6512] bg-[#FBEFD6]" : "border-line hover:border-accent"}`}>
+                              <Send className="h-3.5 w-3.5" aria-hidden="true" /> {sent ? "Đã gửi" : "Gửi US"}
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-1.5 rounded-md border border-line bg-card text-center text-muted py-8 text-[13px]">
+            <CircleCheck className="h-4 w-4 text-ok" aria-hidden="true" /> Tất cả RC đã đủ thông tin nguồn
+          </div>
+        )}
+
         <Pagination basePath="/missing-source" sp={searchParams as Record<string, string | undefined>} page={page} totalPages={totalPages} total={total} />
         <datalist id="dl-src-miss">{sources.map((s) => <option key={s} value={s} />)}</datalist>
       </div>
