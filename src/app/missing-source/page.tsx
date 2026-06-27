@@ -41,7 +41,6 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
                 <th className={th}>DECRIPTION</th>
                 <th className={th}>CUSTOMER</th>
                 <th className={th}>CONTACT</th>
-                <th className={th}>SALE</th>
                 <th className={th}>CẬP NHẬT NGUỒN (Source 1 * / Source 2)</th>
                 <th className={`${th} text-center`}>GỬI US</th>
               </tr></thead>
@@ -57,7 +56,6 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
                       <td className={td + " max-w-[280px] whitespace-normal break-words"}>{t.dienGiai}</td>
                       <td className={td + " whitespace-nowrap"}>{t.khach}</td>
                       <td className={td + " whitespace-nowrap"}>{t.contact || "—"}</td>
-                      <td className={td + " whitespace-nowrap"}>{t.sale1 || "—"}</td>
                       <td className={td}>
                         <SourceForm id={t.id} source1={t.source1 || ""} source2={t.source2 || ""} />
                       </td>
