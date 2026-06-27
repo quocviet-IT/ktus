@@ -43,7 +43,7 @@ export default async function Usbc101({ searchParams }: { searchParams: SP }) {
         {/* tabs sheet */}
         <div className="mb-4 flex flex-wrap gap-2">
           {tabs.map((s) => {
-            const label = s === "balance" ? "BALANCE ACCOUNT" : s;
+            const label = s;
             const active = sheet === s;
             return (
               <Link key={s} href={`/usbc101?sheet=${s}&pageSize=${searchParams.pageSize || DEFAULT_PAGE_SIZE}`}
