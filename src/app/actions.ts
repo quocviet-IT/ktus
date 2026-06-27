@@ -225,7 +225,7 @@ export async function updateRcJm(id: string, fd: FormData) {
   const s = (k: string) => String(fd.get(k) ?? "");
   const numOrU = (k: string) => { const n = parseFloat(s(k)); return isNaN(n) ? undefined : n; };
   await updateTransaction(id, {
-    rcJmNo: s("rcJmNo"), soNo: s("soNo"), apptId: s("apptId"),
+    rcJmNo: s("rcJmNo"), soNo: s("soNo"),
     source1: s("source1"), source2: s("source2"),
     sale1: s("sale1"), sale2: s("sale2"), sale3: s("sale3"),
     sale1Pct: numOrU("sale1Pct"), sale2Pct: numOrU("sale2Pct"), sale3Pct: numOrU("sale3Pct"),

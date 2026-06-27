@@ -64,7 +64,6 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
             <Field label="Sale Online (% support)">{onlineList.length ? `${onlineList.join(", ")}${t.pctSupport != null ? ` · ${t.pctSupport}` : ""}` : "—"}</Field>
             <Field label="Diễn giải">{t.dienGiai}</Field>
             <Field label="SO#">{t.soNo || "—"}</Field>
-            <Field label="Appt ID">{t.apptId || "—"}</Field>
             <Field label="Số RC JM">{t.rcJmNo || "—"} {t.rcJmNo && <span className="text-muted">({jmKind(t.rcJmNo) === "deposit" ? "cọc" : jmKind(t.rcJmNo) === "sale" ? "bán/pickup" : "?"})</span>}</Field>
           </div>
 
@@ -143,7 +142,6 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
             {(() => { const lbl = "font-mono text-[11px] text-muted"; const inp = "border border-line rounded-md px-2.5 py-1.5 text-[13px] w-full bg-white"; return (<>
               <label><div className={lbl}>Số RC JM</div><input name="rcJmNo" defaultValue={t.rcJmNo || ""} placeholder="9000…/1000…" className={inp} /></label>
               <label><div className={lbl}>SO#</div><input name="soNo" defaultValue={t.soNo || ""} className={inp} /></label>
-              <label><div className={lbl}>Root Appt ID</div><input name="apptId" defaultValue={t.apptId || ""} className={inp} /></label>
               <label><div className={lbl}>Trạng thái</div>
                 <select name="trangThai" aria-label="Trạng thái" defaultValue={t.trangThai} className={inp}>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
               <label><div className={lbl}>Source 1</div><input name="source1" list="dl-sources" defaultValue={t.source1 || ""} placeholder="WI / TEL… (gõ mới được)" autoComplete="off" className={inp} /></label>
