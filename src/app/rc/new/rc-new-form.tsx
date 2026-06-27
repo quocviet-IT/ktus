@@ -115,7 +115,7 @@ export default function NhapRCForm({
       apCash: ap.cash || 0, apBankwire: ap.bank_wire || 0, apZelle: ap.zelle || 0, apCheck: ap.check || 0,
       arPayments: ar,
       apPayments: ap,
-      pay: f.get("pay") as RcInput["pay"],
+      pay: (Object.keys(ar).find((k) => (ar[k] || 0) > 0)) || "cash",
       lines,
       rcJmNo: String(f.get("rcJmNo") || ""),
       soNo: String(f.get("soNo") || ""),
@@ -187,8 +187,7 @@ export default function NhapRCForm({
         {/* 3 + 4: A/R & A/P */}
         <div className="grid md:grid-cols-2 gap-3.5">
           <Section n="3" title="Thu tiền (A/R) — khách trả">
-            {fld("Hình thức TT đợt đầu", <select name="pay" className={inp}>{paymentMethods.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}</select>)}
-            <p className="text-[11.5px] text-muted mt-2 mb-1">Khách trả <b>nhiều hình thức</b>? Nhập số tiền vào từng ô tương ứng — hệ thống tự cộng.</p>
+            <p className="text-[11.5px] text-muted mb-2">Chọn <b>nhiều hình thức</b> bằng cách nhập số tiền vào các ô tương ứng (để trống nếu không dùng) — hệ thống tự cộng.</p>
             <div className="grid grid-cols-2 gap-3 mt-2">
               {paymentMethods.map((method) => (
                 <div key={method.code}>{fld(method.label, amt(ar[method.code] || 0, (v) => setAr((s) => ({ ...s, [method.code]: v }))))}</div>
