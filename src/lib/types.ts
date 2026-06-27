@@ -93,7 +93,9 @@ export interface Transaction {
   saleOnline3?: string;
   transactionValue?: string;
   pctSupport?: number;      // % SUPPORT (mức hỗ trợ của sale online) — KHÁC tỷ lệ phân bổ
-  orderTotal?: number;      // tổng tiền đơn hàng (để tính còn lại qua nhiều đợt)
+  orderTotal?: number;      // tổng tiền đơn hàng (gồm thuế) — để tính còn lại qua nhiều đợt
+  taxRate?: number;         // thuế suất (% theo loại đơn: cọc 9.375 / bán 10)
+  taxAmount?: number;       // tiền thuế (tự tính, sửa được)
 
   oldReceiptNo?: string;
   depositDate?: string;

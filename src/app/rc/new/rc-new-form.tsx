@@ -141,6 +141,8 @@ export default function NhapRCForm({
       transactionValue: String(f.get("transactionValue") || ""),
       pctSupport: Number(f.get("pctSupport")) || undefined,
       orderTotal: orderTotal || undefined,
+      taxRate: taxRate || undefined,
+      taxAmount: tax || undefined,
       bellCode: String(f.get("bellCode") || ""),
       note: String(f.get("note") || ""),
     };

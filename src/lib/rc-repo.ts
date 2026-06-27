@@ -34,7 +34,9 @@ function rowToTx(r: any): Transaction {
     saleOnline: r.sale_online ?? undefined, saleOnline2: r.sale_online_2 ?? undefined, saleOnline3: r.sale_online_3 ?? undefined,
     transactionValue: r.transaction_value ?? undefined,
     pctSupport: r.pct_support != null ? N(r.pct_support) : undefined,
-    orderTotal: r.total != null ? N(r.total) : undefined,
+    orderTotal: r.order_total != null ? N(r.order_total) : (r.total != null ? N(r.total) : undefined),
+    taxRate: r.tax_rate != null ? N(r.tax_rate) : undefined,
+    taxAmount: r.tax_amount != null ? N(r.tax_amount) : undefined,
     oldReceiptNo: r.old_receipt_no ?? undefined,
     depositDate: r.deposit_date ?? undefined,
     bellCode: r.bell_code ?? undefined,
@@ -187,6 +189,7 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
     expense: t.expense || 0,
     source1_id: await ensureSource(t.source1), source2_id: await ensureSource(t.source2),
     transaction_value: t.transactionValue || null, pct_support: t.pctSupport ?? null,
+    order_total: t.orderTotal ?? null, tax_rate: t.taxRate ?? null, tax_amount: t.taxAmount ?? null,
     old_receipt_no: t.oldReceiptNo || null, status: t.trangThai, note: t.note || null,
     jm_receipt_no: t.rcJmNo || null,
   }).select("id").single();
@@ -220,14 +223,7 @@ export async function addTransaction(t: Omit<Transaction, "id">): Promise<Transa
   await setSales(id, "online", 2, t.saleOnline2);
   await setSales(id, "online", 3, t.saleOnline3);
 
-  // Deal: nối pickup→cọc theo old_receipt_no; tạo deal cho đơn cọc
-  if (t.oldReceiptNo) {
-    const dep = await s.from("rc_entries").select("deal_id").eq("jm_receipt_no", t.oldReceiptNo).maybeSingle();
-    if (dep.data?.deal_id) await s.from("rc_entries").update({ deal_id: dep.data.deal_id }).eq("id", id);
-  } else if (t.type === "deposit" || t.type === "extra_deposit") {
-    const d = await s.from("deals").insert({ company_id: companyId, customer_id: customerId, opened_date: t.ngay, anchor_entry_id: id, status: "open" }).select("id").single();
-    if (d.data?.id) await s.from("rc_entries").update({ deal_id: d.data.id }).eq("id", id);
-  }
+  // Deal: do TRIGGER DB tự nối pickup→cọc + tạo deal cho đơn cọc (migration-06). App không cần xử lý.
 
   return (await getTransaction(id))!;
 }
@@ -243,6 +239,9 @@ export async function updateTransaction(id: string, patch: Partial<Transaction>)
   set("contact_raw", patch.contact);
   set("transaction_value", patch.transactionValue);
   set("pct_support", patch.pctSupport);
+  set("order_total", patch.orderTotal);
+  set("tax_rate", patch.taxRate);
+  set("tax_amount", patch.taxAmount);
   set("old_receipt_no", patch.oldReceiptNo);
   set("status", patch.trangThai);
   set("note", patch.note);

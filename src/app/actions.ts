@@ -46,6 +46,8 @@ export interface RcInput {
   transactionValue?: string;
   pctSupport?: number;
   orderTotal?: number;
+  taxRate?: number;
+  taxAmount?: number;
   oldReceiptNo?: string;
   depositDate?: string;
   bellCode?: string;
@@ -155,6 +157,7 @@ export async function createRc(input: RcInput) {
     transactionValue: input.transactionValue || "",
     pctSupport: input.pctSupport ? Number(input.pctSupport) : undefined,
     orderTotal: input.orderTotal ? Number(input.orderTotal) : (tong || undefined),
+    taxRate: input.taxRate ?? undefined, taxAmount: input.taxAmount ?? undefined,
     oldReceiptNo: input.oldReceiptNo || "", depositDate: input.depositDate || undefined,
     bellCode: input.bellCode, note: input.note || "",
     trangThai: input.type === "deposit" ? "dat_coc" : "hoan_tat",
