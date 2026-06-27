@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, findByJm, addBankLine, setBankMatched, addPaymentMethod, deleteCatalogItem, upsertCatalogItem } from "@/lib/data";
+import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, findByJm, addBankLine, setBankMatched, addPaymentMethod, deleteCatalogItem, upsertCatalogItem, setCatalogActive } from "@/lib/data";
 import type { CatalogGroupKey } from "@/lib/catalog";
 import type { TxStatus, TxType, CompanyCode, LineItem, Payment } from "@/lib/types";
 
@@ -202,6 +202,16 @@ export async function removeCatalogItem(fd: FormData) {
   const code = String(fd.get("code") || "").trim();
   if (!group || !code) return;
   await deleteCatalogItem(group, code);
+  revalidateCatalogConsumers();
+}
+
+// Bật/Tắt hoạt động 1 mục danh mục (tắt → ẩn khỏi form)
+export async function toggleCatalogActive(fd: FormData) {
+  const group = String(fd.get("group") || "") as CatalogGroupKey;
+  const code = String(fd.get("code") || "").trim();
+  const active = String(fd.get("active") || "") === "true";
+  if (!group || !code) return;
+  await setCatalogActive(group, code, active);
   revalidateCatalogConsumers();
 }
 

@@ -164,12 +164,17 @@ export function updateTransaction(id: string, patch: Partial<Transaction>) {
 }
 export function setStatus(id: string, s: TxStatus) { return updateTransaction(id, { trangThai: s }); }
 
-export function listCatalogGroups(): CatalogGroup[] { return buildCatalogGroups(CATALOG); }
+export function listCatalogGroups(includeInactive = false): CatalogGroup[] { return buildCatalogGroups(CATALOG, includeInactive); }
 export function upsertCatalogItem(input: { group: CatalogGroupKey; code?: string; label: string; sort?: number; meta?: Record<string, string> }): CatalogItem {
   return upsertCatalogItemInList(CATALOG, input);
 }
 export function deleteCatalogItem(group: CatalogGroupKey, code: string): void {
   deleteCatalogItemInList(CATALOG, group, code);
+}
+export function setCatalogActive(group: CatalogGroupKey, code: string, active: boolean): void {
+  const item = CATALOG.find((i) => i.group === group && i.code === code);
+  if (item) item.active = active;
+  else CATALOG.push({ group, code, label: code, sort: 0, active });
 }
 
 // ===== Chart of accounts (BALANCE ACCOUNT) =====

@@ -61,6 +61,14 @@ export async function addPaymentMethod(label: string): Promise<PaymentMethod> {
 export async function listCatalogGroups(): Promise<CatalogGroup[]> {
   return USE_DB ? repo.listCatalogGroups() : store.listCatalogGroups();
 }
+// Trang quản lý Danh mục: lấy cả mục đã TẮT để bật lại
+export async function listCatalogGroupsManage(): Promise<CatalogGroup[]> {
+  return USE_DB ? repo.listCatalogGroups(true) : store.listCatalogGroups(true);
+}
+export async function setCatalogActive(group: CatalogGroupKey, code: string, active: boolean): Promise<void> {
+  if (USE_DB) await repo.setCatalogActive(group, code, active);
+  else store.setCatalogActive(group, code, active);
+}
 
 export async function upsertCatalogItem(input: { group: CatalogGroupKey; code?: string; label: string; sort?: number; meta?: Record<string, string> }): Promise<CatalogItem> {
   return USE_DB ? repo.upsertCatalogItem(input) : store.upsertCatalogItem(input);

@@ -137,11 +137,14 @@ export function deleteCatalogItemInList(items: CatalogItem[], group: CatalogGrou
   items.push({ group, code, label: code, sort: nextSort(items, group), active: false });
 }
 
-export function buildCatalogGroups(items: CatalogItem[]): CatalogGroup[] {
-  return CATALOG_GROUPS.map((group) => ({
-    ...group,
-    items: visibleCatalogItems(items.filter((item) => item.group === group.key)),
-  }));
+export function buildCatalogGroups(items: CatalogItem[], includeInactive = false): CatalogGroup[] {
+  return CATALOG_GROUPS.map((group) => {
+    const list = items.filter((item) => item.group === group.key);
+    const shown = includeInactive
+      ? [...list].sort((a, b) => a.sort - b.sort || a.label.localeCompare(b.label))
+      : visibleCatalogItems(list);
+    return { ...group, items: shown };
+  });
 }
 
 function nextSort(items: CatalogItem[], group: CatalogGroupKey): number {

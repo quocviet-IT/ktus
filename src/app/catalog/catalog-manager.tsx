@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { CheckCircle2, Edit3, ListFilter, Plus, Save, Search, Trash2, X } from "lucide-react";
-import { removeCatalogItem, saveCatalogItem } from "@/app/actions";
+import { Edit3, ListFilter, Plus, Save, Search, ToggleLeft, ToggleRight, Trash2, X } from "lucide-react";
+import { removeCatalogItem, saveCatalogItem, toggleCatalogActive } from "@/app/actions";
 import type { CatalogGroup, CatalogItem } from "@/lib/catalog";
 
 type DialogState =
@@ -44,6 +44,14 @@ export default function CatalogManager({ groups }: { groups: CatalogGroup[] }) {
       await removeCatalogItem(formData);
       setDialog(null);
     });
+  }
+
+  function submitToggle(item: CatalogItem) {
+    const fd = new FormData();
+    fd.set("group", item.group);
+    fd.set("code", item.code);
+    fd.set("active", item.active ? "false" : "true");
+    startTransition(async () => { await toggleCatalogActive(fd); });
   }
 
   if (!active) return null;
@@ -111,7 +119,6 @@ export default function CatalogManager({ groups }: { groups: CatalogGroup[] }) {
             <table className="min-w-[760px] w-full border-collapse">
               <thead>
                 <tr>
-                  <th className={th}>Code</th>
                   <th className={th}>Tên hiển thị</th>
                   {active.key === "gold_type" && <th className={th}>ĐVT</th>}
                   {active.key === "gold_type" && <th className={th}>Quy đổi</th>}
@@ -122,16 +129,19 @@ export default function CatalogManager({ groups }: { groups: CatalogGroup[] }) {
               </thead>
               <tbody>
                 {filtered.map((item) => (
-                  <tr key={`${item.group}-${item.code}`} className="hover:bg-band">
-                    <td className={`${td} font-mono text-[12.5px] text-brand`}>{item.code}</td>
+                  <tr key={`${item.group}-${item.code}`} className={`hover:bg-band ${item.active ? "" : "opacity-50"}`}>
                     <td className={td}>{item.label}</td>
                     {active.key === "gold_type" && <td className={`${td} font-mono`}>{item.meta?.unit || ""}</td>}
                     {active.key === "gold_type" && <td className={td}>{item.meta?.conversion || ""}</td>}
                     <td className={`${td} font-mono text-muted`}>{item.sort}</td>
                     <td className={td}>
-                      <span className="inline-flex items-center gap-1.5 rounded-md bg-okSoft px-2 py-1 text-[11.5px] font-semibold text-ok">
-                        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> Active
-                      </span>
+                      <button type="button" onClick={() => submitToggle(item)} disabled={pending}
+                        title={item.active ? "Bấm để TẮT (ẩn khỏi form)" : "Bấm để BẬT lại"}
+                        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11.5px] font-semibold disabled:opacity-50 ${item.active ? "bg-okSoft text-ok" : "bg-band text-muted"}`}>
+                        {item.active
+                          ? <><ToggleRight className="h-4 w-4" aria-hidden="true" /> Hoạt động</>
+                          : <><ToggleLeft className="h-4 w-4" aria-hidden="true" /> Đã tắt</>}
+                      </button>
                     </td>
                     <td className={`${td} text-right`}>
                       <div className="inline-flex gap-2">
@@ -147,7 +157,7 @@ export default function CatalogManager({ groups }: { groups: CatalogGroup[] }) {
                 ))}
                 {!filtered.length && (
                   <tr>
-                    <td className="px-3 py-8 text-center text-[13px] text-muted" colSpan={active.key === "gold_type" ? 7 : 5}>Không có dữ liệu.</td>
+                    <td className="px-3 py-8 text-center text-[13px] text-muted" colSpan={active.key === "gold_type" ? 6 : 4}>Không có dữ liệu.</td>
                   </tr>
                 )}
               </tbody>
@@ -211,12 +221,6 @@ function EditDialog({
             <span className="mb-1 block font-mono text-[11px] text-muted">Nhóm</span>
             <input value={group.title} readOnly className={`${input} bg-band`} />
           </label>
-          {!item && (
-            <label className="block">
-              <span className="mb-1 block font-mono text-[11px] text-muted">Code</span>
-              <input name="code" placeholder="Tự sinh nếu bỏ trống" className={input} />
-            </label>
-          )}
           <label className="block">
             <span className="mb-1 block font-mono text-[11px] text-muted">Tên hiển thị *</span>
             <input name="label" required defaultValue={item?.label ?? ""} className={input} autoFocus />

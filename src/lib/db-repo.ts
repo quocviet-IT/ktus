@@ -508,7 +508,7 @@ export async function addPaymentMethod(label: string): Promise<PaymentMethod> {
   return method;
 }
 
-export async function listCatalogGroups(): Promise<CatalogGroup[]> {
+export async function listCatalogGroups(includeInactive = false): Promise<CatalogGroup[]> {
   try {
     const keys = CATALOG_GROUPS.map((group) => group.key);
     const { data, error } = await sb()
@@ -534,11 +534,21 @@ export async function listCatalogGroups(): Promise<CatalogGroup[]> {
         meta: fallback?.meta,
       });
     }
-    return buildCatalogGroups([...merged.values()]);
+    return buildCatalogGroups([...merged.values()], includeInactive);
   } catch (e) {
     warnOnce("catalog-lookups", "[lookups] không đọc được danh mục chung —", e);
-    return buildCatalogGroups(DEFAULT_CATALOG_ITEMS);
+    return buildCatalogGroups(DEFAULT_CATALOG_ITEMS, includeInactive);
   }
+}
+
+// Bật/Tắt 1 mục danh mục (tắt → không hiển thị ở form, vẫn quản lý được để bật lại)
+export async function setCatalogActive(group: CatalogGroupKey, code: string, active: boolean): Promise<void> {
+  const groups = await listCatalogGroups(true);
+  const cur = groups.find((g) => g.key === group)?.items.find((i) => i.code === code);
+  const { error } = await sb()
+    .from("lookups")
+    .upsert({ grp: group, code, label: cur?.label ?? code, sort: cur?.sort ?? 0, active }, { onConflict: "grp,code" });
+  if (error) throw error;
 }
 
 export async function upsertCatalogItem(input: { group: CatalogGroupKey; code?: string; label: string; sort?: number; meta?: Record<string, string> }): Promise<CatalogItem> {
