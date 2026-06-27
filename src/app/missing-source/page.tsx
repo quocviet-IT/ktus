@@ -46,7 +46,6 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
               <form action={resolveSourceDetail.bind(null, t.id)} className="flex flex-wrap gap-1.5 items-center mt-2 pl-[52px]">
                 <input name="source1" list="dl-src-miss" defaultValue={t.source1 || ""} placeholder="Source 1 *" autoComplete="off" aria-label="Source 1" className={inp + " min-w-[150px]"} />
                 <input name="source2" list="dl-src-miss" defaultValue={t.source2 || ""} placeholder="Source 2" autoComplete="off" aria-label="Source 2" className={inp + " min-w-[120px]"} />
-                <input name="rcJmNo" defaultValue={t.rcJmNo || ""} placeholder="Mã đơn JM" aria-label="Mã đơn JM" className={inp + " min-w-[120px] font-mono"} />
                 <div className="flex-1" />
                 <button type="submit" className="inline-flex items-center gap-1.5 bg-brand text-white rounded-lg px-3 py-1.5 text-[12px] hover:bg-accent">
                   Cập nhật <Check className="h-3.5 w-3.5" aria-hidden="true" />
