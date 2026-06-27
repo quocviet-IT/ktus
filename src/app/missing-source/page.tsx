@@ -42,14 +42,12 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
                 <th className={th}>CUSTOMER</th>
                 <th className={th}>CONTACT</th>
                 <th className={th}>SALE</th>
-                <th className={th}>SOURCE 1 *</th>
-                <th className={th}>SOURCE 2</th>
-                <th className={`${th} text-center`}>THAO TÁC</th>
+                <th className={th}>CẬP NHẬT NGUỒN (Source 1 * / Source 2)</th>
+                <th className={`${th} text-center`}>GỬI US</th>
               </tr></thead>
               <tbody>
                 {rows.map((t, i) => {
                   const sent = (t.note || "").includes("Đã gửi US");
-                  const fid = `src-${t.id}`;
                   return (
                     <tr key={t.id} className="even:bg-band hover:bg-accentSoft">
                       <td className={td + " text-right font-mono text-muted"}>{start + i + 1}</td>
@@ -60,26 +58,23 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
                       <td className={td + " whitespace-nowrap"}>{t.khach}</td>
                       <td className={td + " whitespace-nowrap"}>{t.contact || "—"}</td>
                       <td className={td + " whitespace-nowrap"}>{t.sale1 || "—"}</td>
-                      <td className={td + " min-w-[130px]"}>
-                        <input form={fid} name="source1" list="dl-src-miss" defaultValue={t.source1 || ""} placeholder="WI / TEL…" autoComplete="off" aria-label="Source 1" className={inp} />
-                      </td>
-                      <td className={td + " min-w-[120px]"}>
-                        <input form={fid} name="source2" list="dl-src-miss" defaultValue={t.source2 || ""} placeholder="—" autoComplete="off" aria-label="Source 2" className={inp} />
-                      </td>
-                      <td className={td + " whitespace-nowrap"}>
-                        {/* form rỗng mang action; input/button các cột khác tham chiếu qua thuộc tính form */}
-                        <form id={fid} action={resolveSourceDetail.bind(null, t.id)} />
-                        <div className="flex items-center gap-1.5">
-                          <button form={fid} type="submit" className="inline-flex items-center gap-1 bg-brand text-white rounded-md px-2.5 py-1 text-[12px] hover:bg-accent">
+                      <td className={td}>
+                        {/* Input nằm TRONG form để server action gom được */}
+                        <form action={resolveSourceDetail.bind(null, t.id)} className="flex items-center gap-1.5">
+                          <input name="source1" list="dl-src-miss" defaultValue={t.source1 || ""} placeholder="Source 1 *" autoComplete="off" aria-label="Source 1" className={inp + " min-w-[110px]"} />
+                          <input name="source2" list="dl-src-miss" defaultValue={t.source2 || ""} placeholder="Source 2" autoComplete="off" aria-label="Source 2" className={inp + " min-w-[100px]"} />
+                          <button type="submit" className="inline-flex items-center gap-1 bg-brand text-white rounded-md px-2.5 py-1 text-[12px] hover:bg-accent whitespace-nowrap">
                             <Check className="h-3.5 w-3.5" aria-hidden="true" /> Cập nhật
                           </button>
-                          <form action={sendToUS.bind(null, t.id)}>
-                            <button type="submit" title="Mô phỏng — chưa kết nối hệ thống US thật"
-                              className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[12px] ${sent ? "border-[#caa24b] text-[#8a6512] bg-[#FBEFD6]" : "border-line hover:border-accent"}`}>
-                              <Send className="h-3.5 w-3.5" aria-hidden="true" /> {sent ? "Đã gửi" : "Gửi US"}
-                            </button>
-                          </form>
-                        </div>
+                        </form>
+                      </td>
+                      <td className={td + " text-center whitespace-nowrap"}>
+                        <form action={sendToUS.bind(null, t.id)}>
+                          <button type="submit" title="Mô phỏng — chưa kết nối hệ thống US thật"
+                            className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[12px] ${sent ? "border-[#caa24b] text-[#8a6512] bg-[#FBEFD6]" : "border-line hover:border-accent"}`}>
+                            <Send className="h-3.5 w-3.5" aria-hidden="true" /> {sent ? "Đã gửi" : "Gửi US"}
+                          </button>
+                        </form>
                       </td>
                     </tr>
                   );
