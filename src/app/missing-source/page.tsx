@@ -47,7 +47,7 @@ export default async function MissingSource({ searchParams }: { searchParams: { 
                 <input name="source1" list="dl-src-miss" defaultValue={t.source1 || ""} placeholder="Source 1 *" autoComplete="off" aria-label="Source 1" className={inp + " min-w-[150px]"} />
                 <input name="source2" list="dl-src-miss" defaultValue={t.source2 || ""} placeholder="Source 2" autoComplete="off" aria-label="Source 2" className={inp + " min-w-[120px]"} />
                 <input name="rcJmNo" defaultValue={t.rcJmNo || ""} placeholder="Mã đơn JM" aria-label="Mã đơn JM" className={inp + " min-w-[120px] font-mono"} />
-                <input name="detail" placeholder="Ghi chú nguồn…" aria-label="Ghi chú nguồn" className={inp + " flex-1 min-w-[160px]"} />
+                <div className="flex-1" />
                 <button type="submit" className="inline-flex items-center gap-1.5 bg-brand text-white rounded-lg px-3 py-1.5 text-[12px] hover:bg-accent">
                   Cập nhật <Check className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
