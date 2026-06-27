@@ -1,5 +1,6 @@
 import type { Transaction, TxStatus } from "./types";
 import type { PaymentMethod } from "./payments";
+import { transactionMatchesOrderOrCancelDate } from "./cancel-order";
 import {
   buildCatalogGroups,
   DEFAULT_CATALOG_ITEMS,
@@ -136,8 +137,7 @@ export function listTransactions(opts?: { company?: string; status?: string; q?:
   let rows = [...TX].sort((a, b) => (a.ngay < b.ngay ? 1 : -1));
   if (opts?.company && opts.company !== "all") rows = rows.filter((r) => r.company === opts.company);
   if (opts?.status && opts.status !== "all") rows = rows.filter((r) => r.trangThai === opts.status);
-  if (opts?.from) rows = rows.filter((r) => r.ngay >= opts.from!);
-  if (opts?.to) rows = rows.filter((r) => r.ngay <= opts.to!);
+  if (opts?.from || opts?.to) rows = rows.filter((r) => transactionMatchesOrderOrCancelDate(r, opts.from, opts.to));
   if (opts?.q) {
     const q = opts.q.toLowerCase();
     rows = rows.filter((r) => (r.rcJmNo || "").toLowerCase().includes(q) || r.khach.toLowerCase().includes(q) || r.dienGiai.toLowerCase().includes(q));

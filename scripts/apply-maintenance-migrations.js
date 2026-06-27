@@ -7,6 +7,7 @@ async function main() {
   const files = [
     "supabase/migration-missing-source-note-cleanup.sql",
     "supabase/migration-cancel-metadata.sql",
+    "supabase/migration-cancel-date-filter-view.sql",
   ];
   for (const file of files) {
     await sql.unsafe(fs.readFileSync(file, "utf8"));
@@ -25,9 +26,17 @@ async function main() {
     from transactions
     where note like '%Nguồn đã cập nhật:%'
   `);
+  const viewCols = await sql.unsafe(`
+    select column_name
+    from information_schema.columns
+    where table_name = 'v_rc_entry'
+      and column_name in ('cancel_reason','canceled_at','cancel_mode')
+    order by column_name
+  `);
 
   console.log(JSON.stringify({
     rc_entry_cancel_columns: cols.map((row) => row.column_name),
+    v_rc_entry_cancel_columns: viewCols.map((row) => row.column_name),
     old_source_note_rows: oldRows[0].c,
   }));
 }

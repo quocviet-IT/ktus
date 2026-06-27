@@ -52,7 +52,7 @@ export default async function RcDetail({ params }: { params: { id: string } }) {
             <StatusBadge s={t.trangThai} />
             {t.bellCode && <span className="inline-flex items-center gap-1 text-accent text-[13px]"><Bell className="h-3.5 w-3.5" aria-hidden="true" /> {t.bellCode}</span>}
             <div className="flex-1" />
-            <CancelOrderForm id={t.id} defaultDate={new Date().toISOString().slice(0, 10)} />
+            <CancelOrderForm id={t.id} orderDate={t.ngay} defaultDate={new Date().toISOString().slice(0, 10)} />
           </div>
 
           {t.trangThai === "cancel" && (

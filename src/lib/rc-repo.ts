@@ -54,11 +54,25 @@ function rowToTx(r: any): Transaction {
   };
 }
 
+function applyOrderOrCancelDateFilter(q: any, from?: string, to?: string) {
+  if (!from && !to) return q;
+  const orderParts = [];
+  const cancelParts = ["trang_thai.eq.cancel"];
+  if (from) {
+    orderParts.push(`ngay.gte.${from}`);
+    cancelParts.push(`canceled_at.gte.${from}`);
+  }
+  if (to) {
+    orderParts.push(`ngay.lte.${to}`);
+    cancelParts.push(`canceled_at.lte.${to}`);
+  }
+  return q.or(`and(${orderParts.join(",")}),and(${cancelParts.join(",")})`);
+}
+
 function applyFilters(q: any, opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }) {
   if (opts?.company && opts.company !== "all") q = q.eq("company", opts.company);
   if (opts?.status && opts.status !== "all") q = q.eq("trang_thai", opts.status);
-  if (opts?.from) q = q.gte("ngay", opts.from);
-  if (opts?.to) q = q.lte("ngay", opts.to);
+  q = applyOrderOrCancelDateFilter(q, opts?.from, opts?.to);
   if (opts?.q) q = q.or(`rc_jm_no.ilike.%${opts.q}%,khach.ilike.%${opts.q}%,dien_giai.ilike.%${opts.q}%`);
   return q;
 }

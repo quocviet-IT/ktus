@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { addTransaction, updateTransaction, setStatus as dbSetStatus, getTransaction, findByJm, addBankLine, setBankMatched, addPaymentMethod, deleteCatalogItem, upsertCatalogItem, setCatalogActive, addBankTransaction, setBankTransactionReconciled, addReconciliation } from "@/lib/data";
 import type { CatalogGroupKey } from "@/lib/catalog";
 import type { TxStatus, TxType, CompanyCode, LineItem, Payment } from "@/lib/types";
-import { buildCancelNote, type CancelMode } from "@/lib/cancel-order";
+import { buildCancelNote, isCancelDateValid, type CancelMode } from "@/lib/cancel-order";
 
 export interface RcInput {
   ngay: string;
@@ -333,6 +333,9 @@ export async function cancelOrder(id: string, fd: FormData): Promise<{ ok: boole
   if (!reason) return { ok: false, error: "Cần nhập lý do hủy đơn" };
   try {
     const t = await getTransaction(id);
+    if (t && !isCancelDateValid(t.ngay, cancelDate)) {
+      return { ok: false, error: "Ngay huy phai bang hoac sau ngay dat don" };
+    }
     if (!t) return { ok: false, error: "Không tìm thấy đơn" };
     await updateTransaction(id, {
       trangThai: "cancel",

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, Ban, X } from "lucide-react";
 import { cancelOrder } from "@/app/actions";
 
-export default function CancelOrderForm({ id, defaultDate }: { id: string; defaultDate: string }) {
+export default function CancelOrderForm({ id, defaultDate, orderDate }: { id: string; defaultDate: string; orderDate: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
@@ -51,7 +51,7 @@ export default function CancelOrderForm({ id, defaultDate }: { id: string; defau
             <div className="grid gap-3">
               <label className="grid gap-1 text-[12px] text-muted">
                 Ngày hủy
-                <input name="cancelDate" type="date" defaultValue={defaultDate} className="h-9 rounded-md border border-line px-2 text-[13px] text-ink" />
+                <input name="cancelDate" type="date" min={orderDate} defaultValue={defaultDate < orderDate ? orderDate : defaultDate} className="h-9 rounded-md border border-line px-2 text-[13px] text-ink" />
               </label>
               <label className="grid gap-1 text-[12px] text-muted">
                 Hình thức

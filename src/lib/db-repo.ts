@@ -199,6 +199,21 @@ function rowToTx(r: any, rel?: TxEnrichment): Transaction {
 const LIST_SELECT = "*, payments(*)";
 const DETAIL_SELECT = "*, line_items(*), payments(*)";
 
+function applyOrderOrCancelDateFilter(q: any, from?: string, to?: string) {
+  if (!from && !to) return q;
+  const orderParts = [];
+  const cancelParts = ["trang_thai.eq.cancel"];
+  if (from) {
+    orderParts.push(`ngay.gte.${from}`);
+    cancelParts.push(`canceled_at.gte.${from}`);
+  }
+  if (to) {
+    orderParts.push(`ngay.lte.${to}`);
+    cancelParts.push(`canceled_at.lte.${to}`);
+  }
+  return q.or(`and(${orderParts.join(",")}),and(${cancelParts.join(",")})`);
+}
+
 export async function listTransactions(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
   const rows: any[] = [];
   let from = 0;
@@ -207,8 +222,7 @@ export async function listTransactions(opts?: { company?: string; status?: strin
     let query: any = sb().from("transactions").select(LIST_SELECT).order("ngay", { ascending: false }).range(from, from + PAGE_SIZE - 1);
     if (opts?.company && opts.company !== "all") query = query.eq("company", opts.company);
     if (opts?.status && opts.status !== "all") query = query.eq("trang_thai", opts.status);
-    if (opts?.from) query = query.gte("ngay", opts.from);
-    if (opts?.to) query = query.lte("ngay", opts.to);
+    query = applyOrderOrCancelDateFilter(query, opts?.from, opts?.to);
     if (opts?.q) query = query.or(`rc_jm_no.ilike.%${opts.q}%,khach.ilike.%${opts.q}%,dien_giai.ilike.%${opts.q}%`);
     const { data, error } = await query;
     if (error) throw error;
@@ -233,8 +247,7 @@ export async function listTransactionsPaged(
     .order("ngay", { ascending: opts.sort === "oldest" }).range(fromIdx, fromIdx + pageSize - 1);
   if (opts.company && opts.company !== "all") query = query.eq("company", opts.company);
   if (opts.status && opts.status !== "all") query = query.eq("trang_thai", opts.status);
-  if (opts.from) query = query.gte("ngay", opts.from);
-  if (opts.to) query = query.lte("ngay", opts.to);
+  query = applyOrderOrCancelDateFilter(query, opts.from, opts.to);
   if (opts.q) query = query.or(`rc_jm_no.ilike.%${opts.q}%,khach.ilike.%${opts.q}%,dien_giai.ilike.%${opts.q}%`);
   const { data, error, count } = await query;
   if (error) throw error;
