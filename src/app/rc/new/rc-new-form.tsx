@@ -102,7 +102,6 @@ export default function NhapRCForm({
       lines,
       rcJmNo: String(f.get("rcJmNo") || ""),
       soNo: String(f.get("soNo") || ""),
-      apptId: String(f.get("apptId") || ""),
       oldReceiptNo: String(f.get("oldReceiptNo") || ""),
       depositDate: String(f.get("depositDate") || ""),
       source1: String(f.get("source1") || ""),
@@ -214,7 +213,6 @@ export default function NhapRCForm({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {fld("Số RC JM", <input name="rcJmNo" placeholder="9000…=cọc / 1000…=bán" className={inp} />)}
             {fld("SO#", <input name="soNo" className={inp} />)}
-            {fld("Root Appt ID", <input name="apptId" placeholder="AP-…" className={inp} />)}
             {fld("Source 1", combo("source1", "dl-sources", "WI / TEL / FB… (gõ mới được)"))}
             {fld("Source 2", combo("source2", "dl-sources", "— hoặc gõ mới —"))}
             {fld("Transaction value", <input name="transactionValue" placeholder="1 lượng / 1 oz…" className={inp} />)}
