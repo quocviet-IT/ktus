@@ -78,9 +78,7 @@ export default function NhapRCForm({
   }
 
   // TRANS = 3 sale, PC49 (và còn lại) = 2 sale (theo file Excel thật)
-  const baseSales = company === "Trans" ? 3 : 2;
-  const [salesExtra, setSalesExtra] = useState(0);
-  const salesCount = Math.min(3, baseSales + salesExtra);
+  const salesCount = 3; // luôn hiển thị 3 sale
 
   const lineTotal = useMemo(() => lines.reduce((s, l) => s + (Number(l.soLuong) || 0) * (Number(l.donGia) || 0), 0), [lines]);
   // Mã SKU + Diễn giải GỘP từ các dòng hàng (nhiều dòng → 1 ô)
@@ -257,7 +255,7 @@ export default function NhapRCForm({
         </Section>
 
         {/* 6. Sales & phân bổ */}
-        <Section n="6" title={`Sales & tỷ lệ phân bổ — ${company === "Trans" ? "TRANS: 3 sale" : "PC49: 2 sale"}`}>
+        <Section n="6" title="Sales & tỷ lệ phân bổ (tối đa 3 sale)">
           <div className="space-y-2">
             {Array.from({ length: salesCount }).map((_, i) => (
               <div key={i} className="grid grid-cols-[24px_1fr_120px] gap-2 items-end">
@@ -267,11 +265,6 @@ export default function NhapRCForm({
               </div>
             ))}
           </div>
-          {salesCount < 3 && (
-            <button type="button" onClick={() => setSalesExtra((x) => x + 1)} className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-[12px] hover:border-accent">
-              <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Thêm Sale #{salesCount + 1}
-            </button>
-          )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 border-t border-line pt-3">
             {fld("Sale Online #1", combo("saleOnline", "dl-online", "Team VN…"))}
             {fld("Sale Online #2", combo("saleOnline2", "dl-online", "—"))}
