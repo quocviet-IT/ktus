@@ -7,6 +7,8 @@ import { ddmmyyyy } from "@/lib/format";
 import { sendToUS } from "@/app/actions";
 import SourceForm from "./source-form";
 
+export const dynamic = "force-dynamic"; // luôn lấy dữ liệu mới (đơn vừa cập nhật nguồn sẽ rời danh sách ngay)
+
 const PAGE_SIZE = 50;
 
 // Thống kê các RC thiếu thông tin nguồn KH — dạng bảng giống sheet HPUS-KT210
