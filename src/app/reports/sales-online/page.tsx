@@ -3,7 +3,7 @@ import PageHeader from "@/components/page-header";
 import PeriodFields from "@/components/period-fields";
 import Pagination from "@/components/pagination";
 import StickyScrollTable from "@/components/sticky-scroll-table";
-import { listTransactions } from "@/lib/data";
+import { listTransactionsForSummary } from "@/lib/data";
 import { jmKind } from "@/lib/rules";
 import { ddmm } from "@/lib/format";
 import { periodRange, periodLabel, byEntryAsc } from "@/lib/period";
@@ -29,7 +29,7 @@ export default async function SalesOnline({ searchParams }: { searchParams: SP }
   const sort = normalizeSortDir(searchParams.sort);
   const requestedPageSize = Number(searchParams.pageSize);
   const pageSize = PAGE_SIZE_OPTIONS.includes(requestedPageSize) ? requestedPageSize : DEFAULT_PAGE_SIZE;
-  const withOnline = (await listTransactions({ from: range.from, to: range.to }))
+  const withOnline = (await listTransactionsForSummary({ from: range.from, to: range.to }))
     .filter((t) => t.saleOnline || t.saleOnline2 || t.saleOnline3)
     .sort(byEntryAsc);
 

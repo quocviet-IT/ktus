@@ -4,12 +4,13 @@ import PageHeader from "@/components/page-header";
 import Pagination from "@/components/pagination";
 import PeriodFields from "@/components/period-fields";
 import StickyScrollTable from "@/components/sticky-scroll-table";
-import { listPaymentMethods, listTransactions } from "@/lib/data";
+import { listPaymentMethods, listTransactionsForSummary, listTransactionsPaged } from "@/lib/data";
 import { computeCondition, TYPE_LABEL } from "@/lib/rules";
 import { num } from "@/lib/format";
 import { periodRange, periodLabel, byEntryAsc } from "@/lib/period";
 import { normalizeSortDir } from "@/lib/list-controls";
 import { currentAmountByPaymentMethod } from "@/lib/payments";
+import { summarizeSalesDailyRows } from "@/lib/performance-summaries";
 
 const DEFAULT_PAGE_SIZE = 20;
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
@@ -33,37 +34,25 @@ export default async function SalesDaily({ searchParams }: { searchParams: SP })
   const requestedPageSize = Number(searchParams.pageSize);
   const pageSize = PAGE_SIZE_OPTIONS.includes(requestedPageSize) ? requestedPageSize : DEFAULT_PAGE_SIZE;
 
-  const [all, paymentMethods] = await Promise.all([
-    listTransactions({ company, from: range.from, to: range.to }),
+  const requestedPage = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
+  const [summaryRows, paged, paymentMethods] = await Promise.all([
+    listTransactionsForSummary({ company, from: range.from, to: range.to }),
+    listTransactionsPaged({ company, from: range.from, to: range.to, sort }, requestedPage, pageSize),
     listPaymentMethods(),
   ]);
 
-  const rows = [...all].sort((a, b) => sort === "oldest" ? byEntryAsc(a, b) : byEntryAsc(b, a));
-  const total = rows.length;
+  const rows = [...summaryRows].sort((a, b) => sort === "oldest" ? byEntryAsc(a, b) : byEntryAsc(b, a));
+  const total = paged.total;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const requestedPage = Math.max(1, parseInt(searchParams.page || "1", 10) || 1);
-  const page = Math.min(requestedPage, totalPages);
+  const page = requestedPage;
   const startIdx = (page - 1) * pageSize;
-  const pageRows = rows.slice(startIdx, startIdx + pageSize);
-  const pageFrom = total ? startIdx + 1 : 0;
+  const pageRows = paged.rows;
+  const pageFrom = total && pageRows.length ? startIdx + 1 : 0;
   const pageTo = Math.min(total, startIdx + pageRows.length);
 
   const cell = (n: number) => (n ? num(n) : "");
 
-  let tTong = 0, tPO = 0, tRec = 0, tDep = 0;
-  const thu: Record<string, number> = {};
-  const chi: Record<string, number> = {};
-  rows.forEach((t) => {
-    const c = computeCondition(t);
-    tTong += c.tongCong;
-    tPO += c.returnPo;
-    tRec += c.receipt;
-    tDep += c.deposit;
-    for (const method of paymentMethods) {
-      thu[method.code] = (thu[method.code] || 0) + currentAmountByPaymentMethod(t, method.code, "ar");
-      chi[method.code] = (chi[method.code] || 0) + currentAmountByPaymentMethod(t, method.code, "ap");
-    }
-  });
+  const totals = summarizeSalesDailyRows(rows, paymentMethods);
 
   const tableMinWidth = 1200 + paymentMethods.length * 220;
   const recLabel = company === "Trans" ? "TOTAL RECEIPT" : "RECEIPT (Bán ra)";
@@ -89,10 +78,10 @@ export default async function SalesDaily({ searchParams }: { searchParams: SP })
   const stickyTotal = "sticky left-[374px] w-[118px] min-w-[118px] max-w-[118px]";
 
   const summaryItems = [
-    ["TOTAL", num(tTong), tTong < 0 ? "text-danger" : "text-ink"],
-    ["PURCHASE/PO", num(tPO), "text-ink"],
-    [recLabel, num(tRec), "text-ok"],
-    ["DEPOSIT", num(tDep), "text-ink"],
+    ["TOTAL", num(totals.tongCong), totals.tongCong < 0 ? "text-danger" : "text-ink"],
+    ["PURCHASE/PO", num(totals.purchasePo), "text-ink"],
+    [recLabel, num(totals.receipt), "text-ok"],
+    ["DEPOSIT", num(totals.deposit), "text-ink"],
     ["Dòng", num(total), "text-ink"],
     ["Trang", `${pageFrom}-${pageTo}`, "text-ink"],
   ];
@@ -242,21 +231,21 @@ export default async function SalesDaily({ searchParams }: { searchParams: SP })
                     <td className={`${td} ${stickyCustomer} sticky bottom-0 z-30 bg-accentSoft shadow-[2px_0_0_0_#D8E0D4]`}>
                       Tổng cộng
                     </td>
-                    <td className={`${tdc} ${stickyTotal} sticky bottom-0 z-30 bg-accentSoft shadow-[2px_0_0_0_#D8E0D4] ${tTong < 0 ? "text-danger" : "text-ink"}`}>
-                      {num(tTong)}
+                    <td className={`${tdc} ${stickyTotal} sticky bottom-0 z-30 bg-accentSoft shadow-[2px_0_0_0_#D8E0D4] ${totals.tongCong < 0 ? "text-danger" : "text-ink"}`}>
+                      {num(totals.tongCong)}
                     </td>
                     <td className={`${td} sticky bottom-0 bg-accentSoft`} />
-                    <td className={`${tdc} sticky bottom-0 bg-accentSoft`}>{num(tPO)}</td>
-                    <td className={`${tdc} sticky bottom-0 bg-accentSoft`}>{num(tRec)}</td>
-                    <td className={`${tdc} sticky bottom-0 bg-accentSoft`}>{num(tDep)}</td>
+                    <td className={`${tdc} sticky bottom-0 bg-accentSoft`}>{num(totals.purchasePo)}</td>
+                    <td className={`${tdc} sticky bottom-0 bg-accentSoft`}>{num(totals.receipt)}</td>
+                    <td className={`${tdc} sticky bottom-0 bg-accentSoft`}>{num(totals.deposit)}</td>
                     {paymentMethods.map((method) => (
                       <td key={`art-${method.code}`} className={`${tdc} sticky bottom-0 bg-accentSoft`}>
-                        {num(thu[method.code] || 0)}
+                        {num(totals.receivableByMethod[method.code] || 0)}
                       </td>
                     ))}
                     {paymentMethods.map((method) => (
                       <td key={`apt-${method.code}`} className={`${tdc} sticky bottom-0 bg-accentSoft`}>
-                        {num(chi[method.code] || 0)}
+                        {num(totals.payableByMethod[method.code] || 0)}
                       </td>
                     ))}
                     <td className={`${td} sticky bottom-0 bg-accentSoft`} />

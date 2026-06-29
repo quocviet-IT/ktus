@@ -198,6 +198,36 @@ function rowToTx(r: any, rel?: TxEnrichment): Transaction {
 // Báo cáo cần payments để cộng các hình thức thanh toán do người dùng tự thêm.
 const LIST_SELECT = "*, payments(*)";
 const DETAIL_SELECT = "*, line_items(*), payments(*)";
+const SUMMARY_SELECT = [
+  "id",
+  "ngay",
+  "company",
+  "type",
+  "khach",
+  "dien_giai",
+  "expense",
+  "ar_cash",
+  "ar_bankwire",
+  "ar_zelle",
+  "ar_check",
+  "ap_cash",
+  "ap_bankwire",
+  "ap_zelle",
+  "ap_check",
+  "source_1",
+  "sale_1",
+  "sale_online",
+  "sale_online_2",
+  "sale_online_3",
+  "transaction_value",
+  "pct_support",
+  "old_receipt_no",
+  "rc_jm_no",
+  "bell_code",
+  "trang_thai",
+  "created_at",
+  "payments(*)",
+].join(",");
 
 function applyOrderOrCancelDateFilter(q: any, from?: string, to?: string) {
   if (!from && !to) return q;
@@ -234,6 +264,27 @@ export async function listTransactions(opts?: { company?: string; status?: strin
 
   // Hiển thị sổ dùng cột phẳng (source/sale/khach…) → bỏ enrichment cho nhanh.
   // rowToTx tự fallback về cột phẳng khi không có rel.
+  return rows.map((row) => rowToTx(row));
+}
+
+export async function listTransactionsForSummary(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
+  const rows: any[] = [];
+  let from = 0;
+
+  while (true) {
+    let query: any = sb().from("transactions").select(SUMMARY_SELECT).order("ngay", { ascending: false }).range(from, from + PAGE_SIZE - 1);
+    if (opts?.company && opts.company !== "all") query = query.eq("company", opts.company);
+    if (opts?.status && opts.status !== "all") query = query.eq("trang_thai", opts.status);
+    query = applyOrderOrCancelDateFilter(query, opts?.from, opts?.to);
+    if (opts?.q) query = query.or(`rc_jm_no.ilike.%${opts.q}%,khach.ilike.%${opts.q}%,dien_giai.ilike.%${opts.q}%`);
+    const { data, error } = await query;
+    if (error) throw error;
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
   return rows.map((row) => rowToTx(row));
 }
 

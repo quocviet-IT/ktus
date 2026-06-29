@@ -11,5 +11,6 @@ debug.log
 .next-dev*.log
 scripts/import-output*.json
 scripts/raw-excel-output*.jsonl
+.worktrees/
 
 .vercel

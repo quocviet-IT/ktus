@@ -15,6 +15,10 @@ export async function listTransactions(opts?: { company?: string; status?: strin
   if (USE_RC_READS) return rcrepo.listTransactions(opts);
   return USE_DB ? repo.listTransactions(opts) : store.listTransactions(opts);
 }
+export async function listTransactionsForSummary(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
+  if (USE_RC_READS) return rcrepo.listTransactionsForSummary(opts);
+  return USE_DB ? repo.listTransactionsForSummary(opts) : store.listTransactions(opts);
+}
 export async function listTransactionsPaged(
   opts: { company?: string; status?: string; q?: string; from?: string; to?: string; sort?: "newest" | "oldest" },
   page: number, pageSize: number,

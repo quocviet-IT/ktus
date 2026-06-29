@@ -2,9 +2,9 @@ import Link from "next/link";
 import { ArrowRight, Bell } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import RcRow from "@/components/rc-row";
-import { listTransactions } from "@/lib/data";
-import { computeCondition, isMissingSource, isBell } from "@/lib/rules";
+import { listTransactionsForSummary, listTransactionsPaged } from "@/lib/data";
 import { money } from "@/lib/format";
+import { summarizeDashboardRows } from "@/lib/performance-summaries";
 
 function Kpi({ label, value, alert, sub }: { label: string; value: string; alert?: boolean; sub?: React.ReactNode }) {
   return (
@@ -18,37 +18,38 @@ function Kpi({ label, value, alert, sub }: { label: string; value: string; alert
 }
 
 export default async function Dashboard() {
-  const all = await listTransactions();
-  const revenue = all.reduce((s, t) => s + computeCondition(t).receipt, 0);
-  const missing = all.filter(isMissingSource);
-  const bell = all.filter(isBell);
+  const [summaryRows, recent] = await Promise.all([
+    listTransactionsForSummary(),
+    listTransactionsPaged({ sort: "newest" }, 1, 8),
+  ]);
+  const summary = summarizeDashboardRows(summaryRows);
 
   return (
     <>
-      <PageHeader crumb="Tổng quan" title="Bảng điều khiển" />
+      <PageHeader crumb="Tong quan" title="Bang dieu khien" />
       <div className="p-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
-          <Kpi label="Doanh thu (Receipt)" value={money(revenue)} sub="từ các RC bán/pickup" />
-          <Kpi label="Số RC" value={String(all.length)} sub="tổng giao dịch" />
-          <Kpi label="RC thiếu nguồn" value={String(missing.length)} alert sub="cần US bổ sung" />
-          <Kpi label="Đơn rung chuông" value={String(bell.length)} sub={<><span>đạt mốc</span><Bell className="h-3.5 w-3.5 text-accent" aria-hidden="true" /></>} />
+          <Kpi label="Doanh thu (Receipt)" value={money(summary.revenue)} sub="tu cac RC ban/pickup" />
+          <Kpi label="So RC" value={String(summary.totalCount)} sub="tong giao dich" />
+          <Kpi label="RC thieu nguon" value={String(summary.missingSourceCount)} alert sub="can US bo sung" />
+          <Kpi label="Don rung chuong" value={String(summary.bellCount)} sub={<><span>dat moc</span><Bell className="h-3.5 w-3.5 text-accent" aria-hidden="true" /></>} />
         </div>
 
         <div className="bg-card border border-line rounded-xl p-4">
           <div className="flex items-center mb-3">
-            <h2 className="font-serif text-base m-0">RC mới nhất</h2>
+            <h2 className="font-serif text-base m-0">RC moi nhat</h2>
             <div className="flex-1" />
-            <Link href="/rc" className="inline-flex items-center gap-1 text-[13px] text-brand hover:text-accent">Xem sổ giao dịch <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>
+            <Link href="/rc" className="inline-flex items-center gap-1 text-[13px] text-brand hover:text-accent">Xem so giao dich <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>
           </div>
           <div>
-            {all.slice(0, 8).map((t) => <RcRow key={t.id} t={t} />)}
+            {recent.rows.map((t) => <RcRow key={t.id} t={t} />)}
           </div>
         </div>
 
-        {missing.length > 0 && (
+        {summary.missingSourceCount > 0 && (
           <div className="mt-3.5">
             <Link href="/missing-source" className="inline-flex items-center gap-1.5 bg-brand text-white rounded-lg px-4 py-2 text-[13px] hover:bg-accent">
-              Xử lý {missing.length} RC thiếu nguồn <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              Xu ly {summary.missingSourceCount} RC thieu nguon <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           </div>
         )}

@@ -4,7 +4,7 @@ import Pagination from "@/components/pagination";
 import PeriodFields from "@/components/period-fields";
 import StickyScrollTable from "@/components/sticky-scroll-table";
 import { BellRing, Filter, RotateCcw } from "lucide-react";
-import { listCatalogGroups, listTransactions } from "@/lib/data";
+import { listCatalogGroups, listTransactionsForSummary } from "@/lib/data";
 import { isBell, computeCondition } from "@/lib/rules";
 import { money, ddmm } from "@/lib/format";
 import { periodRange, periodLabel, byEntryAsc } from "@/lib/period";
@@ -30,7 +30,7 @@ export default async function Bell({ searchParams }: { searchParams: SP }) {
   const sort = normalizeSortDir(searchParams.sort);
   const requestedPageSize = Number(searchParams.pageSize);
   const pageSize = PAGE_SIZE_OPTIONS.includes(requestedPageSize) ? requestedPageSize : DEFAULT_PAGE_SIZE;
-  const [all, catalogGroups] = await Promise.all([listTransactions({ from: range.from, to: range.to }), listCatalogGroups()]);
+  const [all, catalogGroups] = await Promise.all([listTransactionsForSummary({ from: range.from, to: range.to }), listCatalogGroups()]);
   const bellCodes = catalogGroups.find((group) => group.key === "bell_code")?.items.map((item) => item.label) ?? [];
 
   const byOrder = new Map<string, Transaction>();

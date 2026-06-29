@@ -6,6 +6,35 @@ import type { CompanyCode, Transaction, TxStatus, LineItem } from "./types";
 
 const N = (v: any) => (v == null ? 0 : Number(v));
 const PAGE = 1000;
+const SUMMARY_SELECT = [
+  "id",
+  "ngay",
+  "company",
+  "type",
+  "khach",
+  "dien_giai",
+  "expense",
+  "ar_cash",
+  "ar_bankwire",
+  "ar_zelle",
+  "ar_check",
+  "ap_cash",
+  "ap_bankwire",
+  "ap_zelle",
+  "ap_check",
+  "source_1",
+  "sale_1",
+  "sale_online",
+  "sale_online_2",
+  "sale_online_3",
+  "transaction_value",
+  "pct_support",
+  "old_receipt_no",
+  "rc_jm_no",
+  "bell_code",
+  "trang_thai",
+  "created_at",
+].join(",");
 
 function companyCode(value: any): CompanyCode {
   const up = String(value || "").trim().toUpperCase();
@@ -82,6 +111,22 @@ export async function listTransactions(opts?: { company?: string; status?: strin
   let from = 0;
   while (true) {
     let q: any = sb().from("v_rc_entry").select("*").order("ngay", { ascending: false }).range(from, from + PAGE - 1);
+    q = applyFilters(q, opts);
+    const { data, error } = await q;
+    if (error) throw error;
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < PAGE) break;
+    from += PAGE;
+  }
+  return rows.map(rowToTx);
+}
+
+export async function listTransactionsForSummary(opts?: { company?: string; status?: string; q?: string; from?: string; to?: string }): Promise<Transaction[]> {
+  const rows: any[] = [];
+  let from = 0;
+  while (true) {
+    let q: any = sb().from("v_rc_entry").select(SUMMARY_SELECT).order("ngay", { ascending: false }).range(from, from + PAGE - 1);
     q = applyFilters(q, opts);
     const { data, error } = await q;
     if (error) throw error;
